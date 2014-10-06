@@ -9,8 +9,7 @@ namespace TestWebDAVClient
         static void Main(string[] args)
         {
             // Basic authentication required
-            var c = new WebDAVClient.Client(new NetworkCredential { UserName = "saguiitay@hotmail.com" , Password = "Dark2807"});
-            //c.Server = "https://dhqid1025275851660103380.webdav.drivehq.com/webdav/dhqID1025275851660103380";
+            var c = new WebDAVClient.Client(new NetworkCredential { UserName = "USERNAME" , Password = "PASSWORD"});
             c.Server = "https://webdav.4shared.com";
             c.BasePath = "/";
 
