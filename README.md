@@ -20,7 +20,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 # Usage
 
-` csharp
+``` csharp
 // Basic authentication required
 var client = new WebDAVClient.Client(new NetworkCredential { UserName = "USERNAME" , Password = "PASSWORD"});
 // OR without authentication
