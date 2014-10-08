@@ -29,6 +29,8 @@ namespace WebDAVClient
         private static readonly HttpMethod PropFind = new HttpMethod("PROPFIND");
         private static readonly HttpMethod MkCol = new HttpMethod(WebRequestMethods.Http.MkCol);
 
+        private const int HttpStatusCode_MultiStatus = 207;
+
         private static readonly XmlSerializer PropFindResponseSerializer = new XmlSerializer(typeof(PROPFINDResponse));
 
         private readonly HttpClient _client;
@@ -76,7 +78,10 @@ namespace WebDAVClient
             if (handler.SupportsAutomaticDecompression)
                 handler.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
             if (credential != null)
+            {
                 handler.Credentials = credential;
+                handler.PreAuthenticate = true;
+            }
 
             _client = new HttpClient(handler);
         }
@@ -125,14 +130,23 @@ namespace WebDAVClient
 
             var response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent));
 
+            if (response.StatusCode != HttpStatusCode.OK && 
+                (int)response.StatusCode != HttpStatusCode_MultiStatus)
+            {
+                throw new WebDAVException((int)response.StatusCode, "Failed retrieving items in folder.");
+            }
+
             var stream = await response.Content.ReadAsStreamAsync();
-
-
             var result = (PROPFINDResponse)PropFindResponseSerializer.Deserialize(stream);
 
+            if (result == null)
+            {
+                throw new WebDAVException("Failed deserializing data returned from server.");
+            }
+
             return result.Response
-                    .Where(r => !string.Equals(r.href, listUri.ToString(), StringComparison.CurrentCultureIgnoreCase))
-                    .Where(r => !string.Equals(r.href, remoteFilePath, StringComparison.CurrentCultureIgnoreCase))
+                    .Where(r => !string.Equals(r.href, listUri.ToString(), StringComparison.CurrentCultureIgnoreCase) &&
+                                !string.Equals(r.href, remoteFilePath, StringComparison.CurrentCultureIgnoreCase))
                     .Select(r => new Item
                         {
                             Href = r.href,
@@ -170,9 +184,19 @@ namespace WebDAVClient
 
             var response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent));
 
-            var stream = await response.Content.ReadAsStreamAsync();
+            if (response.StatusCode != HttpStatusCode.OK &&
+                (int)response.StatusCode != HttpStatusCode_MultiStatus)
+            {
+                throw new WebDAVException((int)response.StatusCode, "Failed retrieving item/folder.");
+            }
 
+            var stream = await response.Content.ReadAsStreamAsync();
             var result = (PROPFINDResponse)PropFindResponseSerializer.Deserialize(stream);
+
+            if (result == null)
+            {
+                throw new WebDAVException("Failed deserializing data returned from server.");
+            }
 
             return result.Response
                     .Select(r => new Item
@@ -196,7 +220,10 @@ namespace WebDAVClient
             Uri downloadUri = GetServerUrl(remoteFilePath, false);
 
             var response = await HttpRequest(downloadUri, HttpMethod.Get);
-
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
+            }
             return await response.Content.ReadAsStreamAsync();
         }
 
@@ -213,6 +240,12 @@ namespace WebDAVClient
 
             var response = await HttpUploadRequest(uploadUri, HttpMethod.Put, content);
 
+            if (response.StatusCode != HttpStatusCode.OK &&
+                response.StatusCode != HttpStatusCode.Created)
+            {
+                throw new WebDAVException((int)response.StatusCode, "Failed uploading file.");
+            }
+
             return response.IsSuccessStatusCode;
         }
 
@@ -228,6 +261,12 @@ namespace WebDAVClient
             Uri dirUri = GetServerUrl(remotePath + name, false);
 
             var response = await HttpRequest(dirUri, MkCol);
+
+            if (response.StatusCode != HttpStatusCode.OK &&
+                response.StatusCode != HttpStatusCode.Created)
+            {
+                throw new WebDAVException((int)response.StatusCode, "Failed creating folder.");
+            }
 
             return response.IsSuccessStatusCode;
         }
