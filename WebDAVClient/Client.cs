@@ -153,7 +153,7 @@ namespace WebDAVClient
                             ContentType = r.propstat.Prop.ContentType,
                             CreationDate = r.propstat.Prop.CreationDate.Value,
                             Etag = r.propstat.Prop.Etag,
-                            IsCollection = r.propstat.Prop.IsCollection != null && r.propstat.Prop.IsCollection.Value == 1,
+                            IsCollection = r.propstat.Prop.ResourceType.collection != null || (r.propstat.Prop.IsCollection != null && r.propstat.Prop.IsCollection.Value == 1),
                             IsHidden = r.propstat.Prop.IsHidden != null && r.propstat.Prop.IsHidden.Value == 1
                         })
                         .ToList();
