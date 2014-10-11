@@ -60,7 +60,10 @@ namespace WebDAVClient
             set
             {
                 value = value.Trim('/');
-                _basePath = "/" + value + "/";
+                if (string.IsNullOrEmpty(value))
+                    _basePath = "/";
+                else
+                    _basePath = "/" + value + "/";
             }
         }
 
