@@ -18,6 +18,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 using System.Xml.Serialization;
 using WebDAVClient.Model;
 using WebDAVClient.Model.Internal;
@@ -152,7 +153,7 @@ namespace WebDAVClient
                                 !string.Equals(r.href, remoteFilePath, StringComparison.CurrentCultureIgnoreCase))
                     .Select(r => new Item
                         {
-                            Href = r.href,
+                            Href = HttpUtility.UrlDecode(r.href),
                             ContentType = r.propstat.Prop.ContentType,
                             CreationDate = r.propstat.Prop.CreationDate.Value,
                             Etag = r.propstat.Prop.Etag,
@@ -204,7 +205,7 @@ namespace WebDAVClient
             return result.Response
                     .Select(r => new Item
                     {
-                        Href = r.href,
+                        Href = HttpUtility.UrlDecode(r.href),
                         ContentType = r.propstat.Prop.ContentType,
                         CreationDate = r.propstat.Prop.CreationDate.Value,
                         Etag = r.propstat.Prop.Etag,
@@ -304,7 +305,7 @@ namespace WebDAVClient
                 request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/xml");
             }
 
-            return await _client.SendAsync(request);
+            return await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
         }
 
         /// <summary>

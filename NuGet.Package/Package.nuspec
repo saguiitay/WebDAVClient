@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>WebDAVClient</id>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <title>WebDAVClient</title>
     <authors>saguiitay</authors>
     <owners></owners>
@@ -19,7 +19,7 @@
     <iconUrl>https://nuget.org/Content/Images/packageDefaultIcon-50x50.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <licenseUrl>http://opensource.org/licenses/Apache-2.0</licenseUrl>
-    <copyright>Copyright 2014</copyright>
+    <copyright>Copyright 2015</copyright>
     <tags>WebDAV HttpClient</tags>
     <dependencies>
         <group targetFramework="net45">
