@@ -13,20 +13,23 @@ namespace TestWebDAVClient
             c.Server = "https://webdav.4shared.com";
             c.BasePath = "/";
 
-            var files = c.List("/").Result;
+            var files = c.List("/");
             var folder = files.FirstOrDefault(f => f.Href.EndsWith("/Test/"));
-            var folderReloaded = c.Get(folder.Href).Result;
+            var folderReloaded = c.Get(folder.Href);
 
-            var folderFiles = c.List(folder.Href).Result;
+            var folderFiles = c.List(folder.Href);
             var folderFile = folderFiles.FirstOrDefault(f => f.IsCollection == false);
 
-            var x = c.Download(folderFile.Href).Result;
+            if (folderFile != null)
+            {
+                var x = c.Download(folderFile.Href);
+            }
 
             var tempName = Path.GetRandomFileName();
-            var fileUploaded = c.Upload(folder.Href, File.OpenRead(@"C:\Users\itay.TZUNAMI\Desktop\Untitled.png"), tempName).Result;
-            
+            var fileUploaded = c.Upload(folder.Href, File.OpenRead("7_Little_Owls.jpg"), tempName);
+
             tempName = Path.GetRandomFileName();
-            var folderCreated = c.CreateDir(folder.Href, tempName).Result;
+            var folderCreated = c.CreateDir(folder.Href, tempName);
 
         }
     }
