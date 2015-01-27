@@ -97,7 +97,7 @@ namespace WebDAVClient
         public async Task<IEnumerable<Item>> List()
         {
             // Set default depth to 1. This would prevent recursion (default is infinity).
-            return await List("/", 1);
+            return await List("/", 1).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace WebDAVClient
         public async Task<IEnumerable<Item>> List(string path)
         {
             // Set default depth to 1. This would prevent recursion.
-            return await List(path, 1);
+            return await List(path, 1).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -132,7 +132,7 @@ namespace WebDAVClient
             }
 
 
-            var response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent));
+            var response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent)).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK && 
                 (int)response.StatusCode != HttpStatusCode_MultiStatus)
@@ -140,7 +140,7 @@ namespace WebDAVClient
                 throw new WebDAVException((int)response.StatusCode, "Failed retrieving items in folder.");
             }
 
-            var stream = await response.Content.ReadAsStreamAsync();
+            var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             var result = (PROPFINDResponse)PropFindResponseSerializer.Deserialize(stream);
 
             if (result == null)
@@ -169,7 +169,7 @@ namespace WebDAVClient
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
         public async Task<Item> Get()
         {
-            return await Get("/");
+            return await Get("/").ConfigureAwait(false);
         }
 
         /// 
@@ -186,7 +186,7 @@ namespace WebDAVClient
             headers.Add("Depth", "0");
 
 
-            var response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent));
+            var response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent)).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 (int)response.StatusCode != HttpStatusCode_MultiStatus)
@@ -194,7 +194,7 @@ namespace WebDAVClient
                 throw new WebDAVException((int)response.StatusCode, "Failed retrieving item/folder.");
             }
 
-            var stream = await response.Content.ReadAsStreamAsync();
+            var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             var result = (PROPFINDResponse)PropFindResponseSerializer.Deserialize(stream);
 
             if (result == null)
@@ -223,12 +223,12 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             Uri downloadUri = GetServerUrl(remoteFilePath, false);
 
-            var response = await HttpRequest(downloadUri, HttpMethod.Get);
+            var response = await HttpRequest(downloadUri, HttpMethod.Get).ConfigureAwait(false);
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
             }
-            return await response.Content.ReadAsStreamAsync();
+            return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -242,7 +242,7 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             Uri uploadUri = GetServerUrl(remoteFilePath + name, false);
 
-            var response = await HttpUploadRequest(uploadUri, HttpMethod.Put, content);
+            var response = await HttpUploadRequest(uploadUri, HttpMethod.Put, content).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.Created)
@@ -264,7 +264,7 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             Uri dirUri = GetServerUrl(remotePath + name, false);
 
-            var response = await HttpRequest(dirUri, MkCol);
+            var response = await HttpRequest(dirUri, MkCol).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.Created)
@@ -305,7 +305,7 @@ namespace WebDAVClient
                 request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/xml");
             }
 
-            return await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            return await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -333,7 +333,7 @@ namespace WebDAVClient
                 request.Content = new StreamContent(content);
             }
 
-            return await _client.SendAsync(request);
+            return await _client.SendAsync(request).ConfigureAwait(false);
         }
 
         private Uri GetServerUrl(String path, Boolean appendTrailingSlash)
