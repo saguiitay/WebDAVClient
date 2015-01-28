@@ -155,7 +155,7 @@ namespace WebDAVClient
                         {
                             Href = HttpUtility.UrlDecode(r.href),
                             ContentType = r.propstat.Prop.ContentType,
-                            CreationDate = r.propstat.Prop.CreationDate.Value,
+                            CreationDate = r.propstat.Prop.CreationDate != null ? r.propstat.Prop.CreationDate.Value : (DateTime?)null,
                             Etag = r.propstat.Prop.Etag,
                             IsCollection = r.propstat.Prop.ResourceType.collection != null || (r.propstat.Prop.IsCollection != null && r.propstat.Prop.IsCollection.Value == 1),
                             IsHidden = r.propstat.Prop.IsHidden != null && r.propstat.Prop.IsHidden.Value == 1
@@ -207,7 +207,7 @@ namespace WebDAVClient
                     {
                         Href = HttpUtility.UrlDecode(r.href),
                         ContentType = r.propstat.Prop.ContentType,
-                        CreationDate = r.propstat.Prop.CreationDate.Value,
+                        CreationDate = r.propstat.Prop.CreationDate != null ? r.propstat.Prop.CreationDate.Value : (DateTime?)null,
                         Etag = r.propstat.Prop.Etag,
                         IsCollection = r.propstat.Prop.IsCollection != null && r.propstat.Prop.IsCollection.Value == 1,
                         IsHidden = r.propstat.Prop.IsHidden != null && r.propstat.Prop.IsHidden.Value == 1
