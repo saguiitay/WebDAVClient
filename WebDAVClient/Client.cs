@@ -92,19 +92,10 @@ namespace WebDAVClient
 
         #region WebDAV operations
         /// <summary>
-        /// List files in the root directory
-        /// </summary>
-        public async Task<IEnumerable<Item>> List()
-        {
-            // Set default depth to 1. This would prevent recursion (default is infinity).
-            return await List("/", 1).ConfigureAwait(false);
-        }
-
-        /// <summary>
         /// List files in the given directory
         /// </summary>
         /// <param name="path"></param>
-        public async Task<IEnumerable<Item>> List(string path)
+        public async Task<IEnumerable<Item>> List(string path = "/")
         {
             // Set default depth to 1. This would prevent recursion.
             return await List(path, 1).ConfigureAwait(false);
@@ -148,9 +139,12 @@ namespace WebDAVClient
                 throw new WebDAVException("Failed deserializing data returned from server.");
             }
 
+            var listUrl = listUri.ToString();
+            var listPath = listUri.PathAndQuery;
+
             return result.Response
-                    .Where(r => !string.Equals(r.href, listUri.ToString(), StringComparison.CurrentCultureIgnoreCase) &&
-                                !string.Equals(r.href, remoteFilePath, StringComparison.CurrentCultureIgnoreCase))
+                    .Where(r => !string.Equals(r.href, listUrl, StringComparison.CurrentCultureIgnoreCase) &&
+                                !string.Equals(r.href, listPath, StringComparison.CurrentCultureIgnoreCase))
                     .Select(r => new Item
                         {
                             Href = HttpUtility.UrlDecode(r.href),
@@ -338,9 +332,12 @@ namespace WebDAVClient
 
         private Uri GetServerUrl(String path, Boolean appendTrailingSlash)
         {
-            string completePath = _basePath;
+            string completePath = "";
+
             if (path != null)
             {
+                if (!path.StartsWith(_basePath))
+                    completePath += _basePath;
                 if (!path.StartsWith(_server, StringComparison.InvariantCultureIgnoreCase))
                 {
                     completePath += path.Trim('/');
@@ -350,7 +347,12 @@ namespace WebDAVClient
                     completePath += path.Substring(_server.Length + 1).Trim('/');
                 }
             }
+            else
+            {
+                completePath += _basePath;
+            }
 
+            if (completePath.StartsWith("/") == false) { completePath = '/' + completePath; }
             if (appendTrailingSlash && completePath.EndsWith("/") == false) { completePath += '/'; }
 
             if (Port.HasValue)
