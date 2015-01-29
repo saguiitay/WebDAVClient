@@ -1,15 +1,4 @@
-﻿/*
- * (C) 2010 Kees van den Broek: kvdb@kvdb.net
- *          D-centralize: d-centralize.nl
- *          
- * Latest version and examples on: http://kvdb.net/projects/webdav
- * 
- * Feel free to use this code however you like.
- * http://creativecommons.org/license/zero/
- * 
- */
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -161,13 +150,7 @@ namespace WebDAVClient
         /// List all files present on the server.
         /// </summary>
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
-        public async Task<Item> Get()
-        {
-            return await Get("/").ConfigureAwait(false);
-        }
-
-        /// 
-        public async Task<Item> Get(string remoteFilePath)
+        public async Task<Item> Get(string remoteFilePath = "/")
         {
             // http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
             const string requestContent = "<?xml version=\"1.0\" encoding=\"utf-8\" ?><propfind xmlns=\"DAV:\"><propname/></propfind>";
@@ -239,6 +222,7 @@ namespace WebDAVClient
             var response = await HttpUploadRequest(uploadUri, HttpMethod.Put, content).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
+                response.StatusCode != HttpStatusCode.NoContent &&
                 response.StatusCode != HttpStatusCode.Created)
             {
                 throw new WebDAVException((int)response.StatusCode, "Failed uploading file.");
@@ -261,6 +245,7 @@ namespace WebDAVClient
             var response = await HttpRequest(dirUri, MkCol).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
+                response.StatusCode != HttpStatusCode.NoContent &&
                 response.StatusCode != HttpStatusCode.Created)
             {
                 throw new WebDAVException((int)response.StatusCode, "Failed creating folder.");
