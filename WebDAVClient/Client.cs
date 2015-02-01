@@ -80,28 +80,19 @@ namespace WebDAVClient
         }
 
         #region WebDAV operations
-        /// <summary>
-        /// List files in the given directory
-        /// </summary>
-        /// <param name="path"></param>
-        public async Task<IEnumerable<Item>> List(string path = "/")
-        {
-            // Set default depth to 1. This would prevent recursion.
-            return await List(path, 1).ConfigureAwait(false);
-        }
 
         /// <summary>
         /// List all files present on the server.
         /// </summary>
-        /// <param name="remoteFilePath">List only files in this path</param>
+        /// <param name="path">List only files in this path</param>
         /// <param name="depth">Recursion depth</param>
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
-        public async Task<IEnumerable<Item>> List(string remoteFilePath, int? depth)
+        public async Task<IEnumerable<Item>> List(string path = "/", int? depth = 1)
         {
             // http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
             const string requestContent = "<?xml version=\"1.0\" encoding=\"utf-8\" ?><propfind xmlns=\"DAV:\"><propname/></propfind>";
-            
-            Uri listUri = GetServerUrl(remoteFilePath, true);
+
+            Uri listUri = GetServerUrl(path, true);
 
 
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
@@ -112,50 +103,68 @@ namespace WebDAVClient
             }
 
 
-            var response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent)).ConfigureAwait(false);
+            HttpResponseMessage response = null;
 
-            if (response.StatusCode != HttpStatusCode.OK && 
-                (int)response.StatusCode != HttpStatusCode_MultiStatus)
+            try
             {
-                throw new WebDAVException((int)response.StatusCode, "Failed retrieving items in folder.");
-            }
+                response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent)).ConfigureAwait(false);
 
-            var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            var result = (PROPFINDResponse)PropFindResponseSerializer.Deserialize(stream);
+                if (response.StatusCode != HttpStatusCode.OK &&
+                    (int) response.StatusCode != HttpStatusCode_MultiStatus)
+                {
+                    throw new WebDAVException((int) response.StatusCode, "Failed retrieving items in folder.");
+                }
 
-            if (result == null)
-            {
-                throw new WebDAVException("Failed deserializing data returned from server.");
-            }
+                using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                {
+                    var result = (PROPFINDResponse) PropFindResponseSerializer.Deserialize(stream);
 
-            var listUrl = listUri.ToString();
-            var listPath = listUri.PathAndQuery;
+                    if (result == null)
+                    {
+                        throw new WebDAVException("Failed deserializing data returned from server.");
+                    }
 
-            return result.Response
-                    .Where(r => !string.Equals(r.href, listUrl, StringComparison.CurrentCultureIgnoreCase) &&
-                                !string.Equals(r.href, listPath, StringComparison.CurrentCultureIgnoreCase))
-                    .Select(r => new Item
-                        {
-                            Href = HttpUtility.UrlDecode(r.href),
-                            ContentType = r.propstat.Prop.ContentType,
-                            CreationDate = r.propstat.Prop.CreationDate != null ? r.propstat.Prop.CreationDate.Value : (DateTime?)null,
-                            Etag = r.propstat.Prop.Etag,
-                            IsCollection = r.propstat.Prop.ResourceType.collection != null || (r.propstat.Prop.IsCollection != null && r.propstat.Prop.IsCollection.Value == 1),
-                            IsHidden = r.propstat.Prop.IsHidden != null && r.propstat.Prop.IsHidden.Value == 1
-                        })
+                    var listUrl = listUri.ToString();
+                    var listPath = listUri.PathAndQuery;
+
+                    return result.Response
+                        .Where(r => !string.Equals(r.href, listUrl, StringComparison.CurrentCultureIgnoreCase) &&
+                                    !string.Equals(r.href, listPath, StringComparison.CurrentCultureIgnoreCase))
+                        .Select(r => new Item
+                            {
+                                Href = HttpUtility.UrlDecode(r.href),
+                                ContentType = r.propstat.Prop.ContentType,
+                                CreationDate =
+                                    r.propstat.Prop.CreationDate != null
+                                        ? r.propstat.Prop.CreationDate.Value
+                                        : (DateTime?) null,
+                                Etag = r.propstat.Prop.Etag,
+                                IsCollection =
+                                    r.propstat.Prop.ResourceType.collection != null ||
+                                    (r.propstat.Prop.IsCollection != null && r.propstat.Prop.IsCollection.Value == 1),
+                                IsHidden = r.propstat.Prop.IsHidden != null && r.propstat.Prop.IsHidden.Value == 1
+                            })
                         .ToList();
+                }
+
+            }
+            finally
+            {
+                if (response != null)
+                    response.Dispose();
+            }
         }
 
         /// <summary>
         /// List all files present on the server.
         /// </summary>
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
-        public async Task<Item> Get(string remoteFilePath = "/")
+        public async Task<Item> Get(string path = "/")
         {
             // http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
             const string requestContent = "<?xml version=\"1.0\" encoding=\"utf-8\" ?><propfind xmlns=\"DAV:\"><propname/></propfind>";
 
-            Uri listUri = GetServerUrl(remoteFilePath, true);
+            Uri listUri = GetServerUrl(path, true);
 
 
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
@@ -163,32 +172,48 @@ namespace WebDAVClient
             headers.Add("Depth", "0");
 
 
-            var response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent)).ConfigureAwait(false);
+            HttpResponseMessage response = null;
 
-            if (response.StatusCode != HttpStatusCode.OK &&
-                (int)response.StatusCode != HttpStatusCode_MultiStatus)
+            try
             {
-                throw new WebDAVException((int)response.StatusCode, "Failed retrieving item/folder.");
-            }
+                response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent)) .ConfigureAwait(false);
 
-            var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            var result = (PROPFINDResponse)PropFindResponseSerializer.Deserialize(stream);
+                if (response.StatusCode != HttpStatusCode.OK &&
+                    (int) response.StatusCode != HttpStatusCode_MultiStatus)
+                {
+                    throw new WebDAVException((int) response.StatusCode, "Failed retrieving item/folder.");
+                }
 
-            if (result == null)
-            {
-                throw new WebDAVException("Failed deserializing data returned from server.");
-            }
+                using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                {
+                    var result = (PROPFINDResponse) PropFindResponseSerializer.Deserialize(stream);
 
-            return result.Response
-                    .Select(r => new Item
+                    if (result == null)
                     {
-                        Href = HttpUtility.UrlDecode(r.href),
-                        ContentType = r.propstat.Prop.ContentType,
-                        CreationDate = r.propstat.Prop.CreationDate != null ? r.propstat.Prop.CreationDate.Value : (DateTime?)null,
-                        Etag = r.propstat.Prop.Etag,
-                        IsCollection = r.propstat.Prop.IsCollection != null && r.propstat.Prop.IsCollection.Value == 1,
-                        IsHidden = r.propstat.Prop.IsHidden != null && r.propstat.Prop.IsHidden.Value == 1
-                    }).FirstOrDefault();
+                        throw new WebDAVException("Failed deserializing data returned from server.");
+                    }
+
+                    return result.Response
+                        .Select(r => new Item
+                            {
+                                Href = HttpUtility.UrlDecode(r.href),
+                                ContentType = r.propstat.Prop.ContentType,
+                                CreationDate =
+                                    r.propstat.Prop.CreationDate != null
+                                        ? r.propstat.Prop.CreationDate.Value
+                                        : (DateTime?) null,
+                                Etag = r.propstat.Prop.Etag,
+                                IsCollection =
+                                    r.propstat.Prop.IsCollection != null && r.propstat.Prop.IsCollection.Value == 1,
+                                IsHidden = r.propstat.Prop.IsHidden != null && r.propstat.Prop.IsHidden.Value == 1
+                            }).FirstOrDefault();
+                }
+            }
+            finally
+            {
+                if (response != null)
+                    response.Dispose();
+            }
         }
 
         /// <summary>
@@ -200,12 +225,22 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             Uri downloadUri = GetServerUrl(remoteFilePath, false);
 
-            var response = await HttpRequest(downloadUri, HttpMethod.Get).ConfigureAwait(false);
-            if (response.StatusCode != HttpStatusCode.OK)
+            HttpResponseMessage response = null;
+
+            try
             {
-                throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
+                response = await HttpRequest(downloadUri, HttpMethod.Get).ConfigureAwait(false);
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
+                }
+                return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             }
-            return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            finally
+            {
+                if (response != null)
+                    response.Dispose();
+            }
         }
 
         /// <summary>
@@ -219,16 +254,27 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             Uri uploadUri = GetServerUrl(remoteFilePath + name, false);
 
-            var response = await HttpUploadRequest(uploadUri, HttpMethod.Put, content).ConfigureAwait(false);
+            HttpResponseMessage response = null;
 
-            if (response.StatusCode != HttpStatusCode.OK &&
-                response.StatusCode != HttpStatusCode.NoContent &&
-                response.StatusCode != HttpStatusCode.Created)
+            try
             {
-                throw new WebDAVException((int)response.StatusCode, "Failed uploading file.");
+                response = await HttpUploadRequest(uploadUri, HttpMethod.Put, content).ConfigureAwait(false);
+
+                if (response.StatusCode != HttpStatusCode.OK &&
+                    response.StatusCode != HttpStatusCode.NoContent &&
+                    response.StatusCode != HttpStatusCode.Created)
+                {
+                    throw new WebDAVException((int) response.StatusCode, "Failed uploading file.");
+                }
+
+                return response.IsSuccessStatusCode;
+            }
+            finally
+            {
+                if (response != null)
+                    response.Dispose();
             }
 
-            return response.IsSuccessStatusCode;
         }
 
 
@@ -242,16 +288,26 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             Uri dirUri = GetServerUrl(remotePath + name, false);
 
-            var response = await HttpRequest(dirUri, MkCol).ConfigureAwait(false);
+            HttpResponseMessage response = null;
 
-            if (response.StatusCode != HttpStatusCode.OK &&
-                response.StatusCode != HttpStatusCode.NoContent &&
-                response.StatusCode != HttpStatusCode.Created)
+            try
             {
-                throw new WebDAVException((int)response.StatusCode, "Failed creating folder.");
-            }
+                response = await HttpRequest(dirUri, MkCol).ConfigureAwait(false);
 
-            return response.IsSuccessStatusCode;
+                if (response.StatusCode != HttpStatusCode.OK &&
+                    response.StatusCode != HttpStatusCode.NoContent &&
+                    response.StatusCode != HttpStatusCode.Created)
+                {
+                    throw new WebDAVException((int)response.StatusCode, "Failed creating folder.");
+                }
+
+                return response.IsSuccessStatusCode;
+            }
+            finally
+            {
+                if (response!= null)
+                    response.Dispose();
+            }
         }
 
         #endregion
@@ -267,24 +323,25 @@ namespace WebDAVClient
         /// <param name="content"></param>
         private async Task<HttpResponseMessage> HttpRequest(Uri uri, HttpMethod method, IDictionary<string, string> headers = null, byte[] content = null)
         {
-            var request = new HttpRequestMessage(method, uri);
-
-            if (headers != null)
+            using (var request = new HttpRequestMessage(method, uri))
             {
-                foreach (string key in headers.Keys)
+                if (headers != null)
                 {
-                    request.Headers.Add(key, headers[key]);
+                    foreach (string key in headers.Keys)
+                    {
+                        request.Headers.Add(key, headers[key]);
+                    }
                 }
-            }
 
-            // Need to send along content?
-            if (content != null)
-            {
-                request.Content = new ByteArrayContent(content);
-                request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/xml");
-            }
+                // Need to send along content?
+                if (content != null)
+                {
+                    request.Content = new ByteArrayContent(content);
+                    request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/xml");
+                }
 
-            return await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                return await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+            }
         }
 
         /// <summary>
@@ -296,23 +353,25 @@ namespace WebDAVClient
         /// <param name="content"></param>
         private async Task<HttpResponseMessage> HttpUploadRequest(Uri uri, HttpMethod method, Stream content, IDictionary<string, string> headers = null)
         {
-            var request = new HttpRequestMessage(method, uri);
-
-            if (headers != null)
+            using (var request = new HttpRequestMessage(method, uri))
             {
-                foreach (string key in headers.Keys)
+
+                if (headers != null)
                 {
-                    request.Headers.Add(key, headers[key]);
+                    foreach (string key in headers.Keys)
+                    {
+                        request.Headers.Add(key, headers[key]);
+                    }
                 }
-            }
 
-            // Need to send along content?
-            if (content != null)
-            {
-                request.Content = new StreamContent(content);
-            }
+                // Need to send along content?
+                if (content != null)
+                {
+                    request.Content = new StreamContent(content);
+                }
 
-            return await _client.SendAsync(request).ConfigureAwait(false);
+                return await _client.SendAsync(request).ConfigureAwait(false);
+            }
         }
 
         private Uri GetServerUrl(String path, Boolean appendTrailingSlash)
