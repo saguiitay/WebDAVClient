@@ -66,6 +66,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Helpers\WebDAVConflictException.cs" />
+    <Compile Include="IClient.cs" />
     <Compile Include="Model\Internal\BooleanProperty.cs" />
     <Compile Include="Model\Internal\DateProperty.cs" />
     <Compile Include="Model\Internal\IntProperty.cs" />

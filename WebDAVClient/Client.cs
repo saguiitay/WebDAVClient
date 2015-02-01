@@ -15,7 +15,7 @@ using WebDAVClient.Model.Internal;
 
 namespace WebDAVClient
 {
-    public class Client
+    public class Client : IClient
     {
         private static readonly HttpMethod PropFind = new HttpMethod("PROPFIND");
         private static readonly HttpMethod MkCol = new HttpMethod(WebRequestMethods.Http.MkCol);
