@@ -2,7 +2,7 @@ using System;
 using System.Runtime.Serialization;
 using System.Web;
 
-namespace WebDAVClient
+namespace WebDAVClient.Helpers
 {
     public class WebDAVException : HttpException
     {

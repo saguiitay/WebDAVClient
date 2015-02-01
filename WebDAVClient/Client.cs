@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Xml.Serialization;
+using WebDAVClient.Helpers;
 using WebDAVClient.Model;
 using WebDAVClient.Model.Internal;
 
@@ -293,6 +294,9 @@ namespace WebDAVClient
             try
             {
                 response = await HttpRequest(dirUri, MkCol).ConfigureAwait(false);
+
+                if (response.StatusCode == HttpStatusCode.Conflict)
+                    throw new WebDAVConflictException((int) response.StatusCode, "Failed creating folder.");
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent &&
