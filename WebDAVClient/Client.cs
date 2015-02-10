@@ -95,6 +95,41 @@ namespace WebDAVClient
         }
 
         #region WebDAV operations
+
+        /// <summary>
+        /// Returns if a file or directory exists on the server.
+        /// </summary>
+        /// <returns>True, the item was found.  False, the item was not found.</returns>
+        public bool Exists(string remoteFilePath)
+        {
+           // http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
+            const string requestContent = "<?xml version=\"1.0\" encoding=\"utf-8\" ?><propfind xmlns=\"DAV:\"><propname/></propfind>";
+
+            Uri listUri = GetServerUrl(remoteFilePath, true);
+
+
+            // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
+            IDictionary<string, string> headers = new Dictionary<string, string>();
+            headers.Add("Depth", "0");
+
+
+            var response = HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent));
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return false;
+
+            if (response.StatusCode != HttpStatusCode.OK &&
+                (int)response.StatusCode != HttpStatusCode_MultiStatus)
+            {
+                throw new WebDAVException((int)response.StatusCode, "Failed retrieving item/folder.");
+            }
+
+            var stream = response.Content.ReadAsStreamAsync().Result;
+            var result = (PROPFINDResponse)PropFindResponseSerializer.Deserialize(stream);
+
+            return result != null;
+        }
+
         /// <summary>
         /// List files in the root directory
         /// </summary>
