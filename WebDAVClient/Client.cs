@@ -226,22 +226,12 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             Uri downloadUri = GetServerUrl(remoteFilePath, false);
 
-            HttpResponseMessage response = null;
-
-            try
+            var response = await HttpRequest(downloadUri, HttpMethod.Get).ConfigureAwait(false);
+            if (response.StatusCode != HttpStatusCode.OK)
             {
-                response = await HttpRequest(downloadUri, HttpMethod.Get).ConfigureAwait(false);
-                if (response.StatusCode != HttpStatusCode.OK)
-                {
-                    throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
-                }
-                return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
             }
-            finally
-            {
-                if (response != null)
-                    response.Dispose();
-            }
+            return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
         }
 
         /// <summary>
