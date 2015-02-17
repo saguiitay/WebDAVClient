@@ -65,17 +65,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers\ResponseParser.cs" />
     <Compile Include="Helpers\WebDAVConflictException.cs" />
     <Compile Include="IClient.cs" />
-    <Compile Include="Model\Internal\BooleanProperty.cs" />
-    <Compile Include="Model\Internal\DateProperty.cs" />
-    <Compile Include="Model\Internal\IntProperty.cs" />
-    <Compile Include="Model\Internal\multistatusResponsePropstat.cs" />
-    <Compile Include="Model\Internal\multistatusResponsePropstatProp.cs" />
-    <Compile Include="Model\Internal\multistatusResponsePropstatPropResourcetype.cs" />
-    <Compile Include="Model\Internal\PROPFINDItem.cs" />
-    <Compile Include="Model\Internal\PROPFINDResponse.cs" />
-    <Compile Include="Model\Internal\StringProperty.cs" />
     <Compile Include="Model\Item.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

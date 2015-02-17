@@ -8,10 +8,8 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
-using System.Xml.Serialization;
 using WebDAVClient.Helpers;
 using WebDAVClient.Model;
-using WebDAVClient.Model.Internal;
 
 namespace WebDAVClient
 {
@@ -22,7 +20,22 @@ namespace WebDAVClient
 
         private const int HttpStatusCode_MultiStatus = 207;
 
-        private static readonly XmlSerializer PropFindResponseSerializer = new XmlSerializer(typeof(PROPFINDResponse));
+        // http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
+        private const string PropFindRequestContent =
+            "<?xml version=\"1.0\" encoding=\"utf-8\" ?>" +
+            "<propfind xmlns=\"DAV:\">" +
+            "  <allprop/>" +
+            //"  <propname/>" +
+            //"  <prop>" +
+            //"    <creationdate/>" +
+            //"    <getlastmodified/>" +
+            //"    <displayname/>" +
+            //"    <getcontentlength/>" +
+            //"    <getcontenttype/>" +
+            //"    <getetag/>" +
+            //"    <resourcetype/>" +
+            //"  </prop> " +
+            "</propfind>";
 
         private readonly HttpClient _client;
 
@@ -90,9 +103,6 @@ namespace WebDAVClient
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
         public async Task<IEnumerable<Item>> List(string path = "/", int? depth = 1)
         {
-            // http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
-            const string requestContent = "<?xml version=\"1.0\" encoding=\"utf-8\" ?><propfind xmlns=\"DAV:\"><propname/></propfind>";
-
             Uri listUri = GetServerUrl(path, true);
 
 
@@ -108,7 +118,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent)).ConfigureAwait(false);
+                response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(PropFindRequestContent)).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != HttpStatusCode_MultiStatus)
@@ -118,7 +128,7 @@ namespace WebDAVClient
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
-                    var result = (PROPFINDResponse) PropFindResponseSerializer.Deserialize(stream);
+                    var result = ResponseParser.ParseItems(path, stream);
 
                     if (result == null)
                     {
@@ -127,24 +137,12 @@ namespace WebDAVClient
 
                     var listUrl = listUri.ToString();
                     var listPath = listUri.PathAndQuery;
+                    var listPathDecoded = HttpUtility.UrlDecode(listUri.PathAndQuery);
 
-                    return result.Response
-                        .Where(r => !string.Equals(r.href, listUrl, StringComparison.CurrentCultureIgnoreCase) &&
-                                    !string.Equals(r.href, listPath, StringComparison.CurrentCultureIgnoreCase))
-                        .Select(r => new Item
-                            {
-                                Href = HttpUtility.UrlDecode(r.href),
-                                ContentType = r.propstat.Prop.ContentType,
-                                CreationDate =
-                                    r.propstat.Prop.CreationDate != null
-                                        ? r.propstat.Prop.CreationDate.Value
-                                        : (DateTime?) null,
-                                Etag = r.propstat.Prop.Etag,
-                                IsCollection =
-                                    r.propstat.Prop.ResourceType.collection != null ||
-                                    (r.propstat.Prop.IsCollection != null && r.propstat.Prop.IsCollection.Value == 1),
-                                IsHidden = r.propstat.Prop.IsHidden != null && r.propstat.Prop.IsHidden.Value == 1
-                            })
+                    return result
+                        .Where(r => !string.Equals(r.Href, listUrl, StringComparison.CurrentCultureIgnoreCase) &&
+                                    !string.Equals(r.Href, listPath, StringComparison.CurrentCultureIgnoreCase) &&
+                                    !string.Equals(r.Href, listPathDecoded, StringComparison.CurrentCultureIgnoreCase))
                         .ToList();
                 }
 
@@ -162,11 +160,7 @@ namespace WebDAVClient
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
         public async Task<Item> Get(string path = "/")
         {
-            // http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
-            const string requestContent = "<?xml version=\"1.0\" encoding=\"utf-8\" ?><propfind xmlns=\"DAV:\"><propname/></propfind>";
-
             Uri listUri = GetServerUrl(path, true);
-
 
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
             IDictionary<string, string> headers = new Dictionary<string, string>();
@@ -177,7 +171,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(requestContent)) .ConfigureAwait(false);
+                response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(PropFindRequestContent)).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != HttpStatusCode_MultiStatus)
@@ -187,27 +181,14 @@ namespace WebDAVClient
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
-                    var result = (PROPFINDResponse) PropFindResponseSerializer.Deserialize(stream);
+                    var result = ResponseParser.ParseItem(path, stream);
 
                     if (result == null)
                     {
                         throw new WebDAVException("Failed deserializing data returned from server.");
                     }
 
-                    return result.Response
-                        .Select(r => new Item
-                            {
-                                Href = HttpUtility.UrlDecode(r.href),
-                                ContentType = r.propstat.Prop.ContentType,
-                                CreationDate =
-                                    r.propstat.Prop.CreationDate != null
-                                        ? r.propstat.Prop.CreationDate.Value
-                                        : (DateTime?) null,
-                                Etag = r.propstat.Prop.Etag,
-                                IsCollection =
-                                    r.propstat.Prop.IsCollection != null && r.propstat.Prop.IsCollection.Value == 1,
-                                IsHidden = r.propstat.Prop.IsHidden != null && r.propstat.Prop.IsHidden.Value == 1
-                            }).FirstOrDefault();
+                    return result;
                 }
             }
             finally
