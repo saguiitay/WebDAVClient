@@ -114,6 +114,11 @@ namespace WebDAVClient.Helpers
                         }
                         else if (reader.NodeType == XmlNodeType.EndElement && reader.LocalName.ToLower() == "response")
                         {
+                            // Remove trailing / if the item is not a collection
+                            if (!itemInfo.IsCollection)
+                            {
+                                itemInfo.Href = itemInfo.Href.TrimEnd('/');
+                            }
                             items.Add(itemInfo);
                         }
                     }
