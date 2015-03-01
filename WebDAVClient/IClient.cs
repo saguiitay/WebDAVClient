@@ -32,10 +32,16 @@ namespace WebDAVClient
         Task<IEnumerable<Item>> List(string path = "/", int? depth = 1);
 
         /// <summary>
-        /// List all files present on the server.
+        /// Get folder information from the server.
         /// </summary>
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
-        Task<Item> Get(string path = "/");
+        Task<Item> GetFolder(string path = "/");
+
+        /// <summary>
+        /// Get file information from the server.
+        /// </summary>
+        /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
+        Task<Item> GetFile(string path = "/");
 
         /// <summary>
         /// Download a file from the server

@@ -24,7 +24,7 @@ namespace WebDAVClient
         private const string PropFindRequestContent =
             "<?xml version=\"1.0\" encoding=\"utf-8\" ?>" +
             "<propfind xmlns=\"DAV:\">" +
-            "  <allprop/>" +
+            "<allprop/>" +
             //"  <propname/>" +
             //"  <prop>" +
             //"    <creationdate/>" +
@@ -158,9 +158,29 @@ namespace WebDAVClient
         /// List all files present on the server.
         /// </summary>
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
-        public async Task<Item> Get(string path = "/")
+        public async Task<Item> GetFolder(string path = "/")
         {
             Uri listUri = GetServerUrl(path, true);
+            return await Get(listUri, path);
+        }
+
+        /// <summary>
+        /// List all files present on the server.
+        /// </summary>
+        /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
+        public async Task<Item> GetFile(string path = "/")
+        {
+            Uri listUri = GetServerUrl(path, false);
+            return await Get(listUri, path);
+        }
+
+
+        /// <summary>
+        /// List all files present on the server.
+        /// </summary>
+        /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
+        private async Task<Item> Get(Uri listUri, string path)
+        {
 
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
             IDictionary<string, string> headers = new Dictionary<string, string>();
@@ -176,7 +196,7 @@ namespace WebDAVClient
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != HttpStatusCode_MultiStatus)
                 {
-                    throw new WebDAVException((int) response.StatusCode, "Failed retrieving item/folder.");
+                    throw new WebDAVException((int)response.StatusCode, string.Format("Failed retrieving item/folder (Status Code: {0})", response.StatusCode));
                 }
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
