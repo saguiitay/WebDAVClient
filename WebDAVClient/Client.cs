@@ -137,12 +137,16 @@ namespace WebDAVClient
 
                     var listUrl = listUri.ToString();
                     var listPath = listUri.PathAndQuery;
+                    var listPathTrimmed = listPath.TrimEnd('/');
                     var listPathDecoded = HttpUtility.UrlDecode(listUri.PathAndQuery);
+                    var listPathDecodedTrimmed = listPathDecoded.TrimEnd('/');
 
                     return result
                         .Where(r => !string.Equals(r.Href, listUrl, StringComparison.CurrentCultureIgnoreCase) &&
                                     !string.Equals(r.Href, listPath, StringComparison.CurrentCultureIgnoreCase) &&
-                                    !string.Equals(r.Href, listPathDecoded, StringComparison.CurrentCultureIgnoreCase))
+                                    !string.Equals(r.Href, listPathTrimmed, StringComparison.CurrentCultureIgnoreCase) &&
+                                    !string.Equals(r.Href, listPathDecoded, StringComparison.CurrentCultureIgnoreCase) &&
+                                    !string.Equals(r.Href, listPathDecodedTrimmed, StringComparison.CurrentCultureIgnoreCase))
                         .ToList();
                 }
 
