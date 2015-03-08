@@ -91,6 +91,7 @@ namespace WebDAVClient
             }
 
             _client = new HttpClient(handler);
+            _client.DefaultRequestHeaders.ExpectContinue = false;
         }
 
         #region WebDAV operations
