@@ -63,5 +63,17 @@ namespace WebDAVClient
         /// <param name="remotePath">Destination path of the directory on the server</param>
         /// <param name="name"></param>
         Task<bool> CreateDir(string remotePath, string name);
+
+        /// <summary>
+        /// Get folder information from the server.
+        /// </summary>
+        /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
+        Task DeleteFolder(string path = "/");
+
+        /// <summary>
+        /// Get file information from the server.
+        /// </summary>
+        /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
+        Task DeleteFile(string path = "/");
     }
 }

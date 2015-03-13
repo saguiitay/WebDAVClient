@@ -310,6 +310,30 @@ namespace WebDAVClient
             }
         }
 
+        public async Task DeleteFolder(string href)
+        {
+            Uri listUri = GetServerUrl(href, true);
+            await Delete(listUri);
+        }
+
+        public async Task DeleteFile(string href)
+        {
+            Uri listUri = GetServerUrl(href, false);
+            await Delete(listUri);
+        }
+
+
+        private async Task Delete(Uri listUri)
+        {
+            var response = await HttpRequest(listUri, HttpMethod.Delete).ConfigureAwait(false);
+
+            if (response.StatusCode != HttpStatusCode.OK &&
+                response.StatusCode != HttpStatusCode.NoContent)
+            {
+                throw new WebDAVException((int)response.StatusCode, "Failed deleting item.");
+            }
+        }
+
         #endregion
 
         #region Server communication
@@ -407,5 +431,7 @@ namespace WebDAVClient
 
 
         #endregion
+
+      
     }
 }
