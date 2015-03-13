@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using WebDAVClient;
 
 namespace TestWebDAVClient
 {
@@ -16,9 +17,9 @@ namespace TestWebDAVClient
         private static async Task MainAsync()
         {
             // Basic authentication required
-            var c = new WebDAVClient.Client(new NetworkCredential { UserName = "USERNAME" , Password = "PASSWORD"});
-            c.Server = "https://webdav.4shared.com";
-            c.BasePath = "/";
+            IClient c = new Client(new NetworkCredential { UserName = "USERNAME" , Password = "PASSWORD"});
+            c.Server = "https://dav.dumptruck.goldenfrog.com/";
+            c.BasePath = "/dav/";
 
             // List items in the root folder
             var files = await c.List();
@@ -47,9 +48,12 @@ namespace TestWebDAVClient
             }
             
             // Create a folder
-            tempName = Path.GetRandomFileName();
-            var folderCreated = await c.CreateDir(folder.Href, tempName);
+            var tempFolderName = Path.GetRandomFileName();
+            var isfolderCreated = await c.CreateDir("/", tempFolderName);
 
+            // Delete created folder
+            var folderCreated = await c.GetFolder("/" + tempFolderName);
+            await c.DeleteFolder(folderCreated.Href);
         }
     }
 }
