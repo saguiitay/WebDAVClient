@@ -75,5 +75,19 @@ namespace WebDAVClient
         /// </summary>
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
         Task DeleteFile(string path = "/");
+
+        /// <summary>
+        /// Move a folder on the server
+        /// </summary>
+        /// <param name="srcFolderPath">Source path of the folder on the server</param>
+        /// <param name="dstFolderPath">Destination path of the folder on the server</param>
+        Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath);
+
+        /// <summary>
+        /// Move a file on the server
+        /// </summary>
+        /// <param name="srcFilePath">Source path and filename of the file on the server</param>
+        /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
+        Task<bool> MoveFile(string srcFilePath, string dstFilePath);
     }
 }

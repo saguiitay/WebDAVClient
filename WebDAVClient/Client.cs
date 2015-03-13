@@ -16,6 +16,8 @@ namespace WebDAVClient
     public class Client : IClient
     {
         private static readonly HttpMethod PropFind = new HttpMethod("PROPFIND");
+        private static readonly HttpMethod MoveMethod = new HttpMethod("MOVE");
+
         private static readonly HttpMethod MkCol = new HttpMethod(WebRequestMethods.Http.MkCol);
 
         private const int HttpStatusCode_MultiStatus = 207;
@@ -313,13 +315,13 @@ namespace WebDAVClient
         public async Task DeleteFolder(string href)
         {
             Uri listUri = GetServerUrl(href, true);
-            await Delete(listUri);
+            await Delete(listUri).ConfigureAwait(false);
         }
 
         public async Task DeleteFile(string href)
         {
             Uri listUri = GetServerUrl(href, false);
-            await Delete(listUri);
+            await Delete(listUri).ConfigureAwait(false);
         }
 
 
@@ -332,6 +334,44 @@ namespace WebDAVClient
             {
                 throw new WebDAVException((int)response.StatusCode, "Failed deleting item.");
             }
+        }
+
+        public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath)
+        {
+            // Should have a trailing slash.
+            Uri srcUri = GetServerUrl(srcFolderPath, true);
+            Uri dstUri = GetServerUrl(dstFolderPath, true);
+
+            return await Move(srcUri, dstUri).ConfigureAwait(false);
+
+        }
+
+        public async Task<bool> MoveFile(string srcFilePath, string dstFilePath)
+        {
+            // Should not have a trailing slash.
+            Uri srcUri = GetServerUrl(srcFilePath, false);
+            Uri dstUri = GetServerUrl(dstFilePath, false);
+
+            return await Move(srcUri, dstUri).ConfigureAwait(false);
+        }
+
+
+        private async Task<bool> Move(Uri srcUri, Uri dstUri)
+        {
+            const string requestContent = "MOVE";
+
+            IDictionary<string, string> headers = new Dictionary<string, string>();
+            headers.Add("Destination", dstUri.ToString());
+
+            var response = await HttpRequest(srcUri, MoveMethod, headers, Encoding.UTF8.GetBytes(requestContent)).ConfigureAwait(false);
+
+            if (response.StatusCode != HttpStatusCode.OK &&
+                response.StatusCode != HttpStatusCode.Created)
+            {
+                throw new WebDAVException((int)response.StatusCode, "Failed moving file.");
+            }
+
+            return response.IsSuccessStatusCode;
         }
 
         #endregion
