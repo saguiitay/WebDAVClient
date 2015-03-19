@@ -40,6 +40,7 @@ namespace WebDAVClient
             "</propfind>";
 
         private readonly HttpClient _client;
+        private readonly HttpClient _uploadClient;
 
         #region WebDAV connection parameters
         private String _server;
@@ -81,7 +82,7 @@ namespace WebDAVClient
         #endregion
 
 
-        public Client(NetworkCredential credential)
+        public Client(NetworkCredential credential, TimeSpan? uploadTimeout = null)
         {
             var handler = new HttpClientHandler();
             if (handler.SupportsAutomaticDecompression)
@@ -94,6 +95,13 @@ namespace WebDAVClient
 
             _client = new HttpClient(handler);
             _client.DefaultRequestHeaders.ExpectContinue = false;
+
+            if (uploadTimeout != null)
+            {
+                _uploadClient = new HttpClient(handler);
+                _uploadClient.DefaultRequestHeaders.ExpectContinue = false;
+                _uploadClient.Timeout = uploadTimeout.Value;
+            }
         }
 
         #region WebDAV operations
@@ -434,7 +442,8 @@ namespace WebDAVClient
                     request.Content = new StreamContent(content);
                 }
 
-                return await _client.SendAsync(request).ConfigureAwait(false);
+                var client = _uploadClient ?? _client;
+                return await client.SendAsync(request).ConfigureAwait(false);
             }
         }
 
