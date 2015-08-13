@@ -37,5 +37,15 @@ namespace WebDAVClient.Helpers
         protected WebDAVException(SerializationInfo info, StreamingContext context) 
             : base(info, context)
         {}
+
+        public override string ToString()
+        {
+            var s = string.Format("HttpStatusCode: {0}", base.GetHttpCode());
+            s += Environment.NewLine + string.Format("ErrorCode: {0}", ErrorCode);
+            s += Environment.NewLine + string.Format("Message: {0}", Message);
+            s += Environment.NewLine + base.ToString();
+
+            return s;
+        }
     }
 }
