@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -11,17 +10,27 @@ namespace WebDAVClient
         /// <summary>
         /// Specify the WebDAV hostname (required).
         /// </summary>
-        String Server { get; set; }
+        string Server { get; set; }
 
         /// <summary>
         /// Specify the path of a WebDAV directory to use as 'root' (default: /)
         /// </summary>
-        String BasePath { get; set; }
+        string BasePath { get; set; }
 
         /// <summary>
         /// Specify an port (default: null = auto-detect)
         /// </summary>
         int? Port { get; set; }
+
+        /// <summary>
+        /// Specify the UserAgent (and UserAgent version) string to use in requests
+        /// </summary>
+        string UserAgent { get; set; }
+        /// <summary>
+        /// Specify the UserAgent (and UserAgent version) string to use in requests
+        /// </summary>
+        string UserAgentVersion { get; set; }
+
 
         /// <summary>
         /// List all files present on the server.

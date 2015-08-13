@@ -39,15 +39,20 @@ namespace WebDAVClient
             //"  </prop> " +
             "</propfind>";
 
+        private static readonly string AssemblyVersion = typeof (IClient).Assembly.GetName().Version.ToString();
+
         private readonly HttpClient _client;
         private readonly HttpClient _uploadClient;
+        private string _server;
+        private string _basePath = "/";
+
 
         #region WebDAV connection parameters
-        private String _server;
+
         /// <summary>
         /// Specify the WebDAV hostname (required).
         /// </summary>
-        public String Server
+        public string Server
         {
             get { return _server; }
             set
@@ -56,12 +61,11 @@ namespace WebDAVClient
                 _server = value;
             }
         }
-        private String _basePath = "/";
 
         /// <summary>
         /// Specify the path of a WebDAV directory to use as 'root' (default: /)
         /// </summary>
-        public String BasePath
+        public string BasePath
         {
             get { return _basePath; }
             set
@@ -79,10 +83,20 @@ namespace WebDAVClient
         /// </summary>
         public int? Port { get; set; }
 
+        /// <summary>
+        /// Specify the UserAgent (and UserAgent version) string to use in requests
+        /// </summary>
+        public string UserAgent { get; set; }
+        
+        /// <summary>
+        /// Specify the UserAgent (and UserAgent version) string to use in requests
+        /// </summary>
+        public string UserAgentVersion { get; set; }
+
         #endregion
 
 
-        public Client(NetworkCredential credential, TimeSpan? uploadTimeout = null)
+        public Client(NetworkCredential credential = null, TimeSpan? uploadTimeout = null)
         {
             var handler = new HttpClientHandler();
             if (handler.SupportsAutomaticDecompression)
@@ -102,6 +116,7 @@ namespace WebDAVClient
                 _uploadClient.DefaultRequestHeaders.ExpectContinue = false;
                 _uploadClient.Timeout = uploadTimeout.Value;
             }
+
         }
 
         #region WebDAV operations
@@ -176,7 +191,7 @@ namespace WebDAVClient
         public async Task<Item> GetFolder(string path = "/")
         {
             Uri listUri = GetServerUrl(path, true);
-            return await Get(listUri, path);
+            return await Get(listUri, path).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -186,7 +201,7 @@ namespace WebDAVClient
         public async Task<Item> GetFile(string path = "/")
         {
             Uri listUri = GetServerUrl(path, false);
-            return await Get(listUri, path);
+            return await Get(listUri, path).ConfigureAwait(false);
         }
 
 
@@ -242,7 +257,8 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             Uri downloadUri = GetServerUrl(remoteFilePath, false);
 
-            var response = await HttpRequest(downloadUri, HttpMethod.Get).ConfigureAwait(false);
+            var dictionary = new Dictionary<string, string> { { "translate", "f" } };
+            var response = await HttpRequest(downloadUri, HttpMethod.Get, dictionary).ConfigureAwait(false);
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
@@ -397,6 +413,12 @@ namespace WebDAVClient
         {
             using (var request = new HttpRequestMessage(method, uri))
             {
+                request.Headers.Connection.Add("Keep-Alive");
+                if (!string.IsNullOrWhiteSpace(UserAgent))
+                    request.Headers.UserAgent.Add(new ProductInfoHeaderValue(UserAgent, UserAgentVersion));
+                else
+                    request.Headers.UserAgent.Add(new ProductInfoHeaderValue("WebDAVClient", AssemblyVersion));
+
                 if (headers != null)
                 {
                     foreach (string key in headers.Keys)
@@ -427,6 +449,11 @@ namespace WebDAVClient
         {
             using (var request = new HttpRequestMessage(method, uri))
             {
+                request.Headers.Connection.Add("Keep-Alive");
+                if (!string.IsNullOrWhiteSpace(UserAgent))
+                    request.Headers.UserAgent.Add(new ProductInfoHeaderValue(UserAgent, UserAgentVersion));
+                else
+                    request.Headers.UserAgent.Add(new ProductInfoHeaderValue("WebDAVClient", AssemblyVersion));
 
                 if (headers != null)
                 {
@@ -447,21 +474,23 @@ namespace WebDAVClient
             }
         }
 
-        private Uri GetServerUrl(String path, Boolean appendTrailingSlash)
+        private Uri GetServerUrl(string path, bool appendTrailingSlash)
         {
             string completePath = "";
 
             if (path != null)
             {
-                if (!path.StartsWith(_basePath))
-                    completePath += _basePath;
-                if (!path.StartsWith(_server, StringComparison.InvariantCultureIgnoreCase))
+                var uri = new Uri(path, UriKind.RelativeOrAbsolute);
+                if (uri.IsAbsoluteUri)
                 {
-                    completePath += path.Trim('/');
+                    completePath = uri.PathAndQuery;
                 }
                 else
                 {
-                    completePath += path.Substring(_server.Length + 1).Trim('/');
+                    var relativePath = path;
+                    if (!relativePath.StartsWith(_basePath))
+                        completePath += _basePath;
+                    completePath = completePath.TrimEnd('/') + '/' + relativePath.TrimStart('/');
                 }
             }
             else
@@ -469,8 +498,14 @@ namespace WebDAVClient
                 completePath += _basePath;
             }
 
-            if (completePath.StartsWith("/") == false) { completePath = '/' + completePath; }
-            if (appendTrailingSlash && completePath.EndsWith("/") == false) { completePath += '/'; }
+            if (completePath.StartsWith("/") == false)
+            {
+                completePath = '/' + completePath;
+            }
+            if (appendTrailingSlash && completePath.EndsWith("/") == false)
+            {
+                completePath += '/';
+            }
 
             if (Port.HasValue)
                 return new Uri(_server + ":" + Port + completePath);
