@@ -129,7 +129,7 @@ namespace WebDAVClient
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
         public async Task<IEnumerable<Item>> List(string path = "/", int? depth = 1)
         {
-            Uri listUri = GetServerUrl(path, true);
+            var listUri = GetServerUrl(path, true);
 
 
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
@@ -144,7 +144,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(listUri, PropFind, headers, Encoding.UTF8.GetBytes(PropFindRequestContent)).ConfigureAwait(false);
+                response = await HttpRequest(listUri.Uri, PropFind, headers, Encoding.UTF8.GetBytes(PropFindRequestContent)).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != HttpStatusCode_MultiStatus)
@@ -162,13 +162,19 @@ namespace WebDAVClient
                     }
 
                     var listUrl = listUri.ToString();
-                    var listPath = listUri.PathAndQuery;
+                    var listUriStr = listUri.Uri.ToString();
+                    var listUrlDecoded = listUri.ToString().Replace(listUri.Uri.PathAndQuery, HttpUtility.UrlDecode(listUri.Uri.PathAndQuery));
+                    var listUriDecoded = listUri.Uri.ToString().Replace(listUri.Uri.PathAndQuery, HttpUtility.UrlDecode(listUri.Uri.PathAndQuery));
+                    var listPath = listUri.Uri.PathAndQuery;
                     var listPathTrimmed = listPath.TrimEnd('/');
-                    var listPathDecoded = HttpUtility.UrlDecode(listUri.PathAndQuery);
+                    var listPathDecoded = HttpUtility.UrlDecode(listUri.Uri.PathAndQuery);
                     var listPathDecodedTrimmed = listPathDecoded.TrimEnd('/');
 
                     return result
                         .Where(r => !string.Equals(r.Href, listUrl, StringComparison.CurrentCultureIgnoreCase) &&
+                                    !string.Equals(r.Href, listUriStr, StringComparison.CurrentCultureIgnoreCase) &&
+                                    !string.Equals(r.Href, listUrlDecoded, StringComparison.CurrentCultureIgnoreCase) &&
+                                    !string.Equals(r.Href, listUriDecoded, StringComparison.CurrentCultureIgnoreCase) &&
                                     !string.Equals(r.Href, listPath, StringComparison.CurrentCultureIgnoreCase) &&
                                     !string.Equals(r.Href, listPathTrimmed, StringComparison.CurrentCultureIgnoreCase) &&
                                     !string.Equals(r.Href, listPathDecoded, StringComparison.CurrentCultureIgnoreCase) &&
@@ -190,8 +196,8 @@ namespace WebDAVClient
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
         public async Task<Item> GetFolder(string path = "/")
         {
-            Uri listUri = GetServerUrl(path, true);
-            return await Get(listUri, path).ConfigureAwait(false);
+            var listUri = GetServerUrl(path, true);
+            return await Get(listUri.Uri, path).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -200,8 +206,8 @@ namespace WebDAVClient
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
         public async Task<Item> GetFile(string path = "/")
         {
-            Uri listUri = GetServerUrl(path, false);
-            return await Get(listUri, path).ConfigureAwait(false);
+            var listUri = GetServerUrl(path, false);
+            return await Get(listUri.Uri, path).ConfigureAwait(false);
         }
 
 
@@ -255,10 +261,10 @@ namespace WebDAVClient
         public async Task<Stream> Download(string remoteFilePath)
         {
             // Should not have a trailing slash.
-            Uri downloadUri = GetServerUrl(remoteFilePath, false);
+            var downloadUri = GetServerUrl(remoteFilePath, false);
 
             var dictionary = new Dictionary<string, string> { { "translate", "f" } };
-            var response = await HttpRequest(downloadUri, HttpMethod.Get, dictionary).ConfigureAwait(false);
+            var response = await HttpRequest(downloadUri.Uri, HttpMethod.Get, dictionary).ConfigureAwait(false);
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
@@ -275,13 +281,13 @@ namespace WebDAVClient
         public async Task<bool> Upload(string remoteFilePath, Stream content, string name)
         {
             // Should not have a trailing slash.
-            Uri uploadUri = GetServerUrl(remoteFilePath + name, false);
+            var uploadUri = GetServerUrl(remoteFilePath + name, false);
 
             HttpResponseMessage response = null;
 
             try
             {
-                response = await HttpUploadRequest(uploadUri, HttpMethod.Put, content).ConfigureAwait(false);
+                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent &&
@@ -309,13 +315,13 @@ namespace WebDAVClient
         public async Task<bool> CreateDir(string remotePath, string name)
         {
             // Should not have a trailing slash.
-            Uri dirUri = GetServerUrl(remotePath + name, false);
+            var dirUri = GetServerUrl(remotePath + name, false);
 
             HttpResponseMessage response = null;
 
             try
             {
-                response = await HttpRequest(dirUri, MkCol).ConfigureAwait(false);
+                response = await HttpRequest(dirUri.Uri, MkCol).ConfigureAwait(false);
 
                 if (response.StatusCode == HttpStatusCode.Conflict)
                     throw new WebDAVConflictException((int) response.StatusCode, "Failed creating folder.");
@@ -338,14 +344,14 @@ namespace WebDAVClient
 
         public async Task DeleteFolder(string href)
         {
-            Uri listUri = GetServerUrl(href, true);
-            await Delete(listUri).ConfigureAwait(false);
+            var listUri = GetServerUrl(href, true);
+            await Delete(listUri.Uri).ConfigureAwait(false);
         }
 
         public async Task DeleteFile(string href)
         {
-            Uri listUri = GetServerUrl(href, false);
-            await Delete(listUri).ConfigureAwait(false);
+            var listUri = GetServerUrl(href, false);
+            await Delete(listUri.Uri).ConfigureAwait(false);
         }
 
 
@@ -363,20 +369,20 @@ namespace WebDAVClient
         public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath)
         {
             // Should have a trailing slash.
-            Uri srcUri = GetServerUrl(srcFolderPath, true);
-            Uri dstUri = GetServerUrl(dstFolderPath, true);
+            var srcUri = GetServerUrl(srcFolderPath, true);
+            var dstUri = GetServerUrl(dstFolderPath, true);
 
-            return await Move(srcUri, dstUri).ConfigureAwait(false);
+            return await Move(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
 
         }
 
         public async Task<bool> MoveFile(string srcFilePath, string dstFilePath)
         {
             // Should not have a trailing slash.
-            Uri srcUri = GetServerUrl(srcFilePath, false);
-            Uri dstUri = GetServerUrl(dstFilePath, false);
+            var srcUri = GetServerUrl(srcFilePath, false);
+            var dstUri = GetServerUrl(dstFilePath, false);
 
-            return await Move(srcUri, dstUri).ConfigureAwait(false);
+            return await Move(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
         }
 
 
@@ -474,7 +480,7 @@ namespace WebDAVClient
             }
         }
 
-        private Uri GetServerUrl(string path, bool appendTrailingSlash)
+        private UriBuilder GetServerUrl(string path, bool appendTrailingSlash)
         {
             string completePath = "";
 
@@ -508,9 +514,9 @@ namespace WebDAVClient
             }
 
             if (Port.HasValue)
-                return new Uri(_server + ":" + Port + completePath);
+                return new UriBuilder(_server + ":" + Port + completePath);
 
-            return new Uri(_server + completePath);
+            return new UriBuilder(_server + completePath);
         }
 
 
