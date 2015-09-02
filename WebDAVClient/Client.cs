@@ -281,7 +281,7 @@ namespace WebDAVClient
         public async Task<bool> Upload(string remoteFilePath, Stream content, string name)
         {
             // Should not have a trailing slash.
-            var uploadUri = GetServerUrl(remoteFilePath + name, false);
+            var uploadUri = GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false);
 
             HttpResponseMessage response = null;
 
@@ -315,7 +315,7 @@ namespace WebDAVClient
         public async Task<bool> CreateDir(string remotePath, string name)
         {
             // Should not have a trailing slash.
-            var dirUri = GetServerUrl(remotePath + name, false);
+            var dirUri = GetServerUrl(remotePath.TrimEnd('/') + "/" + name.TrimStart('/'), false);
 
             HttpResponseMessage response = null;
 
