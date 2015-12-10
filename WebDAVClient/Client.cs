@@ -131,7 +131,6 @@ namespace WebDAVClient
         {
             var listUri = GetServerUrl(path, true);
 
-
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
             IDictionary<string, string> headers = new Dictionary<string, string>();
             if (depth != null)
@@ -486,6 +485,8 @@ namespace WebDAVClient
 
             if (path != null)
             {
+                path = string.Join("/", path.Split('/').Select(Uri.EscapeDataString));
+
                 var uri = new Uri(path, UriKind.RelativeOrAbsolute);
                 if (uri.IsAbsoluteUri)
                 {
