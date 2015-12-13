@@ -7,7 +7,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
 using WebDAVClient.Helpers;
 using WebDAVClient.Model;
 
@@ -45,6 +44,9 @@ namespace WebDAVClient
         private readonly HttpClient _uploadClient;
         private string _server;
         private string _basePath = "/";
+
+        private string _encodedBasePath;
+        
 
 
         #region WebDAV connection parameters
@@ -129,7 +131,7 @@ namespace WebDAVClient
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
         public async Task<IEnumerable<Item>> List(string path = "/", int? depth = 1)
         {
-            var listUri = GetServerUrl(path, true);
+            var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
 
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
             IDictionary<string, string> headers = new Dictionary<string, string>();
@@ -153,32 +155,34 @@ namespace WebDAVClient
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
-                    var result = ResponseParser.ParseItems(path, stream);
+                    var items = ResponseParser.ParseItems(stream);
 
-                    if (result == null)
+                    if (items == null)
                     {
                         throw new WebDAVException("Failed deserializing data returned from server.");
                     }
 
                     var listUrl = listUri.ToString();
-                    var listUriStr = listUri.Uri.ToString();
-                    var listUrlDecoded = listUri.ToString().Replace(listUri.Uri.PathAndQuery, HttpUtility.UrlDecode(listUri.Uri.PathAndQuery));
-                    var listUriDecoded = listUri.Uri.ToString().Replace(listUri.Uri.PathAndQuery, HttpUtility.UrlDecode(listUri.Uri.PathAndQuery));
-                    var listPath = listUri.Uri.PathAndQuery;
-                    var listPathTrimmed = listPath.TrimEnd('/');
-                    var listPathDecoded = HttpUtility.UrlDecode(listUri.Uri.PathAndQuery);
-                    var listPathDecodedTrimmed = listPathDecoded.TrimEnd('/');
 
-                    return result
-                        .Where(r => !string.Equals(r.Href, listUrl, StringComparison.CurrentCultureIgnoreCase) &&
-                                    !string.Equals(r.Href, listUriStr, StringComparison.CurrentCultureIgnoreCase) &&
-                                    !string.Equals(r.Href, listUrlDecoded, StringComparison.CurrentCultureIgnoreCase) &&
-                                    !string.Equals(r.Href, listUriDecoded, StringComparison.CurrentCultureIgnoreCase) &&
-                                    !string.Equals(r.Href, listPath, StringComparison.CurrentCultureIgnoreCase) &&
-                                    !string.Equals(r.Href, listPathTrimmed, StringComparison.CurrentCultureIgnoreCase) &&
-                                    !string.Equals(r.Href, listPathDecoded, StringComparison.CurrentCultureIgnoreCase) &&
-                                    !string.Equals(r.Href, listPathDecodedTrimmed, StringComparison.CurrentCultureIgnoreCase))
-                        .ToList();
+                    var result = new List<Item>(items.Count());
+                    foreach (var item in items)
+                    {
+                        // If it's not a collection, add it to the result
+                        if (!item.IsCollection)
+                        {
+                            result.Add(item);
+                        }
+                        else
+                        {
+                            // If it's not the requested parent folder, add it to the result
+                            var fullHref = await GetServerUrl(item.Href, true).ConfigureAwait(false);
+                            if (!string.Equals(fullHref.ToString(), listUrl, StringComparison.CurrentCultureIgnoreCase))
+                            {
+                                result.Add(item);
+                            }
+                        }
+                    }
+                    return result;
                 }
 
             }
@@ -195,7 +199,7 @@ namespace WebDAVClient
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
         public async Task<Item> GetFolder(string path = "/")
         {
-            var listUri = GetServerUrl(path, true);
+            var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
             return await Get(listUri.Uri, path).ConfigureAwait(false);
         }
 
@@ -205,7 +209,7 @@ namespace WebDAVClient
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
         public async Task<Item> GetFile(string path = "/")
         {
-            var listUri = GetServerUrl(path, false);
+            var listUri = await GetServerUrl(path, false).ConfigureAwait(false);
             return await Get(listUri.Uri, path).ConfigureAwait(false);
         }
 
@@ -236,7 +240,7 @@ namespace WebDAVClient
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
-                    var result = ResponseParser.ParseItem(path, stream);
+                    var result = ResponseParser.ParseItem(stream);
 
                     if (result == null)
                     {
@@ -260,7 +264,7 @@ namespace WebDAVClient
         public async Task<Stream> Download(string remoteFilePath)
         {
             // Should not have a trailing slash.
-            var downloadUri = GetServerUrl(remoteFilePath, false);
+            var downloadUri = await GetServerUrl(remoteFilePath, false).ConfigureAwait(false);
 
             var dictionary = new Dictionary<string, string> { { "translate", "f" } };
             var response = await HttpRequest(downloadUri.Uri, HttpMethod.Get, dictionary).ConfigureAwait(false);
@@ -280,7 +284,7 @@ namespace WebDAVClient
         public async Task<bool> Upload(string remoteFilePath, Stream content, string name)
         {
             // Should not have a trailing slash.
-            var uploadUri = GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false);
+            var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
 
             HttpResponseMessage response = null;
 
@@ -314,7 +318,7 @@ namespace WebDAVClient
         public async Task<bool> CreateDir(string remotePath, string name)
         {
             // Should not have a trailing slash.
-            var dirUri = GetServerUrl(remotePath.TrimEnd('/') + "/" + name.TrimStart('/'), false);
+            var dirUri = await GetServerUrl(remotePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
 
             HttpResponseMessage response = null;
 
@@ -343,13 +347,13 @@ namespace WebDAVClient
 
         public async Task DeleteFolder(string href)
         {
-            var listUri = GetServerUrl(href, true);
+            var listUri = await GetServerUrl(href, true).ConfigureAwait(false);
             await Delete(listUri.Uri).ConfigureAwait(false);
         }
 
         public async Task DeleteFile(string href)
         {
-            var listUri = GetServerUrl(href, false);
+            var listUri = await GetServerUrl(href, false).ConfigureAwait(false);
             await Delete(listUri.Uri).ConfigureAwait(false);
         }
 
@@ -368,8 +372,8 @@ namespace WebDAVClient
         public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath)
         {
             // Should have a trailing slash.
-            var srcUri = GetServerUrl(srcFolderPath, true);
-            var dstUri = GetServerUrl(dstFolderPath, true);
+            var srcUri = await GetServerUrl(srcFolderPath, true).ConfigureAwait(false);
+            var dstUri = await GetServerUrl(dstFolderPath, true).ConfigureAwait(false);
 
             return await Move(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
 
@@ -378,8 +382,8 @@ namespace WebDAVClient
         public async Task<bool> MoveFile(string srcFilePath, string dstFilePath)
         {
             // Should not have a trailing slash.
-            var srcUri = GetServerUrl(srcFilePath, false);
-            var dstUri = GetServerUrl(dstFilePath, false);
+            var srcUri = await GetServerUrl(srcFilePath, false).ConfigureAwait(false);
+            var dstUri = await GetServerUrl(dstFilePath, false).ConfigureAwait(false);
 
             return await Move(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
         }
@@ -479,50 +483,60 @@ namespace WebDAVClient
             }
         }
 
-        private UriBuilder GetServerUrl(string path, bool appendTrailingSlash)
+        private async Task<UriBuilder> GetServerUrl(string path, bool appendTrailingSlash)
         {
-            string completePath = "";
-
-            if (path != null)
+            // Resolve the base path on the server
+            if (_encodedBasePath == null)
             {
-                path = string.Join("/", path.Split('/').Select(Uri.EscapeDataString));
+                var baseUri = new UriBuilder(_server) {Path = _basePath};
+                var root = await Get(baseUri.Uri, null).ConfigureAwait(false);
 
-                var uri = new Uri(path, UriKind.RelativeOrAbsolute);
-                if (uri.IsAbsoluteUri)
+                _encodedBasePath = root.Href;
+            }
+
+
+            // If we've been asked for the "root" folder
+            if (string.IsNullOrEmpty(path))
+            {
+                // If the resolved base path is an absolute URI, use it
+                Uri absoluteBaseUri;
+                if (Uri.TryCreate(_encodedBasePath, UriKind.Absolute, out absoluteBaseUri))
                 {
-                    completePath = uri.PathAndQuery;
+                    return new UriBuilder(absoluteBaseUri);
                 }
-                else
-                {
-                    var relativePath = path;
-                    if (!relativePath.StartsWith(_basePath))
-                        completePath += _basePath;
-                    completePath = completePath.TrimEnd('/') + '/' + relativePath.TrimStart('/');
-                }
+
+                // Otherwise, use the resolved base path relatively to the server
+                var baseUri = new UriBuilder(_server) {Path = _encodedBasePath};
+                return baseUri;
+            }
+
+            // If the requested path is absolute, use it
+            Uri absoluteUri;
+            if (Uri.TryCreate(path, UriKind.Absolute, out absoluteUri))
+            {
+                var baseUri = new UriBuilder(absoluteUri);
+                return baseUri;
             }
             else
             {
-                completePath += _basePath;
-            }
+                // Otherwise, create a URI relative to the server
+                var baseUri = new UriBuilder(_server);
 
-            if (completePath.StartsWith("/") == false)
-            {
-                completePath = '/' + completePath;
-            }
-            if (appendTrailingSlash && completePath.EndsWith("/") == false)
-            {
-                completePath += '/';
-            }
+                // Ensure we don't add the base path twice
+                var finalPath = path;
+                if (!finalPath.StartsWith(_encodedBasePath, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    finalPath = _encodedBasePath.TrimEnd('/') + "/" + path;
+                }
+                if (appendTrailingSlash)
+                    finalPath = finalPath.TrimEnd('/') + "/";
 
-            if (Port.HasValue)
-                return new UriBuilder(_server + ":" + Port + completePath);
+                baseUri.Path = finalPath;
 
-            return new UriBuilder(_server + completePath);
+                return baseUri;
+            }
         }
 
-
         #endregion
-
-      
     }
 }
