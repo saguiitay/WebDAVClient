@@ -44,49 +44,73 @@ namespace WebDAVClient.Helpers
                                 itemInfo = new Item();
                                 break;
                             case "href":
-                                reader.Read();
-                                var value = reader.Value;
-                                value = value.Replace("#", "%23");
-                                itemInfo.Href = value;
+                                if (!reader.IsEmptyElement)
+                                {
+                                    reader.Read();
+                                    var value = reader.Value;
+                                    value = value.Replace("#", "%23");
+                                    itemInfo.Href = value;
+                                }
                                 break;
                             case "creationdate":
-                                reader.Read();
-                                DateTime creationdate;
-                                if (DateTime.TryParse(reader.Value, out creationdate))
-                                    itemInfo.CreationDate = creationdate;
+                                if (!reader.IsEmptyElement)
+                                {
+                                    reader.Read();
+                                    DateTime creationdate;
+                                    if (DateTime.TryParse(reader.Value, out creationdate))
+                                        itemInfo.CreationDate = creationdate;
+                                }
                                 break;
                             case "getlastmodified":
-                                reader.Read();
-                                DateTime lastmodified;
-                                if (DateTime.TryParse(reader.Value, out lastmodified))
-                                    itemInfo.LastModified = lastmodified;
+                                if (!reader.IsEmptyElement)
+                                {
+                                    reader.Read();
+                                    DateTime lastmodified;
+                                    if (DateTime.TryParse(reader.Value, out lastmodified))
+                                        itemInfo.LastModified = lastmodified;
+                                }
                                 break;
                             case "displayname":
-                                reader.Read();
-                                itemInfo.DisplayName = reader.Value;
+                                if (!reader.IsEmptyElement)
+                                {
+                                    reader.Read();
+                                    itemInfo.DisplayName = reader.Value;
+                                }
                                 break;
                             case "getcontentlength":
-                                reader.Read();
-                                int contentLength;
-                                if (int.TryParse(reader.Value, out contentLength))
-                                    itemInfo.ContentLength = contentLength;
+                                if (!reader.IsEmptyElement)
+                                {
+                                    reader.Read();
+                                    int contentLength;
+                                    if (int.TryParse(reader.Value, out contentLength))
+                                        itemInfo.ContentLength = contentLength;
+                                }
                                 break;
                             case "getcontenttype":
-                                reader.Read();
-                                itemInfo.ContentType = reader.Value;
+                                if (!reader.IsEmptyElement)
+                                {
+                                    reader.Read();
+                                    itemInfo.ContentType = reader.Value;
+                                }
                                 break;
                             case "getetag":
-                                reader.Read();
-                                itemInfo.Etag = reader.Value;
+                                if (!reader.IsEmptyElement)
+                                {
+                                    reader.Read();
+                                    itemInfo.Etag = reader.Value;
+                                }
                                 break;
                             case "iscollection":
-                                reader.Read();
-                                bool isCollection;
-                                if (bool.TryParse(reader.Value, out isCollection))
-                                    itemInfo.IsCollection = isCollection;
-                                int isCollectionInt;
-                                if (int.TryParse(reader.Value, out isCollectionInt))
-                                    itemInfo.IsCollection = isCollectionInt == 1;
+                                if (!reader.IsEmptyElement)
+                                {
+                                    reader.Read();
+                                    bool isCollection;
+                                    if (bool.TryParse(reader.Value, out isCollection))
+                                        itemInfo.IsCollection = isCollection;
+                                    int isCollectionInt;
+                                    if (int.TryParse(reader.Value, out isCollectionInt))
+                                        itemInfo.IsCollection = isCollectionInt == 1;
+                                }
                                 break;
                             case "resourcetype":
                                 if (!reader.IsEmptyElement)
