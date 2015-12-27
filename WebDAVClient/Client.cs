@@ -270,7 +270,7 @@ namespace WebDAVClient
             var response = await HttpRequest(downloadUri.Uri, HttpMethod.Get, dictionary).ConfigureAwait(false);
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
+                throw new WebDAVException((int) response.StatusCode, "Failed retrieving file.");
             }
             return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
         }
@@ -520,18 +520,33 @@ namespace WebDAVClient
             else
             {
                 // Otherwise, create a URI relative to the server
-                var baseUri = new UriBuilder(_server);
+                UriBuilder baseUri;
 
-                // Ensure we don't add the base path twice
-                var finalPath = path;
-                if (!finalPath.StartsWith(_encodedBasePath, StringComparison.InvariantCultureIgnoreCase))
+                if (Uri.TryCreate(_encodedBasePath, UriKind.Absolute, out absoluteUri))
                 {
-                    finalPath = _encodedBasePath.TrimEnd('/') + "/" + path;
-                }
-                if (appendTrailingSlash)
-                    finalPath = finalPath.TrimEnd('/') + "/";
+                    baseUri = new UriBuilder(absoluteUri);
 
-                baseUri.Path = finalPath;
+                    baseUri.Path = baseUri.Path.TrimEnd('/') + "/" + path.TrimStart('/');
+
+                    if (appendTrailingSlash && !baseUri.Path.EndsWith("/"))
+                        baseUri.Path += "/";
+                }
+                else
+                {
+                    baseUri = new UriBuilder(_server);
+
+                    // Ensure we don't add the base path twice
+                    var finalPath = path;
+                    if (!finalPath.StartsWith(_encodedBasePath, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        finalPath = _encodedBasePath.TrimEnd('/') + "/" + path;
+                    }
+                    if (appendTrailingSlash)
+                        finalPath = finalPath.TrimEnd('/') + "/";
+
+                    baseUri.Path = finalPath;
+                }
+                
 
                 return baseUri;
             }
