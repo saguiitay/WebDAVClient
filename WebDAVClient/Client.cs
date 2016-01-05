@@ -119,6 +119,7 @@ namespace WebDAVClient
                 _uploadClient.Timeout = uploadTimeout.Value;
             }
 
+            ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
         }
 
         #region WebDAV operations
