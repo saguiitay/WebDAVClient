@@ -98,9 +98,9 @@ namespace WebDAVClient
         #endregion
 
 
-        public Client(NetworkCredential credential = null, TimeSpan? uploadTimeout = null)
+        public Client(NetworkCredential credential = null, TimeSpan? uploadTimeout = null, bool alwaysTrustServerCertification = false)
         {
-            var handler = new HttpClientHandler();
+            var handler = new WebRequestHandler();
             if (handler.SupportsAutomaticDecompression)
                 handler.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
             if (credential != null)
@@ -108,6 +108,9 @@ namespace WebDAVClient
                 handler.Credentials = credential;
                 handler.PreAuthenticate = true;
             }
+
+            if (alwaysTrustServerCertification)
+                handler.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
 
             _client = new HttpClient(handler);
             _client.DefaultRequestHeaders.ExpectContinue = false;
@@ -118,7 +121,6 @@ namespace WebDAVClient
                 _uploadClient.DefaultRequestHeaders.ExpectContinue = false;
                 _uploadClient.Timeout = uploadTimeout.Value;
             }
-
         }
 
         #region WebDAV operations
