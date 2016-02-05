@@ -483,6 +483,21 @@ namespace WebDAVClient
             }
         }
 
+        /// <summary>
+        /// Try to create an Uri with kind UriKind.Absolute
+        /// This particular implementation also works on Mono/Linux 
+        /// It seems that on Mono it is expected behaviour that uris
+        /// of kind /a/b are indeed absolute uris since it referes to a file in /a/b. 
+        /// https://bugzilla.xamarin.com/show_bug.cgi?id=30854
+        /// </summary>
+        /// <param name="uriString"></param>
+        /// <param name="uriResult"></param>
+        /// <returns></returns>
+        private static bool TryCreateAbsolute(string uriString, out Uri uriResult)
+        {
+            return Uri.TryCreate(uriString, UriKind.Absolute, out uriResult) && uriResult.Scheme != Uri.UriSchemeFile;
+        }
+
         private async Task<UriBuilder> GetServerUrl(string path, bool appendTrailingSlash)
         {
             // Resolve the base path on the server
@@ -500,7 +515,7 @@ namespace WebDAVClient
             {
                 // If the resolved base path is an absolute URI, use it
                 Uri absoluteBaseUri;
-                if (Uri.TryCreate(_encodedBasePath, UriKind.Absolute, out absoluteBaseUri))
+                if (TryCreateAbsolute(_encodedBasePath, out absoluteBaseUri))
                 {
                     return new UriBuilder(absoluteBaseUri);
                 }
@@ -512,7 +527,7 @@ namespace WebDAVClient
 
             // If the requested path is absolute, use it
             Uri absoluteUri;
-            if (Uri.TryCreate(path, UriKind.Absolute, out absoluteUri))
+            if (TryCreateAbsolute(path, out absoluteUri))
             {
                 var baseUri = new UriBuilder(absoluteUri);
                 return baseUri;
@@ -521,8 +536,7 @@ namespace WebDAVClient
             {
                 // Otherwise, create a URI relative to the server
                 UriBuilder baseUri;
-
-                if (Uri.TryCreate(_encodedBasePath, UriKind.Absolute, out absoluteUri))
+                if (TryCreateAbsolute(_encodedBasePath, out absoluteUri))
                 {
                     baseUri = new UriBuilder(absoluteUri);
 
