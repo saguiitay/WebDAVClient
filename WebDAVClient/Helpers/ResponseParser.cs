@@ -117,7 +117,7 @@ namespace WebDAVClient.Helpers
                                 {
                                     reader.Read();
                                     var resourceType = reader.LocalName.ToLower();
-                                    if (string.Equals(resourceType, "collection", StringComparison.InvariantCultureIgnoreCase))
+                                    if (string.Equals(resourceType, "collection", StringComparison.OrdinalIgnoreCase))
                                         itemInfo.IsCollection = true;
                                 }
                                 break;

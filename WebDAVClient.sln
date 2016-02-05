@@ -10,6 +10,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGet.Package", "NuGet.Package\NuGet.Package.csproj", "{0451BAEF-DF2E-4B98-8644-94EE9415E389}"
 	ProjectSection(ProjectDependencies) = postProject
 		{F21EB154-C84E-4390-87CF-271E3DF4F059} = {F21EB154-C84E-4390-87CF-271E3DF4F059}
+		{6AA845D6-44EC-4FA1-9A90-A71EAA577FCF} = {6AA845D6-44EC-4FA1-9A90-A71EAA577FCF}
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{8983B397-D748-4C51-B411-26BD15D25AA1}"
@@ -18,6 +19,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{8983B3
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebDAVClient.Portable", "WebDAVClient.Portable\WebDAVClient.Portable.csproj", "{6AA845D6-44EC-4FA1-9A90-A71EAA577FCF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -37,6 +40,10 @@ Global
 		{0451BAEF-DF2E-4B98-8644-94EE9415E389}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0451BAEF-DF2E-4B98-8644-94EE9415E389}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0451BAEF-DF2E-4B98-8644-94EE9415E389}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6AA845D6-44EC-4FA1-9A90-A71EAA577FCF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6AA845D6-44EC-4FA1-9A90-A71EAA577FCF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6AA845D6-44EC-4FA1-9A90-A71EAA577FCF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6AA845D6-44EC-4FA1-9A90-A71EAA577FCF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -10,6 +10,11 @@ using System.Threading.Tasks;
 using WebDAVClient.Helpers;
 using WebDAVClient.Model;
 
+
+#if PCL
+using System.Reflection;
+#endif
+
 namespace WebDAVClient
 {
     public class Client : IClient
@@ -17,7 +22,7 @@ namespace WebDAVClient
         private static readonly HttpMethod PropFind = new HttpMethod("PROPFIND");
         private static readonly HttpMethod MoveMethod = new HttpMethod("MOVE");
 
-        private static readonly HttpMethod MkCol = new HttpMethod(WebRequestMethods.Http.MkCol);
+        private static readonly HttpMethod MkCol = new HttpMethod("MKCOL");
 
         private const int HttpStatusCode_MultiStatus = 207;
 
@@ -38,7 +43,11 @@ namespace WebDAVClient
             //"  </prop> " +
             "</propfind>";
 
+#if PCL
+        private static readonly string AssemblyVersion = typeof (IClient).GetTypeInfo().Assembly.GetName().Version.ToString();
+#else
         private static readonly string AssemblyVersion = typeof (IClient).Assembly.GetName().Version.ToString();
+#endif
 
         private readonly HttpClient _client;
         private readonly HttpClient _uploadClient;
@@ -551,7 +560,7 @@ namespace WebDAVClient
 
                     // Ensure we don't add the base path twice
                     var finalPath = path;
-                    if (!finalPath.StartsWith(_encodedBasePath, StringComparison.InvariantCultureIgnoreCase))
+                    if (!finalPath.StartsWith(_encodedBasePath, StringComparison.OrdinalIgnoreCase))
                     {
                         finalPath = _encodedBasePath.TrimEnd('/') + "/" + path;
                     }
