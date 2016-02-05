@@ -1,5 +1,0 @@
-D:\Code\GitHub\WebDAVClient\NuGet.Package\bin\Debug\NuGet.Package.dll
-D:\Code\GitHub\WebDAVClient\NuGet.Package\bin\Debug\NuGet.Package.pdb
-D:\Code\GitHub\WebDAVClient\NuGet.Package\obj\Debug\NuGet.Package.csprojResolveAssemblyReference.cache
-D:\Code\GitHub\WebDAVClient\NuGet.Package\obj\Debug\NuGet.Package.dll
-D:\Code\GitHub\WebDAVClient\NuGet.Package\obj\Debug\NuGet.Package.pdb
