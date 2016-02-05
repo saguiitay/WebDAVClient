@@ -17,6 +17,7 @@ build/
 bld/
 [Bb]in/
 [Oo]bj/
+*.userprefs
 
 # Roslyn cache directories
 *.ide/
@@ -132,6 +133,7 @@ publish/
 
 # NuGet Packages
 *.nupkg
+*.nupkg.bak
 # The packages folder can be ignored because of Package Restore
 **/packages/*
 # except build/, which is used as an MSBuild target.

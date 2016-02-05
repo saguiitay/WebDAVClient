@@ -25,6 +25,15 @@
         <group targetFramework="net45">
           <dependency id="Microsoft.Net.Http" version="[2.2.28,)" />
         </group>
+      <group targetFramework="MonoAndroid10">
+        <dependency id="Microsoft.Net.Http" version="[2.2.28,)" />
+      </group>
+      <group targetFramework="MonoTouch10">
+        <dependency id="Microsoft.Net.Http" version="[2.2.28,)" />
+      </group>
+      <group targetFramework="Xamarin.iOS10">
+        <dependency id="Microsoft.Net.Http" version="[2.2.28,)" />
+      </group>
     </dependencies>
     <references>
       <reference file="WebDAVClient.dll"></reference>
@@ -32,5 +41,8 @@
   </metadata>
   <files>
     <file src="..\WebDAVClient\bin\Release\WebDAVClient.dll" target="lib\net45" />
+    <file src="..\WebDAVClient\bin\Release\WebDAVClient.dll" target="lib\MonoAndroid10" />
+    <file src="..\WebDAVClient\bin\Release\WebDAVClient.dll" target="lib\MonoTouch10" />
+    <file src="..\WebDAVClient\bin\Release\WebDAVClient.dll" target="lib\Xamarin.iOS10" />
   </files>
 </package>
