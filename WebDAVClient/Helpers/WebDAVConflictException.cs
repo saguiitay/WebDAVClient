@@ -32,9 +32,5 @@ namespace WebDAVClient.Helpers
         public WebDAVConflictException(int httpCode, string message, int hr) 
             : base(httpCode, message, hr)
         {}
-
-        protected WebDAVConflictException(SerializationInfo info, StreamingContext context) 
-            : base(info, context)
-        {}
     }
 }

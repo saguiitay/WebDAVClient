@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.Serialization;
-using System.Web;
+using System.Net.Http;
+using System.Runtime.InteropServices;
 
 namespace WebDAVClient.Helpers
 {
@@ -32,10 +33,6 @@ namespace WebDAVClient.Helpers
 
         public WebDAVException(int httpCode, string message, int hr) 
             : base(httpCode, message, hr)
-        {}
-
-        protected WebDAVException(SerializationInfo info, StreamingContext context) 
-            : base(info, context)
         {}
 
         public override string ToString()
