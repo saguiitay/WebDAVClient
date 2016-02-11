@@ -504,7 +504,12 @@ namespace WebDAVClient
         /// <returns></returns>
         private static bool TryCreateAbsolute(string uriString, out Uri uriResult)
         {
-            return Uri.TryCreate(uriString, UriKind.Absolute, out uriResult) && uriResult.Scheme != Uri.UriSchemeFile;
+#if PCL
+            string uriSchemeFile = "file";
+#else
+            string uriSchemeFile = Uri.UriSchemeFile;
+#endif
+            return Uri.TryCreate(uriString, UriKind.Absolute, out uriResult) && uriResult.Scheme != uriSchemeFile;
         }
 
         private async Task<UriBuilder> GetServerUrl(string path, bool appendTrailingSlash)
