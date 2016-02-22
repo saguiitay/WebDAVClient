@@ -98,9 +98,11 @@ namespace WebDAVClient
         #endregion
 
 
-        public Client(NetworkCredential credential = null, TimeSpan? uploadTimeout = null)
+        public Client(NetworkCredential credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
         {
             var handler = new HttpClientHandler();
+            if (proxy != null && handler.SupportsProxy)
+                handler.Proxy = proxy;
             if (handler.SupportsAutomaticDecompression)
                 handler.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
             if (credential != null)
