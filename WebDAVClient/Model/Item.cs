@@ -12,6 +12,6 @@ namespace WebDAVClient.Model
         public string ContentType { get; set; }
         public DateTime? LastModified { get; set; }
         public string DisplayName { get; set; }
-        public int? ContentLength { get; set; }
+        public long? ContentLength { get; set; }
     }
 }

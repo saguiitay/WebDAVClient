@@ -81,8 +81,8 @@ namespace WebDAVClient.Helpers
                                 if (!reader.IsEmptyElement)
                                 {
                                     reader.Read();
-                                    int contentLength;
-                                    if (int.TryParse(reader.Value, out contentLength))
+                                    long contentLength;
+                                    if (long.TryParse(reader.Value, out contentLength))
                                         itemInfo.ContentLength = contentLength;
                                 }
                                 break;
