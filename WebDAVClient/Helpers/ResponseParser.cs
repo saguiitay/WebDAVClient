@@ -125,6 +125,10 @@ namespace WebDAVClient.Helpers
                             case "ishidden":
                                 itemInfo.IsHidden = true;
                                 break;
+                            case "checked-in":
+                            case "version-controlled-configuration":
+                                reader.Skip();
+                                break;
                             default:
                             {
                                 int a = 0;
