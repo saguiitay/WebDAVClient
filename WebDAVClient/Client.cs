@@ -95,11 +95,21 @@ namespace WebDAVClient
         /// </summary>
         public string UserAgentVersion { get; set; }
 
+        /// <summary>
+        /// Determine if standard certificate validation is to be used (the default) or a custom validation that accepts all certificates.
+        /// </summary>
+        public bool AcceptAllCertificates { get; set; }
+
         #endregion
 
 
-        public Client(NetworkCredential credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
+        public Client(NetworkCredential credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null, bool acceptAllCertificates = false)
         {
+            if(acceptAllCertificates)
+            {
+                ServicePointManager.ServerCertificateValidationCallback = new System.Net.Security.RemoteCertificateValidationCallback(AcceptAllCertifications);
+            }
+
             var handler = new HttpClientHandler();
             if (proxy != null && handler.SupportsProxy)
                 handler.Proxy = proxy;
@@ -566,6 +576,18 @@ namespace WebDAVClient
 
                 return baseUri;
             }
+        }
+
+        #endregion
+
+        #region WebDAV Connection Helpers
+
+        /// <summary>
+        /// This function creates a certificate authenticator that ALWAYS returns true. This should NEVER be used in production. It is intended for testing purposes only.
+        /// </summary>
+        public bool AcceptAllCertifications(object sender, System.Security.Cryptography.X509Certificates.X509Certificate certification, System.Security.Cryptography.X509Certificates.X509Chain chain, System.Net.Security.SslPolicyErrors sslPolicyErrors)
+        {
+            return true;
         }
 
         #endregion
