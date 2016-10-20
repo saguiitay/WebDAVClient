@@ -187,3 +187,4 @@ FakesAssemblies/
 #NuGet
 packages
 !packages/repositories.config
+/.localhistory

@@ -23,6 +23,13 @@ namespace WebDAVClient.Helpers
             return ParseItems(stream).FirstOrDefault();
         }
 
+        internal static XmlReaderSettings XmlReaderSettings = new XmlReaderSettings
+        {
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true,
+            IgnoreWhitespace = true
+        };
+
         /// <summary>
         /// Parses the disk items.
         /// </summary>
@@ -31,8 +38,9 @@ namespace WebDAVClient.Helpers
         public static IEnumerable<Item> ParseItems(Stream stream)
         {
             var items = new List<Item>();
-            using (var reader = XmlReader.Create(stream))
+            using (var reader = XmlReader.Create(stream, XmlReaderSettings))
             {
+                
                 Item itemInfo = null;
                 while (reader.Read())
                 {
