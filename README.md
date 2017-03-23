@@ -1,6 +1,6 @@
 # WebDAVClient
 
-## Abount
+## About
 
 Strongly-typed, async WebDAV Client implementation in C#.
 
