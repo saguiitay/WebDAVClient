@@ -271,22 +271,28 @@ namespace WebDAVClient
         /// Download a file from the server
         /// </summary>
         /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
-        public async Task<Stream> Download(string remoteFilePath)
+        public Task<Stream> Download(string remoteFilePath)
         {
-            // Should not have a trailing slash.
-            var downloadUri = await GetServerUrl(remoteFilePath, false).ConfigureAwait(false);
-
             var dictionary = new Dictionary<string, string> { { "translate", "f" } };
-            var response = await HttpRequest(downloadUri.Uri, HttpMethod.Get, dictionary).ConfigureAwait(false);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new WebDAVException((int) response.StatusCode, "Failed retrieving file.");
-            }
-            return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            return DownloadFile(remoteFilePath, dictionary);
         }
 
+
         /// <summary>
-        /// Download a file from the server
+        /// Download a part of file from the server
+        /// </summary>
+        /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
+        /// <param name="startBytes">Start bytes of content</param>
+        /// <param name="endBytes">End bytes of content</param>
+        public Task<Stream> DownloadPartial(string remoteFilePath, long startBytes, long endBytes)
+        {
+            var dictionary = new Dictionary<string, string> { { "translate", "f" }, { "Range", "bytes=" + startBytes + "-" + endBytes } };
+            return DownloadFile(remoteFilePath, dictionary);
+        }
+
+
+        /// <summary>
+        /// Upload a file to the server
         /// </summary>
         /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
         /// <param name="content"></param>
@@ -415,6 +421,18 @@ namespace WebDAVClient
             }
 
             return response.IsSuccessStatusCode;
+        }
+
+        private async Task<Stream> DownloadFile(String remoteFilePath, Dictionary<string, string> header)
+        {
+            // Should not have a trailing slash.
+            var downloadUri = await GetServerUrl(remoteFilePath, false).ConfigureAwait(false);
+            var response = await HttpRequest(downloadUri.Uri, HttpMethod.Get, header).ConfigureAwait(false);
+            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
+            {
+                return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            }
+            throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
         }
 
         #endregion
