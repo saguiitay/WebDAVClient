@@ -110,6 +110,10 @@ namespace WebDAVClient
                 handler.Credentials = credential;
                 handler.PreAuthenticate = true;
             }
+            else
+            {
+                handler.UseDefaultCredentials = true;
+            }
 
             _client = new HttpClient(handler);
             _client.DefaultRequestHeaders.ExpectContinue = false;
