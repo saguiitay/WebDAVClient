@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Security;
 using System.Text;
 using System.Threading.Tasks;
 using WebDAVClient.Helpers;
@@ -95,8 +96,11 @@ namespace WebDAVClient
         /// </summary>
         public string UserAgentVersion { get; set; }
 
+        /// <summary>
+        /// Specify the certificates validation logic
+        /// </summary>
+        public RemoteCertificateValidationCallback ServerCertificateValidationCallback { get; set; }
         #endregion
-
 
         public Client(NetworkCredential credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
         {
@@ -570,6 +574,19 @@ namespace WebDAVClient
 
                 return baseUri;
             }
+        }
+
+        #endregion
+
+        #region WebDAV Connection Helpers
+
+        public bool ServerCertificateValidation(object sender, System.Security.Cryptography.X509Certificates.X509Certificate certification, System.Security.Cryptography.X509Certificates.X509Chain chain, System.Net.Security.SslPolicyErrors sslPolicyErrors)
+        {
+            if (ServerCertificateValidationCallback != null)
+            {
+                return ServerCertificateValidationCallback(sender, certification, chain, sslPolicyErrors);
+            }
+            return false;
         }
 
         #endregion
