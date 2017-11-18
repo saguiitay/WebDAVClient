@@ -139,7 +139,6 @@ namespace WebDAVClient.Helpers
                                 break;
                             default:
                             {
-                                int a = 0;
                                 break;
                             }
                         }
