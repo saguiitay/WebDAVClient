@@ -118,13 +118,13 @@ namespace WebDAVClient
                 handler.UseDefaultCredentials = true;
             }
 
-            var client = new HttpClient(handler);
+            var client = new System.Net.Http.HttpClient(handler);
             client.DefaultRequestHeaders.ExpectContinue = false;
 
-            HttpClient uploadClient = null; 
+            System.Net.Http.HttpClient uploadClient = null; 
             if (uploadTimeout != null)
             {
-                uploadClient = new HttpClient(handler);
+                uploadClient = new System.Net.Http.HttpClient(handler);
                 uploadClient.DefaultRequestHeaders.ExpectContinue = false;
                 uploadClient.Timeout = uploadTimeout.Value;
             }
