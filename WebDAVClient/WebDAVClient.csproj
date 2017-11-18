@@ -67,7 +67,9 @@
   <ItemGroup>
     <Compile Include="Helpers\ResponseParser.cs" />
     <Compile Include="Helpers\WebDAVConflictException.cs" />
+    <Compile Include="HttpClientWrapper.cs" />
     <Compile Include="IClient.cs" />
+    <Compile Include="IHttpClientWrapper.cs" />
     <Compile Include="Model\Item.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

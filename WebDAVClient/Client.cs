@@ -41,8 +41,9 @@ namespace WebDAVClient
 
         private static readonly string AssemblyVersion = typeof (IClient).Assembly.GetName().Version.ToString();
 
-        private readonly HttpClient _client;
-        private readonly HttpClient _uploadClient;
+        //private readonly HttpClient _client;
+        //private readonly HttpClient _uploadClient;
+        private readonly IHttpClientWrapper _httpClientWrapper;
         private string _server;
         private string _basePath = "/";
 
@@ -119,16 +120,23 @@ namespace WebDAVClient
                 handler.UseDefaultCredentials = true;
             }
 
-            _client = new HttpClient(handler);
-            _client.DefaultRequestHeaders.ExpectContinue = false;
+            var client = new HttpClient(handler);
+            client.DefaultRequestHeaders.ExpectContinue = false;
 
+            HttpClient uploadClient = null; 
             if (uploadTimeout != null)
             {
-                _uploadClient = new HttpClient(handler);
-                _uploadClient.DefaultRequestHeaders.ExpectContinue = false;
-                _uploadClient.Timeout = uploadTimeout.Value;
+                uploadClient = new HttpClient(handler);
+                uploadClient.DefaultRequestHeaders.ExpectContinue = false;
+                uploadClient.Timeout = uploadTimeout.Value;
             }
 
+            _httpClientWrapper = new HttpClientWrapper(client, uploadClient ?? client);
+        }
+
+        public Client(IHttpClientWrapper httpClientWrapper)
+        {
+            _httpClientWrapper = httpClientWrapper;
         }
 
         #region WebDAV operations
@@ -471,7 +479,7 @@ namespace WebDAVClient
                     request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/xml");
                 }
 
-                return await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                return await _httpClientWrapper.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
             }
         }
 
@@ -506,8 +514,7 @@ namespace WebDAVClient
                     request.Content = new StreamContent(content);
                 }
 
-                var client = _uploadClient ?? _client;
-                return await client.SendAsync(request).ConfigureAwait(false);
+                return await _httpClientWrapper.SendUploadAsync(request).ConfigureAwait(false);
             }
         }
 
