@@ -9,6 +9,7 @@ using System.Net.Security;
 using System.Text;
 using System.Threading.Tasks;
 using WebDAVClient.Helpers;
+using WebDAVClient.HttpClient;
 using WebDAVClient.Model;
 
 namespace WebDAVClient
@@ -41,12 +42,9 @@ namespace WebDAVClient
 
         private static readonly string AssemblyVersion = typeof (IClient).Assembly.GetName().Version.ToString();
 
-        //private readonly HttpClient _client;
-        //private readonly HttpClient _uploadClient;
         private readonly IHttpClientWrapper _httpClientWrapper;
         private string _server;
         private string _basePath = "/";
-
         private string _encodedBasePath;
         
 
@@ -218,7 +216,7 @@ namespace WebDAVClient
         public async Task<Item> GetFolder(string path = "/")
         {
             var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
-            return await Get(listUri.Uri, path).ConfigureAwait(false);
+            return await Get(listUri.Uri).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -228,7 +226,7 @@ namespace WebDAVClient
         public async Task<Item> GetFile(string path = "/")
         {
             var listUri = await GetServerUrl(path, false).ConfigureAwait(false);
-            return await Get(listUri.Uri, path).ConfigureAwait(false);
+            return await Get(listUri.Uri).ConfigureAwait(false);
         }
 
 
@@ -236,7 +234,7 @@ namespace WebDAVClient
         /// List all files present on the server.
         /// </summary>
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
-        private async Task<Item> Get(Uri listUri, string path)
+        private async Task<Item> Get(Uri listUri)
         {
 
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
@@ -539,7 +537,7 @@ namespace WebDAVClient
             if (_encodedBasePath == null)
             {
                 var baseUri = new UriBuilder(_server) {Path = _basePath};
-                var root = await Get(baseUri.Uri, null).ConfigureAwait(false);
+                var root = await Get(baseUri.Uri).ConfigureAwait(false);
 
                 _encodedBasePath = root.Href;
             }

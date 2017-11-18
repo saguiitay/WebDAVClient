@@ -1,7 +1,7 @@
 ﻿using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace WebDAVClient
+namespace WebDAVClient.HttpClient
 {
     public interface IHttpClientWrapper
     {

@@ -40,7 +40,7 @@ namespace WebDAVClient.Helpers
 
         public override string ToString()
         {
-            var s = string.Format("HttpStatusCode: {0}", base.GetHttpCode());
+            var s = string.Format("HttpStatusCode: {0}", GetHttpCode());
             s += Environment.NewLine + string.Format("ErrorCode: {0}", ErrorCode);
             s += Environment.NewLine + string.Format("Message: {0}", Message);
             s += Environment.NewLine + base.ToString();

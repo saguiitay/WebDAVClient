@@ -1,14 +1,14 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace WebDAVClient
+namespace WebDAVClient.HttpClient
 {
     public class HttpClientWrapper : IHttpClientWrapper
     {
-        private readonly HttpClient _httpClient;
-        private readonly HttpClient _uploadHttpClient;
+        private readonly System.Net.Http.HttpClient _httpClient;
+        private readonly System.Net.Http.HttpClient _uploadHttpClient;
 
-        public HttpClientWrapper(HttpClient httpClient, HttpClient uploadHttpClient)
+        public HttpClientWrapper(System.Net.Http.HttpClient httpClient, System.Net.Http.HttpClient uploadHttpClient)
         {
             _httpClient = httpClient;
             _uploadHttpClient = uploadHttpClient;
