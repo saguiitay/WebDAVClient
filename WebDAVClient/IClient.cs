@@ -31,6 +31,10 @@ namespace WebDAVClient
         /// </summary>
         string UserAgentVersion { get; set; }
 
+        /// <summary>
+        /// Specify additional headers to be sent with every request
+        /// </summary>
+        ICollection<KeyValuePair<string, string>> CustomHeaders { get; set; }
 
         /// <summary>
         /// List all files present on the server.
