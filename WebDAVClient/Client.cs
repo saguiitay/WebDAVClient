@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -536,7 +536,7 @@ namespace WebDAVClient
             // Resolve the base path on the server
             if (_encodedBasePath == null)
             {
-                var baseUri = new UriBuilder(_server) {Path = _basePath};
+                var baseUri = new UriBuilder(_server) {Path = _basePath, Port = (int)Port};
                 var root = await Get(baseUri.Uri).ConfigureAwait(false);
 
                 _encodedBasePath = root.Href;
@@ -554,7 +554,7 @@ namespace WebDAVClient
                 }
 
                 // Otherwise, use the resolved base path relatively to the server
-                var baseUri = new UriBuilder(_server) {Path = _encodedBasePath};
+                var baseUri = new UriBuilder(_server) {Path = _encodedBasePath, Port = (int)Port};
                 return baseUri;
             }
 
@@ -580,7 +580,7 @@ namespace WebDAVClient
                 }
                 else
                 {
-                    baseUri = new UriBuilder(_server);
+                    baseUri = new UriBuilder(_server) { Port = (int)Port };
 
                     // Ensure we don't add the base path twice
                     var finalPath = path;
