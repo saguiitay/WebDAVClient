@@ -63,7 +63,15 @@ namespace WebDAVClient
         Task<Stream> Download(string remoteFilePath);
 
         /// <summary>
-        /// Download a file from the server
+        /// Download a part of file from the server
+        /// </summary>
+        /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
+        /// <param name="startBytes">Start bytes of content</param>
+        /// <param name="endBytes">End bytes of content</param>
+        Task<Stream> DownloadPartial(string remoteFilePath, long startBytes, long endBytes);
+
+        /// <summary>
+        /// Upload a file to the server
         /// </summary>
         /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
         /// <param name="content"></param>
