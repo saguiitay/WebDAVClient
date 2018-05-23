@@ -71,6 +71,16 @@ namespace WebDAVClient
         Task<bool> Upload(string remoteFilePath, Stream content, string name);
 
         /// <summary>
+        /// Upload a part of a file to the server.
+        /// </summary>
+        /// <param name="remoteFilePath">Target path excluding the servername and base path</param>
+        /// <param name="content">The content to upload. Must match the length of <paramref name="endBytes"/> minus <paramref name="startBytes"/></param>
+        /// <param name="name">The target filename. The file must exist on the server</param>
+        /// <param name="startBytes">StartByte on the target file</param>
+        /// <param name="endBytes">EndByte on the target file</param>
+        Task<bool> UploadPartial(string remoteFilePath, Stream content, string name, long startBytes, long endBytes);
+
+        /// <summary>
         /// Create a directory on the server
         /// </summary>
         /// <param name="remotePath">Destination path of the directory on the server</param>

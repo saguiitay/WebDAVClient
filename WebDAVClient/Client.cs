@@ -377,6 +377,47 @@ namespace WebDAVClient
 
 
         /// <summary>
+        /// Partial upload a part of file to the server
+        /// </summary>
+        /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
+        /// <param name="content">Partial content to update</param>
+        /// <param name="name">Name of the file to update</param>
+        /// <param name="startBytes">Start byte position of the target content</param>
+        /// <param name="endBytes">End bytes of the target content. Must match the length of <paramref name="content"/> plus <paramref name="startBytes"/></param>
+        public async Task<bool> UploadPartial(string remoteFilePath, Stream content, string name, long startBytes, long endBytes)
+        {
+            if (startBytes + content.Length != endBytes)
+            {
+                throw new InvalidOperationException("The length of the given content plus the startBytes must match the endBytes.");
+            }
+
+            // Should not have a trailing slash.
+            var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
+
+            HttpResponseMessage response = null;
+
+            try
+            {
+                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, null, startBytes, endBytes).ConfigureAwait(false);
+
+                if (response.StatusCode != HttpStatusCode.OK &&
+                    response.StatusCode != HttpStatusCode.NoContent &&
+                    response.StatusCode != HttpStatusCode.Created)
+                {
+                    throw new WebDAVException((int)response.StatusCode, "Failed uploading file.");
+                }
+
+                return response.IsSuccessStatusCode;
+            }
+            finally
+            {
+                if (response != null)
+                    response.Dispose();
+            }
+        }
+
+
+        /// <summary>
         /// Create a directory on the server
         /// </summary>
         /// <param name="remotePath">Destination path of the directory on the server</param>
@@ -558,7 +599,7 @@ namespace WebDAVClient
         /// <param name="headers"></param>
         /// <param name="method"></param>
         /// <param name="content"></param>
-        private async Task<HttpResponseMessage> HttpUploadRequest(Uri uri, HttpMethod method, Stream content, IDictionary<string, string> headers = null)
+        private async Task<HttpResponseMessage> HttpUploadRequest(Uri uri, HttpMethod method, Stream content, IDictionary<string, string> headers = null, long? startbytes = null, long? endbytes = null)
         {
             using (var request = new HttpRequestMessage(method, uri))
             {
@@ -580,6 +621,11 @@ namespace WebDAVClient
                 if (content != null)
                 {
                     request.Content = new StreamContent(content);
+                    if (startbytes.HasValue && endbytes.HasValue)
+                    {
+                        request.Content.Headers.ContentRange = ContentRangeHeaderValue.Parse($"bytes {startbytes}-{endbytes}/*");
+                        request.Content.Headers.ContentLength = endbytes - startbytes;
+                    }
                 }
 
                 return await _httpClientWrapper.SendUploadAsync(request).ConfigureAwait(false);
