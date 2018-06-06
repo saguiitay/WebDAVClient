@@ -188,3 +188,4 @@ FakesAssemblies/
 packages
 !packages/repositories.config
 /.localhistory
+/.vs

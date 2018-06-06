@@ -102,5 +102,19 @@ namespace WebDAVClient
         /// <param name="srcFilePath">Source path and filename of the file on the server</param>
         /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
         Task<bool> MoveFile(string srcFilePath, string dstFilePath);
+
+        /// <summary>
+        /// Copies a file on the server
+        /// </summary>
+        /// <param name="srcFilePath">Source path and filename of the file on the server</param>
+        /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
+        Task<bool> CopyFile(string srcFilePath, string dstFilePath);
+
+        /// <summary>
+        /// Copies a folder on the server
+        /// </summary>
+        /// <param name="srcFolderPath">Source path of the folder on the server</param>
+        /// <param name="dstFolderPath">Destination path of the folder on the server</param>
+        Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath);
     }
 }

@@ -18,6 +18,7 @@ namespace WebDAVClient
     {
         private static readonly HttpMethod PropFind = new HttpMethod("PROPFIND");
         private static readonly HttpMethod MoveMethod = new HttpMethod("MOVE");
+        private static readonly HttpMethod CopyMethod = new HttpMethod("COPY");
 
         private static readonly HttpMethod MkCol = new HttpMethod(WebRequestMethods.Http.MkCol);
 
@@ -460,7 +461,6 @@ namespace WebDAVClient
             var dstUri = await GetServerUrl(dstFolderPath, true).ConfigureAwait(false);
 
             return await Move(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
-
         }
 
         public async Task<bool> MoveFile(string srcFilePath, string dstFilePath)
@@ -470,6 +470,24 @@ namespace WebDAVClient
             var dstUri = await GetServerUrl(dstFilePath, false).ConfigureAwait(false);
 
             return await Move(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
+        }
+
+        public async Task<bool> CopyFile(string srcFilePath, string dstFilePath)
+        {
+            // Should not have a trailing slash.
+            var srcUri = await GetServerUrl(srcFilePath, false).ConfigureAwait(false);
+            var dstUri = await GetServerUrl(dstFilePath, false).ConfigureAwait(false);
+
+            return await Copy(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
+        }
+
+        public async Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath)
+        {
+            // Should have a trailing slash.
+            var srcUri = await GetServerUrl(srcFolderPath, true).ConfigureAwait(false);
+            var dstUri = await GetServerUrl(dstFolderPath, true).ConfigureAwait(false);
+
+            return await Copy(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
         }
 
 
@@ -494,6 +512,32 @@ namespace WebDAVClient
                 response.StatusCode != HttpStatusCode.Created)
             {
                 throw new WebDAVException((int)response.StatusCode, "Failed moving file.");
+            }
+
+            return response.IsSuccessStatusCode;
+        }
+
+        private async Task<bool> Copy(Uri srcUri, Uri dstUri)
+        {
+            const string requestContent = "COPY";
+
+            IDictionary<string, string> headers = new Dictionary<string, string>();
+            headers.Add("Destination", dstUri.ToString());
+
+            if (CustomHeaders != null)
+            {
+                foreach (var keyValuePair in CustomHeaders)
+                {
+                    headers.Add(keyValuePair);
+                }
+            }
+
+            var response = await HttpRequest(srcUri, CopyMethod, headers, Encoding.UTF8.GetBytes(requestContent)).ConfigureAwait(false);
+
+            if (response.StatusCode != HttpStatusCode.OK &&
+                response.StatusCode != HttpStatusCode.Created)
+            {
+                throw new WebDAVException((int)response.StatusCode, "Failed copying file.");
             }
 
             return response.IsSuccessStatusCode;
