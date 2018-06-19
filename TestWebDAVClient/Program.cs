@@ -45,6 +45,13 @@ namespace TestWebDAVClient
             using (var fileStream = File.OpenRead(tempFileName))
             {
                 var fileUploaded = await c.Upload(folder.Href, fileStream, tempName);
+
+                var stream = new MemoryStream(new byte[] {0xF0, 0x0B, 0xA5});
+                fileUploaded = await c.UploadPartial(folder.Href, stream, tempName, 2, 6);
+                if (fileUploaded)
+                {
+                    var parts = await c.DownloadPartial(folderFile.Href, 2, 6);
+                }
             }
             
             // Create a folder
