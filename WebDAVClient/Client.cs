@@ -84,7 +84,7 @@ namespace WebDAVClient
         /// <summary>
         /// Specify an port (default: null = auto-detect)
         /// </summary>
-        public int? Port { get; set; }
+        public int Port { get; set; }
 
         /// <summary>
         /// Specify the UserAgent (and UserAgent version) string to use in requests
@@ -696,7 +696,7 @@ namespace WebDAVClient
             // Resolve the base path on the server
             if (_encodedBasePath == null)
             {
-                var baseUri = new UriBuilder(_server) {Path = _basePath, Port = (int)Port};
+                var baseUri = new UriBuilder(_server) {Path = _basePath, Port = TryGetPort()};
                 var root = await Get(baseUri.Uri).ConfigureAwait(false);
 
                 _encodedBasePath = root.Href;
@@ -714,7 +714,9 @@ namespace WebDAVClient
                 }
 
                 // Otherwise, use the resolved base path relatively to the server
-                var baseUri = new UriBuilder(_server) {Path = _encodedBasePath, Port = (int)Port};
+                if (Port == 0)
+                    Port = _server.StartsWith("http://") ? 80 : 443;
+                var baseUri = new UriBuilder(_server) {Path = _encodedBasePath, Port = TryGetPort()};
                 return baseUri;
             }
 
@@ -740,7 +742,7 @@ namespace WebDAVClient
                 }
                 else
                 {
-                    baseUri = new UriBuilder(_server) { Port = (int)Port };
+                    baseUri = new UriBuilder(_server) { Port = TryGetPort()};
 
                     // Ensure we don't add the base path twice
                     var finalPath = path;
@@ -758,6 +760,24 @@ namespace WebDAVClient
                 return baseUri;
             }
         }
+
+        /// <summary>
+        /// Tries to find the default http(s) port depending on the _server variable
+        /// </summary>
+        /// <returns>80 if _server starts with http://, 443 if _server starts with https:// and actual value when it's already set.</returns>
+        private int TryGetPort()
+        {
+            if (Port == 0)
+            {
+                if (_server.StartsWith("https://"))
+                    return 443;
+                if (_server.StartsWith("http://"))
+                    return 80;
+            }
+
+            return Port;
+        }
+        
 
         #endregion
 

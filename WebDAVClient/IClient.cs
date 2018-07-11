@@ -20,7 +20,7 @@ namespace WebDAVClient
         /// <summary>
         /// Specify an port (default: null = auto-detect)
         /// </summary>
-        int? Port { get; set; }
+        int Port { get; set; }
 
         /// <summary>
         /// Specify the UserAgent (and UserAgent version) string to use in requests
