@@ -136,6 +136,11 @@ namespace WebDAVClient
             m_httpClientWrapper = new HttpClientWrapper(client, uploadClient ?? client);
         }
 
+        public Client(System.Net.Http.HttpClient httpClient)
+        {
+            m_httpClientWrapper = new HttpClientWrapper(httpClient, httpClient);
+        }
+
         public Client(IHttpClientWrapper httpClientWrapper)
         {
             m_httpClientWrapper = httpClientWrapper;
