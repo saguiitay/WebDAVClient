@@ -11,12 +11,13 @@
     <Company></Company>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/saguiitay/WebDAVClient</PackageProjectUrl>
-    <Copyright>Saguiitay 2015, MIT License</Copyright>
+    <Copyright>Copyright © 2020 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
     <PackageReleaseNotes>.Net Core Support</PackageReleaseNotes>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.0.0.0</FileVersion>
     <RepositoryUrl>https://github.com/saguiitay/WebDAVClient</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.0|AnyCPU'">
