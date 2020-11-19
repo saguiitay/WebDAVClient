@@ -62,6 +62,8 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
   - Support curstom certificate validation
   - Add download partial content
   - Improved testability by using a wrapper for HttpClient
++ **2.0.0**   BREAKING CHANGES!!!
+  - Added support for .Net Core 3.0 & .Net Standard 2.0
 
 
 # Usage
