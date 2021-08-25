@@ -5,7 +5,7 @@
     <Configurations>Debug;Release;Release-Unsigned</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId Condition=" '$(Configuration)' == 'Release-Unsigned' OR '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Debug' ">WebDAVClient</PackageId>
-    <Version>2.0</Version>
+    <Version>2.1</Version>
     <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
@@ -14,8 +14,8 @@
     <Copyright>Copyright © 2020 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
     <PackageReleaseNotes>.Net Core Support</PackageReleaseNotes>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.0.0.0</FileVersion>
+    <AssemblyVersion>2.1.0.0</AssemblyVersion>
+    <FileVersion>2.1.0.0</FileVersion>
     <RepositoryUrl>https://github.com/saguiitay/WebDAVClient</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>

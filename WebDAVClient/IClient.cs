@@ -18,7 +18,7 @@ namespace WebDAVClient
         string BasePath { get; set; }
 
         /// <summary>
-        /// Specify an port (default: null = auto-detect)
+        /// Specify a port to use
         /// </summary>
         int? Port { get; set; }
 

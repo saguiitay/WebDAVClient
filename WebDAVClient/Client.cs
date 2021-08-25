@@ -80,7 +80,7 @@ namespace WebDAVClient
         }
 
         /// <summary>
-        /// Specify an port (default: null = auto-detect)
+        /// Specify a port to use
         /// </summary>
         public int? Port { get; set; }
 
@@ -719,7 +719,14 @@ namespace WebDAVClient
             // Resolve the base path on the server
             if (m_encodedBasePath == null)
             {
-                var baseUri = new UriBuilder(m_server) {Path = m_basePath, Port = (int)Port};
+                var baseUri = new UriBuilder(m_server) 
+                {
+                    Path = m_basePath
+                };
+                if (Port != null)
+                {
+                    baseUri.Port = (int)Port;
+                }
                 var root = await Get(baseUri.Uri).ConfigureAwait(false);
 
                 m_encodedBasePath = root.Href;
@@ -735,7 +742,15 @@ namespace WebDAVClient
                 }
 
                 // Otherwise, use the resolved base path relatively to the server
-                return new UriBuilder(m_server) {Path = m_encodedBasePath, Port = (int)Port};
+                var baseUri = new UriBuilder(m_server)
+                {
+                    Path = m_encodedBasePath
+                };
+                if (Port != null)
+                {
+                    baseUri.Port = (int)Port;
+                }
+                return baseUri;
             }
 
             // If the requested path is absolute, use it
@@ -758,7 +773,11 @@ namespace WebDAVClient
                 }
                 else
                 {
-                    baseUri = new UriBuilder(m_server) { Port = (int)Port };
+                    baseUri = new UriBuilder(m_server);
+                    if (Port!= null)
+                    {
+                        baseUri.Port = (int)Port;
+                    }
 
                     // Ensure we don't add the base path twice
                     var finalPath = path;
