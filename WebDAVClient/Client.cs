@@ -43,6 +43,7 @@ namespace WebDAVClient
             //"    <resourcetype/>" +
             //"  </prop> " +
             "</propfind>";
+        private static readonly byte[] s_propFindRequestContentBytes = Encoding.UTF8.GetBytes(c_propFindRequestContent);
 
         private IHttpClientWrapper m_httpClientWrapper;
         private readonly bool m_shouldDispose;
@@ -185,7 +186,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(listUri.Uri, m_propFindMethod, headers, Encoding.UTF8.GetBytes(c_propFindRequestContent), cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(listUri.Uri, m_propFindMethod, headers, s_propFindRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != c_httpStatusCode_MultiStatus)
@@ -536,7 +537,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(listUri, m_propFindMethod, headers, Encoding.UTF8.GetBytes(c_propFindRequestContent), cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(listUri, m_propFindMethod, headers, s_propFindRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != c_httpStatusCode_MultiStatus)
