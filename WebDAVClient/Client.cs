@@ -24,6 +24,7 @@ namespace WebDAVClient
         private static readonly HttpMethod m_mkColMethod = new HttpMethod(WebRequestMethods.Http.MkCol);
 
         private static readonly string m_assemblyVersion = typeof(IClient).Assembly.GetName().Version.ToString();
+        private static readonly ProductInfoHeaderValue s_defaultUserAgent = new ProductInfoHeaderValue("WebDAVClient", m_assemblyVersion);
 
         private const int c_httpStatusCode_MultiStatus = 207;
 
@@ -648,7 +649,7 @@ namespace WebDAVClient
                 if (!string.IsNullOrWhiteSpace(UserAgent))
                     request.Headers.UserAgent.Add(new ProductInfoHeaderValue(UserAgent, UserAgentVersion));
                 else
-                    request.Headers.UserAgent.Add(new ProductInfoHeaderValue("WebDAVClient", m_assemblyVersion));
+                    request.Headers.UserAgent.Add(s_defaultUserAgent);
 
                 if (headers != null)
                 {
@@ -686,7 +687,7 @@ namespace WebDAVClient
                 if (!string.IsNullOrWhiteSpace(UserAgent))
                     request.Headers.UserAgent.Add(new ProductInfoHeaderValue(UserAgent, UserAgentVersion));
                 else
-                    request.Headers.UserAgent.Add(new ProductInfoHeaderValue("WebDAVClient", m_assemblyVersion));
+                    request.Headers.UserAgent.Add(s_defaultUserAgent);
 
                 if (headers != null)
                 {
