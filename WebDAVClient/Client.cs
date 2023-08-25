@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using WebDAVClient.Helpers;
 using WebDAVClient.HttpClient;
@@ -22,7 +23,7 @@ namespace WebDAVClient
 
         private static readonly HttpMethod m_mkColMethod = new HttpMethod(WebRequestMethods.Http.MkCol);
 
-        private static readonly string m_assemblyVersion = typeof (IClient).Assembly.GetName().Version.ToString();
+        private static readonly string m_assemblyVersion = typeof(IClient).Assembly.GetName().Version.ToString();
 
         private const int c_httpStatusCode_MultiStatus = 207;
 
@@ -161,7 +162,7 @@ namespace WebDAVClient
         /// <param name="path">List only files in this path</param>
         /// <param name="depth">Recursion depth</param>
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
-        public async Task<IEnumerable<Item>> List(string path = "/", int? depth = 1)
+        public async Task<IEnumerable<Item>> List(string path = "/", int? depth = 1, CancellationToken cancellationToken = default)
         {
             var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
 
@@ -184,7 +185,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(listUri.Uri, m_propFindMethod, headers, Encoding.UTF8.GetBytes(c_propFindRequestContent)).ConfigureAwait(false);
+                response = await HttpRequest(listUri.Uri, m_propFindMethod, headers, Encoding.UTF8.GetBytes(c_propFindRequestContent), cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != c_httpStatusCode_MultiStatus)
@@ -234,20 +235,20 @@ namespace WebDAVClient
         /// List all files present on the server.
         /// </summary>
         /// <returns>An item representing the retrieved folder</returns>
-        public async Task<Item> GetFolder(string path = "/")
+        public async Task<Item> GetFolder(string path = "/", CancellationToken cancellationToken = default)
         {
             var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
-            return await Get(listUri.Uri).ConfigureAwait(false);
+            return await Get(listUri.Uri, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
         /// List all files present on the server.
         /// </summary>
         /// <returns>An item representing the retrieved file</returns>
-        public async Task<Item> GetFile(string path = "/")
+        public async Task<Item> GetFile(string path = "/", CancellationToken cancellationToken = default)
         {
             var listUri = await GetServerUrl(path, false).ConfigureAwait(false);
-            return await Get(listUri.Uri).ConfigureAwait(false);
+            return await Get(listUri.Uri, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -255,7 +256,7 @@ namespace WebDAVClient
         /// </summary>
         /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
         /// <returns>A stream with the content of the downloaded file</returns>
-        public Task<Stream> Download(string remoteFilePath)
+        public Task<Stream> Download(string remoteFilePath, CancellationToken cancellationToken = default)
         {
             var headers = new Dictionary<string, string> { { "translate", "f" } };
             if (CustomHeaders != null)
@@ -265,7 +266,7 @@ namespace WebDAVClient
                     headers.Add(keyValuePair.Key, keyValuePair.Value);
                 }
             }
-            return DownloadFile(remoteFilePath, headers);
+            return DownloadFile(remoteFilePath, headers, cancellationToken);
         }
 
         /// <summary>
@@ -275,7 +276,7 @@ namespace WebDAVClient
         /// <param name="startBytes">Start bytes of content</param>
         /// <param name="endBytes">End bytes of content</param>
         /// <returns>A stream with the partial content of the downloaded file</returns>
-        public Task<Stream> DownloadPartial(string remoteFilePath, long startBytes, long endBytes)
+        public Task<Stream> DownloadPartial(string remoteFilePath, long startBytes, long endBytes, CancellationToken cancellationToken = default)
         {
             var headers = new Dictionary<string, string> { { "translate", "f" }, { "Range", "bytes=" + startBytes + "-" + endBytes } };
             if (CustomHeaders != null)
@@ -285,7 +286,7 @@ namespace WebDAVClient
                     headers.Add(keyValuePair.Key, keyValuePair.Value);
                 }
             }
-            return DownloadFile(remoteFilePath, headers);
+            return DownloadFile(remoteFilePath, headers, cancellationToken);
         }
 
         /// <summary>
@@ -295,7 +296,7 @@ namespace WebDAVClient
         /// <param name="content"></param>
         /// <param name="name"></param>
         /// <returns>True if the file was uploaded successfully. False otherwise</returns>
-        public async Task<bool> Upload(string remoteFilePath, Stream content, string name)
+        public async Task<bool> Upload(string remoteFilePath, Stream content, string name, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
@@ -313,7 +314,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, headers).ConfigureAwait(false);
+                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent &&
@@ -339,7 +340,7 @@ namespace WebDAVClient
         /// <param name="startBytes">Start byte position of the target content</param>
         /// <param name="endBytes">End bytes of the target content. Must match the length of <paramref name="content"/> plus <paramref name="startBytes"/></param>
         /// <returns>True if the file part was uploaded successfully. False otherwise</returns>
-        public async Task<bool> UploadPartial(string remoteFilePath, Stream content, string name, long startBytes, long endBytes)
+        public async Task<bool> UploadPartial(string remoteFilePath, Stream content, string name, long startBytes, long endBytes, CancellationToken cancellationToken = default)
         {
             if (startBytes + content.Length != endBytes)
             {
@@ -353,7 +354,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, null, startBytes, endBytes).ConfigureAwait(false);
+                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, null, startBytes, endBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent &&
@@ -376,7 +377,7 @@ namespace WebDAVClient
         /// <param name="remotePath">Destination path of the directory on the server</param>
         /// <param name="name">The name of the folder to create</param>
         /// <returns>True if the folder was created successfully. False otherwise</returns>
-        public async Task<bool> CreateDir(string remotePath, string name)
+        public async Task<bool> CreateDir(string remotePath, string name, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var dirUri = await GetServerUrl(remotePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
@@ -394,7 +395,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(dirUri.Uri, m_mkColMethod, headers).ConfigureAwait(false);
+                response = await HttpRequest(dirUri.Uri, m_mkColMethod, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode == HttpStatusCode.Conflict)
                     throw new WebDAVConflictException((int) response.StatusCode, "Failed creating folder.");
@@ -417,19 +418,19 @@ namespace WebDAVClient
         /// <summary>
         /// Deletes a folder from the server.
         /// </summary>
-        public async Task DeleteFolder(string href)
+        public async Task DeleteFolder(string href, CancellationToken cancellationToken = default)
         {
             var listUri = await GetServerUrl(href, true).ConfigureAwait(false);
-            await Delete(listUri.Uri).ConfigureAwait(false);
+            await Delete(listUri.Uri, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Deletes a file from the server.
         /// </summary>
-        public async Task DeleteFile(string href)
+        public async Task DeleteFile(string href, CancellationToken cancellationToken = default)
         {
             var listUri = await GetServerUrl(href, false).ConfigureAwait(false);
-            await Delete(listUri.Uri).ConfigureAwait(false);
+            await Delete(listUri.Uri, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -438,13 +439,13 @@ namespace WebDAVClient
         /// <param name="srcFolderPath">Source path of the folder on the server</param>
         /// <param name="dstFolderPath">Destination path of the folder on the server</param>
         /// <returns>True if the folder was moved successfully. False otherwise</returns>
-        public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath)
+        public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, CancellationToken cancellationToken = default)
         {
             // Should have a trailing slash.
             var srcUri = await GetServerUrl(srcFolderPath, true).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFolderPath, true).ConfigureAwait(false);
 
-            return await Move(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
+            return await Move(srcUri.Uri, dstUri.Uri, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -453,13 +454,13 @@ namespace WebDAVClient
         /// <param name="srcFilePath">Source path and filename of the file on the server</param>
         /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
         /// <returns>True if the file was moved successfully. False otherwise</returns>
-        public async Task<bool> MoveFile(string srcFilePath, string dstFilePath)
+        public async Task<bool> MoveFile(string srcFilePath, string dstFilePath, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var srcUri = await GetServerUrl(srcFilePath, false).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFilePath, false).ConfigureAwait(false);
 
-            return await Move(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
+            return await Move(srcUri.Uri, dstUri.Uri, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -468,13 +469,13 @@ namespace WebDAVClient
         /// <param name="srcFolderPath">Source path of the folder on the server</param>
         /// <param name="dstFolderPath">Destination path of the folder on the server</param>
         /// <returns>True if the folder was copied successfully. False otherwise</returns>
-        public async Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath)
+        public async Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, CancellationToken cancellationToken = default)
         {
             // Should have a trailing slash.
             var srcUri = await GetServerUrl(srcFolderPath, true).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFolderPath, true).ConfigureAwait(false);
 
-            return await Copy(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
+            return await Copy(srcUri.Uri, dstUri.Uri, cancellationToken).ConfigureAwait(false);
         }
         
         /// <summary>
@@ -483,19 +484,19 @@ namespace WebDAVClient
         /// <param name="srcFilePath">Source path and filename of the file on the server</param>
         /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
         /// <returns>True if the file was copied successfully. False otherwise</returns>
-        public async Task<bool> CopyFile(string srcFilePath, string dstFilePath)
+        public async Task<bool> CopyFile(string srcFilePath, string dstFilePath, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var srcUri = await GetServerUrl(srcFilePath, false).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFilePath, false).ConfigureAwait(false);
 
-            return await Copy(srcUri.Uri, dstUri.Uri).ConfigureAwait(false);
+            return await Copy(srcUri.Uri, dstUri.Uri, cancellationToken).ConfigureAwait(false);
         }
 
         #endregion
         
         #region Private methods
-        private async Task Delete(Uri listUri)
+        private async Task Delete(Uri listUri, CancellationToken cancellationToken = default)
         {
             IDictionary<string, string> headers = new Dictionary<string, string>();
             if (CustomHeaders != null)
@@ -506,7 +507,7 @@ namespace WebDAVClient
                 }
             }
 
-            var response = await HttpRequest(listUri, HttpMethod.Delete, headers).ConfigureAwait(false);
+            var response = await HttpRequest(listUri, HttpMethod.Delete, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.NoContent)
@@ -515,7 +516,7 @@ namespace WebDAVClient
             }
         }
 
-        private async Task<Item> Get(Uri listUri)
+        private async Task<Item> Get(Uri listUri, CancellationToken cancellationToken = default)
         {
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
             IDictionary<string, string> headers = new Dictionary<string, string>
@@ -535,7 +536,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(listUri, m_propFindMethod, headers, Encoding.UTF8.GetBytes(c_propFindRequestContent)).ConfigureAwait(false);
+                response = await HttpRequest(listUri, m_propFindMethod, headers, Encoding.UTF8.GetBytes(c_propFindRequestContent), cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != c_httpStatusCode_MultiStatus)
@@ -561,7 +562,7 @@ namespace WebDAVClient
             }
         }
 
-        private async Task<bool> Move(Uri srcUri, Uri dstUri)
+        private async Task<bool> Move(Uri srcUri, Uri dstUri, CancellationToken cancellationToken = default)
         {
             const string requestContent = "MOVE";
 
@@ -578,7 +579,7 @@ namespace WebDAVClient
                 }
             }
 
-            var response = await HttpRequest(srcUri, m_moveMethod, headers, Encoding.UTF8.GetBytes(requestContent)).ConfigureAwait(false);
+            var response = await HttpRequest(srcUri, m_moveMethod, headers, Encoding.UTF8.GetBytes(requestContent), cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.Created)
@@ -589,7 +590,7 @@ namespace WebDAVClient
             return response.IsSuccessStatusCode;
         }
 
-        private async Task<bool> Copy(Uri srcUri, Uri dstUri)
+        private async Task<bool> Copy(Uri srcUri, Uri dstUri, CancellationToken cancellationToken = default)
         {
             const string requestContent = "COPY";
 
@@ -606,7 +607,7 @@ namespace WebDAVClient
                 }
             }
 
-            var response = await HttpRequest(srcUri, m_copyMethod, headers, Encoding.UTF8.GetBytes(requestContent)).ConfigureAwait(false);
+            var response = await HttpRequest(srcUri, m_copyMethod, headers, Encoding.UTF8.GetBytes(requestContent), cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.Created)
@@ -617,11 +618,11 @@ namespace WebDAVClient
             return response.IsSuccessStatusCode;
         }
 
-        private async Task<Stream> DownloadFile(string remoteFilePath, Dictionary<string, string> header)
+        private async Task<Stream> DownloadFile(string remoteFilePath, Dictionary<string, string> header, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var downloadUri = await GetServerUrl(remoteFilePath, false).ConfigureAwait(false);
-            var response = await HttpRequest(downloadUri.Uri, HttpMethod.Get, header).ConfigureAwait(false);
+            var response = await HttpRequest(downloadUri.Uri, HttpMethod.Get, header, cancellationToken: cancellationToken).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
             {
                 return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -638,7 +639,7 @@ namespace WebDAVClient
         /// <param name="method"></param>
         /// <param name="headers"></param>
         /// <param name="content"></param>
-        private async Task<HttpResponseMessage> HttpRequest(Uri uri, HttpMethod method, IDictionary<string, string> headers = null, byte[] content = null)
+        private async Task<HttpResponseMessage> HttpRequest(Uri uri, HttpMethod method, IDictionary<string, string> headers = null, byte[] content = null, CancellationToken cancellationToken = default)
         {
             using (var request = new HttpRequestMessage(method, uri))
             {
@@ -663,7 +664,7 @@ namespace WebDAVClient
                     request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/xml");
                 }
 
-                return await m_httpClientWrapper.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                return await m_httpClientWrapper.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -676,7 +677,7 @@ namespace WebDAVClient
         /// <param name="headers"></param>
         /// <param name="startBytes"></param>
         /// <param name="endBytes"></param>
-        private async Task<HttpResponseMessage> HttpUploadRequest(Uri uri, HttpMethod method, Stream content, IDictionary<string, string> headers = null, long? startBytes = null, long? endBytes = null)
+        private async Task<HttpResponseMessage> HttpUploadRequest(Uri uri, HttpMethod method, Stream content, IDictionary<string, string> headers = null, long? startBytes = null, long? endBytes = null, CancellationToken cancellationToken = default)
         {
             using (var request = new HttpRequestMessage(method, uri))
             {
@@ -705,7 +706,7 @@ namespace WebDAVClient
                     }
                 }
 
-                return await m_httpClientWrapper.SendUploadAsync(request).ConfigureAwait(false);
+                return await m_httpClientWrapper.SendUploadAsync(request, cancellationToken).ConfigureAwait(false);
             }
         }
 
