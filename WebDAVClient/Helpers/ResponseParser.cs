@@ -40,7 +40,6 @@ namespace WebDAVClient.Helpers
             var items = new List<Item>();
             using (var reader = XmlReader.Create(stream, XmlReaderSettings))
             {
-                
                 Item itemInfo = null;
                 while (reader.Read())
                 {
@@ -64,18 +63,20 @@ namespace WebDAVClient.Helpers
                                 if (!reader.IsEmptyElement)
                                 {
                                     reader.Read();
-                                    DateTime creationdate;
-                                    if (DateTime.TryParse(reader.Value, out creationdate))
-                                        itemInfo.CreationDate = creationdate;
+                                    if (DateTime.TryParse(reader.Value, out var creationDate))
+                                    {
+                                        itemInfo.CreationDate = creationDate;
+                                    }
                                 }
                                 break;
                             case "getlastmodified":
                                 if (!reader.IsEmptyElement)
                                 {
                                     reader.Read();
-                                    DateTime lastmodified;
-                                    if (DateTime.TryParse(reader.Value, out lastmodified))
-                                        itemInfo.LastModified = lastmodified;
+                                    if (DateTime.TryParse(reader.Value, out var lastModified))
+                                    {
+                                        itemInfo.LastModified = lastModified;
+                                    }
                                 }
                                 break;
                             case "displayname":
@@ -89,9 +90,10 @@ namespace WebDAVClient.Helpers
                                 if (!reader.IsEmptyElement)
                                 {
                                     reader.Read();
-                                    long contentLength;
-                                    if (long.TryParse(reader.Value, out contentLength))
+                                    if (long.TryParse(reader.Value, out long contentLength))
+                                    {
                                         itemInfo.ContentLength = contentLength;
+                                    }
                                 }
                                 break;
                             case "getcontenttype":
@@ -112,12 +114,14 @@ namespace WebDAVClient.Helpers
                                 if (!reader.IsEmptyElement)
                                 {
                                     reader.Read();
-                                    bool isCollection;
-                                    if (bool.TryParse(reader.Value, out isCollection))
+                                    if (bool.TryParse(reader.Value, out bool isCollection))
+                                    {
                                         itemInfo.IsCollection = isCollection;
-                                    int isCollectionInt;
-                                    if (int.TryParse(reader.Value, out isCollectionInt))
+                                    }
+                                    if (int.TryParse(reader.Value, out int isCollectionInt))
+                                    {
                                         itemInfo.IsCollection = isCollectionInt == 1;
+                                    }
                                 }
                                 break;
                             case "resourcetype":
@@ -126,20 +130,27 @@ namespace WebDAVClient.Helpers
                                     reader.Read();
                                     var resourceType = reader.LocalName.ToLower();
                                     if (string.Equals(resourceType, "collection", StringComparison.InvariantCultureIgnoreCase))
+                                    {
                                         itemInfo.IsCollection = true;
+                                    }
                                 }
                                 break;
                             case "hidden":
                             case "ishidden":
-                                itemInfo.IsHidden = true;
-                                break;
+                                {
+                                    itemInfo.IsHidden = true;
+                                    break;
+                                }
                             case "checked-in":
                             case "version-controlled-configuration":
-                                reader.Skip();
-                                break;
+                                {
+                                    reader.Skip();
+                                    break;
+                                }
                         }
                     }
-                    else if (reader.NodeType == XmlNodeType.EndElement && reader.LocalName.ToLower() == "response")
+                    else if (reader.NodeType == XmlNodeType.EndElement && 
+                        string.Equals(reader.LocalName, "response", StringComparison.OrdinalIgnoreCase))
                     {
                         // Remove trailing / if the item is not a collection
                         var href = itemInfo.Href.TrimEnd('/');
@@ -159,7 +170,5 @@ namespace WebDAVClient.Helpers
 
             return items;
         }
-
-
     }
 }
