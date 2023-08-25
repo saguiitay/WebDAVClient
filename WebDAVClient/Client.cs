@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -169,7 +168,7 @@ namespace WebDAVClient
             var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
 
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
-            IDictionary<string, string> headers = new Dictionary<string, string>();
+            IDictionary<string, string> headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0));
             if (depth != null)
             {
                 headers.Add("Depth", depth.ToString());
@@ -206,7 +205,7 @@ namespace WebDAVClient
 
                     var listUrl = listUri.ToString();
 
-                    var result = new List<Item>(items.Count());
+                    var result = new List<Item>(items.Count);
                     foreach (var item in items)
                     {
                         // If it's not a collection, add it to the result
@@ -260,7 +259,10 @@ namespace WebDAVClient
         /// <returns>A stream with the content of the downloaded file</returns>
         public Task<Stream> Download(string remoteFilePath, CancellationToken cancellationToken = default)
         {
-            var headers = new Dictionary<string, string> { { "translate", "f" } };
+            var headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0))
+            {
+                { "translate", "f" }
+            };
             if (CustomHeaders != null)
             {
                 foreach (var keyValuePair in CustomHeaders)
@@ -280,7 +282,11 @@ namespace WebDAVClient
         /// <returns>A stream with the partial content of the downloaded file</returns>
         public Task<Stream> DownloadPartial(string remoteFilePath, long startBytes, long endBytes, CancellationToken cancellationToken = default)
         {
-            var headers = new Dictionary<string, string> { { "translate", "f" }, { "Range", "bytes=" + startBytes + "-" + endBytes } };
+            var headers = new Dictionary<string, string>(2 + (CustomHeaders?.Count ?? 0))
+            { 
+                { "translate", "f" }, 
+                { "Range", "bytes=" + startBytes + "-" + endBytes } 
+            };
             if (CustomHeaders != null)
             {
                 foreach (var keyValuePair in CustomHeaders)
@@ -303,7 +309,7 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
 
-            IDictionary<string, string> headers = new Dictionary<string, string>();
+            IDictionary<string, string> headers = new Dictionary<string, string>(CustomHeaders?.Count ?? 0);
             if (CustomHeaders != null)
             {
                 foreach (var keyValuePair in CustomHeaders)
@@ -384,7 +390,7 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             var dirUri = await GetServerUrl(remotePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
 
-            IDictionary<string, string> headers = new Dictionary<string, string>();
+            IDictionary<string, string> headers = new Dictionary<string, string>(CustomHeaders?.Count ?? 0);
             if (CustomHeaders != null)
             {
                 foreach (var keyValuePair in CustomHeaders)
@@ -500,7 +506,7 @@ namespace WebDAVClient
         #region Private methods
         private async Task Delete(Uri listUri, CancellationToken cancellationToken = default)
         {
-            IDictionary<string, string> headers = new Dictionary<string, string>();
+            IDictionary<string, string> headers = new Dictionary<string, string>(CustomHeaders?.Count ?? 0);
             if (CustomHeaders != null)
             {
                 foreach (var keyValuePair in CustomHeaders)
@@ -521,7 +527,7 @@ namespace WebDAVClient
         private async Task<Item> Get(Uri listUri, CancellationToken cancellationToken = default)
         {
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
-            IDictionary<string, string> headers = new Dictionary<string, string>
+            IDictionary<string, string> headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0))
             {
                 { "Depth", "0" }
             };
@@ -568,7 +574,7 @@ namespace WebDAVClient
         {
             const string requestContent = "MOVE";
 
-            IDictionary<string, string> headers = new Dictionary<string, string>
+            IDictionary<string, string> headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0))
             {
                 { "Destination", dstUri.ToString() }
             };
@@ -596,7 +602,7 @@ namespace WebDAVClient
         {
             const string requestContent = "COPY";
 
-            IDictionary<string, string> headers = new Dictionary<string, string>
+            IDictionary<string, string> headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0))
             {
                 { "Destination", dstUri.ToString() }
             };

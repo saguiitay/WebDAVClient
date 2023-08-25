@@ -35,7 +35,7 @@ namespace WebDAVClient.Helpers
         /// </summary>
         /// <param name="stream">The response text.</param>
         /// <returns>The list of parsed items.</returns>
-        public static IEnumerable<Item> ParseItems(Stream stream)
+        public static List<Item> ParseItems(Stream stream)
         {
             var items = new List<Item>();
             using (var reader = XmlReader.Create(stream, XmlReaderSettings))
