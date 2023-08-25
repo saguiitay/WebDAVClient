@@ -16,22 +16,18 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3.6.0
+    - name: Setup NuGet.exe for use with actions
+      uses: NuGet/setup-nuget@v1.2.0
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v3.2.0
       with:
         dotnet-version: 6.0.x
     - name: Restore dependencies
       run: dotnet restore
-    - name: Build Unsigned
-      run: dotnet build -c Release-Unsigned --no-restore
-    - name: Build Signed
-      run: dotnet build -c Release-Signed --no-restore
-    - name: Push Unsigned to NuGet
-      run: |
-        dotnet pack -c Release-Unsigned -o $PWD/Release-Unsigned/nuget
-        for file in Release-Unsigned/nuget/*.nupkg; do dotnet nuget push -s https://api.nuget.org/v3/index.json -k ${{secrets.NUGET_API_KEY}} $file; done
+    - name: Build
+      run: dotnet build -c Release --no-restore
     - name: Push Signed to NuGet
       run: |
-        dotnet pack -c Release-Signed -o $PWD/Release-Signed/nuget
-        for file in Release-Signed/nuget/*.nupkg; do dotnet nuget push -s https://api.nuget.org/v3/index.json -k ${{secrets.NUGET_API_KEY}} $file; done
+        dotnet pack -c Release -o $PWD/Release/nuget
+        for file in Release/nuget/*.nupkg; do dotnet nuget push -s https://api.nuget.org/v3/index.json -k ${{secrets.NUGET_API_KEY}} $file; done
