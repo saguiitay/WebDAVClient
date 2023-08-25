@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WebDAVClient.HttpClient
@@ -16,14 +17,14 @@ namespace WebDAVClient.HttpClient
             m_uploadHttpClient = uploadHttpClient ?? httpClient;
         }
 
-        public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption responseHeadersRead)
+        public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption responseHeadersRead, CancellationToken cancellationToken = default)
         {
-            return m_httpClient.SendAsync(request, responseHeadersRead);
+            return m_httpClient.SendAsync(request, responseHeadersRead, cancellationToken);
         }
 
-        public Task<HttpResponseMessage> SendUploadAsync(HttpRequestMessage request)
+        public Task<HttpResponseMessage> SendUploadAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
         {
-            return m_uploadHttpClient.SendAsync(request);
+            return m_uploadHttpClient.SendAsync(request, cancellationToken);
         }
 
 
