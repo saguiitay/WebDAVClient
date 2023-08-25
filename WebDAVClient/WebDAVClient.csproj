@@ -4,26 +4,37 @@
     <TargetFrameworks>netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <Configurations>Debug;Release;Release-Unsigned</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId Condition=" '$(Configuration)' == 'Release-Unsigned' OR '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Debug' ">WebDAVClient</PackageId>
-    <Version>2.2</Version>
+    <PackageId>WebDAVClient</PackageId>
+    <Version>2.2.1</Version>
     <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
-    <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/saguiitay/WebDAVClient</PackageProjectUrl>
-    <Copyright>Copyright © 2020 Sagui Itay</Copyright>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Copyright>Copyright © 2023 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
     <PackageReleaseNotes>* Implement `IDisposable` to avoid `HttpClient` leak
 * Added support for `CancellationToken`
 * Various performance improvements to reduce memory allocations
 * Minor code cleanup</PackageReleaseNotes>
-    <AssemblyVersion>2.2.0.0</AssemblyVersion>
-    <FileVersion>2.2.0.0</FileVersion>
-    <RepositoryUrl>https://github.com/saguiitay/WebDAVClient</RepositoryUrl>
+    <AssemblyVersion>2.2.1.0</AssemblyVersion>
+    <FileVersion>2.2.1.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.0|AnyCPU'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+    
+  <ItemGroup>
+    <None Include="..\LICENSE.md" Pack="true" PackagePath="LICENSE.md" />
+    <None Include="..\README.md" Pack="true" PackagePath="$(PackageReadmeFile)" />
+  </ItemGroup>
 </Project>
