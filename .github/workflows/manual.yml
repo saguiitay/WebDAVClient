@@ -27,7 +27,7 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build -c Release --no-restore
-    - name: Push Signed to NuGet
+    - name: Push to NuGet
       run: |
         dotnet pack -c Release -o $PWD/Release/nuget
-        for file in Release/nuget/*.nupkg; do dotnet nuget push -s https://api.nuget.org/v3/index.json -k ${{secrets.NUGET_API_KEY}} $file; done
+        for file in Release/nuget/WebDAVClient.*.nupkg; do dotnet nuget push -s https://api.nuget.org/v3/index.json -k ${{secrets.NUGET_API_KEY}} $file; done
