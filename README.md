@@ -28,6 +28,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 ## Release Notes
 
++ **2.2.1**   Minor packaging improvements
 + **2.2.0**   Improvement: 
   - Implement `IDisposable` to avoid `HttpClient` leak
   - Added support for `CancellationToken`
