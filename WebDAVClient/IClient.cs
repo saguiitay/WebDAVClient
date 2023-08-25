@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -5,7 +6,7 @@ using WebDAVClient.Model;
 
 namespace WebDAVClient
 {
-    public interface IClient
+    public interface IClient : IDisposable
     {
         /// <summary>
         /// Specify the WebDAV hostname (required).
