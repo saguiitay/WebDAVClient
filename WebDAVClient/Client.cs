@@ -43,10 +43,12 @@ namespace WebDAVClient
             //"  </prop> " +
             "</propfind>";
 
-        private readonly IHttpClientWrapper m_httpClientWrapper;
+        private IHttpClientWrapper m_httpClientWrapper;
+        private readonly bool m_shouldDispose;
         private string m_server;
         private string m_basePath = "/";
         private string m_encodedBasePath;
+        private bool m_disposedValue;
 
         #region WebDAV connection parameters
 
@@ -109,9 +111,13 @@ namespace WebDAVClient
         {
             var handler = new HttpClientHandler();
             if (proxy != null && handler.SupportsProxy)
+            {
                 handler.Proxy = proxy;
+            }
             if (handler.SupportsAutomaticDecompression)
+            {
                 handler.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
+            }
             if (credential != null)
             {
                 handler.Credentials = credential;
@@ -122,18 +128,19 @@ namespace WebDAVClient
                 handler.UseDefaultCredentials = true;
             }
 
-            var client = new System.Net.Http.HttpClient(handler);
+            var client = new System.Net.Http.HttpClient(handler, disposeHandler: true);
             client.DefaultRequestHeaders.ExpectContinue = false;
 
             System.Net.Http.HttpClient uploadClient = null;
             if (uploadTimeout != null)
             {
-                uploadClient = new System.Net.Http.HttpClient(handler);
+                uploadClient = new System.Net.Http.HttpClient(handler, disposeHandler: true);
                 uploadClient.DefaultRequestHeaders.ExpectContinue = false;
                 uploadClient.Timeout = uploadTimeout.Value;
             }
 
             m_httpClientWrapper = new HttpClientWrapper(client, uploadClient ?? client);
+            m_shouldDispose = true;
         }
 
         public Client(System.Net.Http.HttpClient httpClient)
@@ -667,7 +674,9 @@ namespace WebDAVClient
         /// <param name="method"></param>
         /// <param name="content"></param>
         /// <param name="headers"></param>
-        private async Task<HttpResponseMessage> HttpUploadRequest(Uri uri, HttpMethod method, Stream content, IDictionary<string, string> headers = null, long? startbytes = null, long? endbytes = null)
+        /// <param name="startBytes"></param>
+        /// <param name="endBytes"></param>
+        private async Task<HttpResponseMessage> HttpUploadRequest(Uri uri, HttpMethod method, Stream content, IDictionary<string, string> headers = null, long? startBytes = null, long? endBytes = null)
         {
             using (var request = new HttpRequestMessage(method, uri))
             {
@@ -689,10 +698,10 @@ namespace WebDAVClient
                 if (content != null)
                 {
                     request.Content = new StreamContent(content);
-                    if (startbytes.HasValue && endbytes.HasValue)
+                    if (startBytes.HasValue && endBytes.HasValue)
                     {
-                        request.Content.Headers.ContentRange = ContentRangeHeaderValue.Parse($"bytes {startbytes}-{endbytes}/*");
-                        request.Content.Headers.ContentLength = endbytes - startbytes;
+                        request.Content.Headers.ContentRange = ContentRangeHeaderValue.Parse($"bytes {startBytes}-{endBytes}/*");
+                        request.Content.Headers.ContentLength = endBytes - startBytes;
                     }
                 }
 
@@ -703,8 +712,8 @@ namespace WebDAVClient
         /// <summary>
         /// Try to create an Uri with kind UriKind.Absolute
         /// This particular implementation also works on Mono/Linux
-        /// It seems that on Mono it is expected behaviour that uris
-        /// of kind /a/b are indeed absolute uris since it referes to a file in /a/b.
+        /// It seems that on Mono it is expected behavior that URIs
+        /// of kind /a/b are indeed absolute URIs since it refers to a file in /a/b.
         /// https://bugzilla.xamarin.com/show_bug.cgi?id=30854
         /// </summary>
         /// <param name="uriString"></param>
@@ -809,7 +818,35 @@ namespace WebDAVClient
             }
             return false;
         }
+        #endregion
 
+        #region IDisposable methods
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!m_disposedValue)
+            {
+                if (disposing)
+                {
+                    if (m_shouldDispose)
+                    {
+                        if (m_httpClientWrapper is IDisposable httpClientWrapperDisposable)
+                        {
+                            httpClientWrapperDisposable.Dispose();
+                            m_httpClientWrapper = null;
+                        }
+                    }
+                }
+
+                m_disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
         #endregion
     }
 }
