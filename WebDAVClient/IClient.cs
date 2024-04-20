@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using WebDAVClient.Model;
@@ -38,6 +39,11 @@ namespace WebDAVClient
         /// Specify additional headers to be sent with every request
         /// </summary>
         ICollection<KeyValuePair<string, string>> CustomHeaders { get; set; }
+
+        /// <summary>
+        /// Specify the certificates validation logic
+        /// </summary>
+        RemoteCertificateValidationCallback ServerCertificateValidationCallback { get; set; }
 
         /// <summary>
         /// List all files present on the server.
