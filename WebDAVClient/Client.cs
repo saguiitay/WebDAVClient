@@ -107,6 +107,7 @@ namespace WebDAVClient
         /// Specify the certificates validation logic
         /// </summary>
         public RemoteCertificateValidationCallback ServerCertificateValidationCallback { get; set; }
+        
         #endregion
 
         public Client(NetworkCredential credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
@@ -129,6 +130,7 @@ namespace WebDAVClient
             {
                 handler.UseDefaultCredentials = true;
             }
+            handler.ServerCertificateCustomValidationCallback = ServerCertificateValidation;
 
             var client = new System.Net.Http.HttpClient(handler, disposeHandler: true);
             client.DefaultRequestHeaders.ExpectContinue = false;
@@ -819,13 +821,13 @@ namespace WebDAVClient
 
         #region WebDAV Connection Helpers
 
-        public bool ServerCertificateValidation(object sender, System.Security.Cryptography.X509Certificates.X509Certificate certification, System.Security.Cryptography.X509Certificates.X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        public bool ServerCertificateValidation(HttpRequestMessage requestMessage, System.Security.Cryptography.X509Certificates.X509Certificate certification, System.Security.Cryptography.X509Certificates.X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             if (ServerCertificateValidationCallback != null)
             {
-                return ServerCertificateValidationCallback(sender, certification, chain, sslPolicyErrors);
+                return ServerCertificateValidationCallback(requestMessage, certification, chain, sslPolicyErrors);
             }
-            return false;
+            return sslPolicyErrors == SslPolicyErrors.None;
         }
         #endregion
 
