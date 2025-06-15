@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.Serialization;
 
 namespace WebDAVClient.Helpers
 {
@@ -45,10 +44,6 @@ namespace WebDAVClient.Helpers
             m_httpCode = httpCode;
             ErrorCode = hr;
         }
-
-        protected WebDAVException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
-        {}
 
         public int GetHttpCode()
         {

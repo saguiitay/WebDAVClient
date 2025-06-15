@@ -109,7 +109,7 @@ namespace WebDAVClient
         public RemoteCertificateValidationCallback ServerCertificateValidationCallback { get; set; }
         #endregion
 
-        public Client(NetworkCredential credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
+        public Client(ICredentials credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
         {
             var handler = new HttpClientHandler();
             if (proxy != null && handler.SupportsProxy)
