@@ -8,33 +8,145 @@ This document outlines the recommended improvements and missing features for the
 **Priority: High**
 **Target: v3.0.0**
 
-The current implementation only supports basic authentication and Windows authentication. We need to add support for modern authentication methods:
+The current implementation only supports basic authentication and Windows authentication. We need to add support for modern authentication methods using established .NET patterns:
 
-#### New Authentication Methods
-- **Bearer Token Authentication** (OAuth 2.0/JWT)
-- **API Key Authentication** 
-- **Digest Authentication**
-- **Custom Authentication Headers**
+#### Modern Authentication Patterns
 
-#### Implementation Plan
+Instead of custom authentication enums, leverage standard .NET authentication abstractions:
+
 ```csharp
-public enum AuthenticationMethod
+// Enhanced Client constructor overloads for modern authentication
+
+// Existing constructor - maintain backward compatibility
+public Client(ICredentials credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
 {
-    None,
-    Basic,
-    Windows,
-    Bearer,
-    ApiKey,
-    Digest,
-    Custom
+    // Keep existing basic/Windows authentication support
 }
 
-// New properties to add to Client class
-public AuthenticationMethod AuthMethod { get; set; }
-public string BearerToken { get; set; }
-public string ApiKeyHeaderName { get; set; }
-public string ApiKeyValue { get; set; }
-public Dictionary<string, string> CustomAuthHeaders { get; set; }
+// Token-based authentication (OAuth2, Azure AD, JWT)
+public Client(TokenCredential tokenCredential, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
+{
+    // For Azure AD, OAuth2, JWT tokens using System.ClientModel.Primitives.TokenCredential
+    // Integrates seamlessly with Azure Identity libraries
+}
+
+// API Key authentication
+public Client(ApiKeyCredential apiKeyCredential, string headerName = "X-API-Key", TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
+{
+    // For API key authentication using System.ClientModel.Primitives.ApiKeyCredential
+}
+
+// Custom authentication handler for maximum flexibility
+public Client(Func<HttpRequestMessage, CancellationToken, ValueTask> authenticationHandler, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
+{
+    // For digest authentication, custom schemes, or complex auth flows
+    // Handler is called before each request to add authentication
+}
+
+// Fluent builder pattern integration
+public Client(AuthenticationOptions authOptions, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
+{
+    // Used with fluent builder for complex authentication scenarios
+}
+```
+
+#### New Authentication Support Classes
+
+```csharp
+// Authentication options for complex scenarios
+public class AuthenticationOptions
+{
+    public TokenCredential? TokenCredential { get; set; }
+    public ApiKeyCredential? ApiKeyCredential { get; set; }
+    public string? ApiKeyHeaderName { get; set; } = "X-API-Key";
+    public ICredentials? Credentials { get; set; }
+    public Func<HttpRequestMessage, CancellationToken, ValueTask>? CustomHandler { get; set; }
+    public Dictionary<string, string>? StaticHeaders { get; set; }
+}
+
+// Bearer token helper for simple scenarios
+public static class BearerToken
+{
+    public static TokenCredential FromString(string token) => new StaticTokenCredential(token);
+    public static TokenCredential FromProvider(Func<CancellationToken, ValueTask<AccessToken>> provider) 
+        => new DelegatingTokenCredential(provider);
+}
+```
+
+#### Standard Authentication Types Supported
+
+- **`System.ClientModel.Primitives.TokenCredential`**
+  - OAuth2 tokens
+  - Azure AD authentication
+  - JWT tokens
+  - Custom token providers
+  
+- **`System.ClientModel.Primitives.ApiKeyCredential`**
+  - API key in headers
+  - API key in query parameters
+  - Custom API key placement
+
+- **`System.Net.ICredentials`** (existing)
+  - Basic authentication
+  - Windows authentication
+  - Network credentials
+
+- **Custom Authentication Handlers**
+  - Digest authentication
+  - Multi-factor authentication
+  - Complex custom schemes
+  - Dynamic token refresh
+
+#### Integration Examples
+
+```csharp
+// Azure AD integration
+var tokenCredential = new DefaultAzureCredential();
+var client = new Client(tokenCredential);
+
+// API Key authentication
+var apiKey = new ApiKeyCredential("your-api-key");
+var client = new Client(apiKey, "Authorization"); // Custom header name
+
+// JWT Bearer token
+var bearerToken = BearerToken.FromString("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...");
+var client = new Client(bearerToken);
+
+// Custom digest authentication
+var digestHandler = async (request, cancellationToken) =>
+{
+    // Implement digest authentication logic
+    var authHeader = await CreateDigestAuthHeader(request, cancellationToken);
+    request.Headers.Authorization = new AuthenticationHeaderValue("Digest", authHeader);
+};
+var client = new Client(digestHandler);
+
+// Fluent builder pattern
+var client = ClientBuilder.Create()
+    .WithServer("https://dav.example.com")
+    .WithTokenCredential(new DefaultAzureCredential())
+    .WithRetryPolicy(3, TimeSpan.FromSeconds(2))
+    .Build();
+```
+
+#### Benefits of This Approach
+
+- **Standard .NET Patterns**: Uses established authentication abstractions
+- **Azure Integration**: Seamless integration with Azure Identity libraries
+- **OAuth2/JWT Support**: Built-in support for modern token-based authentication
+- **Extensibility**: Custom handlers allow any authentication scheme
+- **Backward Compatibility**: Existing `ICredentials` constructor remains unchanged
+- **Dependency Injection Friendly**: Works well with DI containers
+- **Testability**: Easy to mock and test authentication flows
+
+#### Package Dependencies
+
+```xml
+<!-- Required for modern authentication support -->
+<PackageReference Include="System.ClientModel.Primitives" Version="1.0.0" />
+
+<!-- Optional - for Azure AD integration -->
+<PackageReference Include="Azure.Identity" Version="1.10.4" />
 ```
 
 ### 2. WebDAV Lock/Unlock Operations
@@ -219,7 +331,7 @@ Task<ConnectionInfo> GetConnectionInfo(CancellationToken cancellationToken = def
 **Priority: Medium**
 **Target: v3.0.0**
 
-Create a more intuitive configuration experience:
+Create a more intuitive configuration experience that integrates with modern authentication patterns:
 
 ```csharp
 public static class ClientBuilder
@@ -231,208 +343,192 @@ public class ClientConfiguration
 {
     public ClientConfiguration WithServer(string server);
     public ClientConfiguration WithBasePath(string basePath);
-    public ClientConfiguration WithCredentials(ICredentials credentials);
-    public ClientConfiguration WithBearerToken(string token);
+    public ClientConfiguration WithPort(int port);
     public ClientConfiguration WithTimeout(TimeSpan timeout);
-    public ClientConfiguration WithRetryPolicy(int maxAttempts, TimeSpan delay);
+    public ClientConfiguration WithUploadTimeout(TimeSpan uploadTimeout);
+    public ClientConfiguration WithProxy(IWebProxy proxy);
+    
+    // Modern authentication methods
+    public ClientConfiguration WithCredentials(ICredentials credentials);
+    public ClientConfiguration WithTokenCredential(TokenCredential tokenCredential);
+    public ClientConfiguration WithApiKey(ApiKeyCredential apiKeyCredential, string headerName = "X-API-Key");
+    public ClientConfiguration WithBearerToken(string token);
+    public ClientConfiguration WithCustomAuthentication(Func<HttpRequestMessage, CancellationToken, ValueTask> handler);
+    
+    // Configuration options
+    public ClientConfiguration WithRetryPolicy(int maxAttempts, TimeSpan delay, bool exponentialBackoff = true);
     public ClientConfiguration WithCustomHeaders(Dictionary<string, string> headers);
+    public ClientConfiguration WithUserAgent(string userAgent, string? version = null);
     public ClientConfiguration WithLogging(ILogger logger);
+    public ClientConfiguration WithCertificateValidation(RemoteCertificateValidationCallback callback);
+    
+    // Build the client
     public Client Build();
 }
 
-// Usage
+// Extension methods for common scenarios
+public static class ClientConfigurationExtensions
+{
+    public static ClientConfiguration WithBasicAuth(this ClientConfiguration config, string username, string password)
+        => config.WithCredentials(new NetworkCredential(username, password));
+        
+    public static ClientConfiguration WithAzureAD(this ClientConfiguration config)
+        => config.WithTokenCredential(new DefaultAzureCredential());
+        
+    public static ClientConfiguration WithJwtToken(this ClientConfiguration config, string jwtToken)
+        => config.WithBearerToken(jwtToken);
+}
+```
+
+#### Usage Examples
+
+```csharp
+// Basic authentication
 var client = ClientBuilder.Create()
     .WithServer("https://dav.example.com")
     .WithBasePath("/dav/")
-    .WithBearerToken("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...")
+    .WithBasicAuth("username", "password")
     .WithRetryPolicy(3, TimeSpan.FromSeconds(2))
+    .Build();
+
+// Azure AD authentication
+var client = ClientBuilder.Create()
+    .WithServer("https://sharepoint.example.com")
+    .WithAzureAD()
+    .WithLogging(logger)
+    .Build();
+
+// API Key authentication
+var client = ClientBuilder.Create()
+    .WithServer("https://api.example.com")
+    .WithApiKey(new ApiKeyCredential("your-key"), "X-API-Key")
+    .WithTimeout(TimeSpan.FromMinutes(5))
+    .Build();
+
+// JWT Bearer token
+var client = ClientBuilder.Create()
+    .WithServer("https://dav.example.com")
+    .WithJwtToken("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...")
+    .WithCustomHeaders(new Dictionary<string, string> { ["X-Client-Version"] = "3.0" })
+    .Build();
+
+// Custom digest authentication
+var client = ClientBuilder.Create()
+    .WithServer("https://dav.example.com")
+    .WithCustomAuthentication(async (request, ct) =>
+    {
+        var digestAuth = await CreateDigestAuth(request, ct);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Digest", digestAuth);
+    })
+    .Build();
+
+// Complex configuration
+var client = ClientBuilder.Create()
+    .WithServer("https://enterprise-dav.example.com")
+    .WithBasePath("/webdav/")
+    .WithPort(8443)
+    .WithTokenCredential(tokenCredential)
+    .WithRetryPolicy(maxAttempts: 5, delay: TimeSpan.FromSeconds(1), exponentialBackoff: true)
+    .WithTimeout(TimeSpan.FromMinutes(10))
+    .WithUploadTimeout(TimeSpan.FromHours(1))
+    .WithUserAgent("MyApp", "2.1.0")
+    .WithLogging(logger)
+    .WithCertificateValidation((sender, cert, chain, errors) => true) // Accept all certs
     .Build();
 ```
 
-### 13. Batch Operations Support
-**Priority: Medium**
-**Target: v3.1.0**
+#### Async Configuration Support
 
-Add support for batch operations to improve performance:
+For scenarios requiring async initialization:
 
 ```csharp
-Task<BatchResult<bool>> UploadMultiple(Dictionary<string, (Stream content, string name)> uploads, string remotePath, IProgress<BatchProgress> progress = null, CancellationToken cancellationToken = default);
-Task<BatchResult<bool>> DeleteMultiple(IEnumerable<string> paths, CancellationToken cancellationToken = default);
-Task<BatchResult<bool>> MoveMultiple(Dictionary<string, string> sourceToDestination, CancellationToken cancellationToken = default);
-Task<BatchResult<bool>> CopyMultiple(Dictionary<string, string> sourceToDestination, CancellationToken cancellationToken = default);
-```
-
-#### New Model Classes
-```csharp
-public class BatchResult<T>
+public static class AsyncClientBuilder
 {
-    public Dictionary<string, T> Results { get; set; }
-    public Dictionary<string, Exception> Errors { get; set; }
-    public bool AllSucceeded => Errors.Count == 0;
-    public int SuccessCount => Results.Count(r => r.Value != null);
-    public int FailureCount => Errors.Count;
+    public static async Task<Client> CreateAsync(Func<ClientConfiguration, Task<ClientConfiguration>> configure)
+    {
+        var config = ClientBuilder.Create();
+        config = await configure(config);
+        return config.Build();
+    }
 }
 
-public class BatchProgress
-{
-    public int Completed { get; set; }
-    public int Total { get; set; }
-    public string CurrentItem { get; set; }
-    public double PercentageComplete => Total > 0 ? (double)Completed / Total * 100 : 0;
-}
-```
-
-### 14. Async Enumerable Support
-**Priority: Low**
-**Target: v3.2.0**
-
-Add support for `IAsyncEnumerable<T>` for large directory listings:
-
-```csharp
-IAsyncEnumerable<Item> ListAsync(string path = "/", int? depth = 1, CancellationToken cancellationToken = default);
-IAsyncEnumerable<Item> SearchAsync(string basePath, string query, CancellationToken cancellationToken = default);
-```
-
-## 🛠️ Code Quality and Maintenance
-
-### 15. Comprehensive Unit Test Coverage
-**Priority: High**
-**Target: Ongoing**
-
-Improve test coverage and quality:
-
-- Increase unit test coverage to >90%
-- Add integration tests with real WebDAV servers
-- Add performance benchmarks
-- Add property-based testing
-- Mock server for consistent testing
-
-### 16. Code Organization and Refactoring
-**Priority: Medium**
-**Target: v3.0.0**
-
-Improve code structure and maintainability:
-
-- Split large methods into smaller, focused methods
-- Extract interfaces for better testability
-- Improve separation of concerns
-- Add more constants for magic strings and status codes
-- Create templated XML content for different operations
-
-### 17. Documentation and Examples
-**Priority: High**
-**Target: v2.3.0**
-
-Enhance documentation and provide better examples:
-
-- Complete XML documentation for all public APIs
-- Add comprehensive usage examples
-- Create getting started guide
-- Add troubleshooting guide
-- Document authentication scenarios
-- Add performance tuning guide
-
-### 18. Nullable Reference Types Support
-**Priority: Medium**
-**Target: v3.0.0**
-
-Full support for nullable reference types (.NET 8/9):
-
-- Enable nullable reference types in project
-- Add appropriate nullable annotations
-- Update method signatures with proper nullability
-- Improve null handling throughout codebase
-
-## 🔧 Infrastructure and Tooling
-
-### 19. Source Generator for WebDAV Properties
-**Priority: Low**
-**Target: v3.2.0**
-
-Create source generators for strongly-typed WebDAV properties:
-
-```csharp
-[WebDAVProperty("DAV:", "creationdate")]
-public DateTime CreationDate { get; set; }
-
-[WebDAVProperty("DAV:", "getcontentlength")]
-public long ContentLength { get; set; }
-```
-
-### 20. Performance Monitoring and Metrics
-**Priority: Medium**
-**Target: v3.1.0**
-
-Add built-in performance monitoring:
-
-```csharp
-public class PerformanceMetrics
-{
-    public TimeSpan RequestDuration { get; set; }
-    public long BytesTransferred { get; set; }
-    public int RetryCount { get; set; }
-    public string OperationType { get; set; }
-}
-
-public event EventHandler<PerformanceMetrics> OperationCompleted;
+// Usage with async token acquisition
+var client = await AsyncClientBuilder.CreateAsync(async config =>
+    config.WithServer("https://dav.example.com")
+          .WithTokenCredential(await GetTokenCredentialAsync())
+          .WithRetryPolicy(3, TimeSpan.FromSeconds(2))
+);
 ```
 
 ## 📅 Release Timeline
 
-### Version 2.3.0 (Q2 2024)
+### Version 2.3.0 (Q1 2025)
 - Retry mechanism with exponential backoff
-- Structured logging support
-- Enhanced exception information
-- Improved documentation
+- Structured logging support (Microsoft.Extensions.Logging)
+- Enhanced exception information with better context
+- Improved documentation and examples
 
-### Version 2.4.0 (Q3 2024)
+### Version 2.4.0 (Q2 2025)
 - Progress reporting for large operations
 - Memory usage optimization
-- Connection pooling optimization
+- Connection pooling and keep-alive optimization
+- IAsyncDisposable support
 
-### Version 3.0.0 (Q4 2024) - Major Release
-- Advanced authentication support
-- WebDAV Lock/Unlock operations
-- Fluent configuration API
-- Nullable reference types support
-- Breaking changes cleanup
+### Version 3.0.0 (Q3 2025) - Major Release
+- **Advanced authentication support with modern .NET patterns**
+  - TokenCredential integration (Azure AD, OAuth2, JWT)
+  - ApiKeyCredential support
+  - Custom authentication handlers
+- WebDAV Lock/Unlock operations (LOCK/UNLOCK methods)
+- Fluent configuration API with authentication integration
+- Nullable reference types support (.NET 8/9)
+- Breaking changes cleanup and API improvements
 
-### Version 3.1.0 (Q1 2025)
-- WebDAV properties management (PROPPATCH)
-- Batch operations support
-- Health checking and diagnostics
-- Performance monitoring
+### Version 3.1.0 (Q4 2025)
+- WebDAV properties management (PROPPATCH method)
+- Batch operations support for improved performance
+- Health checking and diagnostics capabilities
+- Performance monitoring and metrics collection
 
-### Version 3.2.0 (Q2 2025)
-- WebDAV search support (DASL)
-- Async enumerable support
-- Source generator for properties
+### Version 3.2.0 (Q1 2026)
+- WebDAV search support (DASL extension)
+- Async enumerable support for large listings
+- Source generator for strongly-typed WebDAV properties
+- Advanced connection management features
 
-## 🤝 Contributing
+## 🎯 Authentication Migration Guide
 
-This roadmap is open for community input and contributions. Priority and timeline may be adjusted based on:
+### For v3.0.0 Breaking Changes
 
-- Community feedback and feature requests
-- Security requirements
-- Performance benchmarks
-- Compatibility considerations
+The authentication system will be modernized but maintain backward compatibility:
 
-For each feature implementation:
-1. Create detailed specification
-2. Implement with comprehensive tests
-3. Update documentation
-4. Maintain backward compatibility where possible
-5. Follow semantic versioning
+#### Current Usage (v2.x - Still Supported)
+```csharp
+// Basic authentication - continues to work
+var client = new Client(new NetworkCredential("user", "pass"));
 
-## 📊 Success Metrics
+// Windows authentication - continues to work  
+var client = new Client();
+```
 
-- **Performance**: 20% improvement in request throughput
-- **Reliability**: 99.9% success rate for operations with retry mechanism
-- **Usability**: Reduce common usage code by 50% with fluent API
-- **Adoption**: Increase in NuGet download rates post-release
-- **Community**: Active community contributions and feedback
+#### New Usage (v3.0+)
+```csharp
+// Modern token-based authentication
+var client = new Client(new DefaultAzureCredential());
 
----
+// API key authentication
+var client = new Client(new ApiKeyCredential("key"), "X-API-Key");
 
-*Last updated: December 2024*
-*Next review: March 2025*
+// Fluent configuration
+var client = ClientBuilder.Create()
+    .WithServer("https://dav.example.com")
+    .WithTokenCredential(tokenCredential)
+    .Build();
+```
+
+#### Migration Benefits
+- **No Breaking Changes**: Existing constructors remain functional
+- **Modern Authentication**: Support for OAuth2, Azure AD, JWT
+- **Better Testing**: Easier to mock authentication in unit tests
+- **Cloud Ready**: Seamless integration with cloud identity providers
+- **Extensible**: Custom authentication handlers for any scenario
