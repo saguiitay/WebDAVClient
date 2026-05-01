@@ -136,7 +136,7 @@ namespace WebDAVClient
             System.Net.Http.HttpClient uploadClient = null;
             if (uploadTimeout != null)
             {
-                uploadClient = new System.Net.Http.HttpClient(handler, disposeHandler: true);
+                uploadClient = new System.Net.Http.HttpClient(handler, disposeHandler: false);
                 uploadClient.DefaultRequestHeaders.ExpectContinue = false;
                 uploadClient.Timeout = uploadTimeout.Value;
             }
