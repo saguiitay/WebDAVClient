@@ -44,6 +44,8 @@ namespace WebDAVClient
             //"  </prop> " +
             "</propfind>";
         private static readonly byte[] s_propFindRequestContentBytes = Encoding.UTF8.GetBytes(c_propFindRequestContent);
+        private static readonly byte[] s_moveRequestContentBytes = Encoding.UTF8.GetBytes("MOVE");
+        private static readonly byte[] s_copyRequestContentBytes = Encoding.UTF8.GetBytes("COPY");
 
         private IHttpClientWrapper m_httpClientWrapper;
         private readonly bool m_shouldDispose;
@@ -575,8 +577,6 @@ namespace WebDAVClient
 
         private async Task<bool> Move(Uri srcUri, Uri dstUri, CancellationToken cancellationToken = default)
         {
-            const string requestContent = "MOVE";
-
             IDictionary<string, string> headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0))
             {
                 { "Destination", dstUri.ToString() }
@@ -590,7 +590,7 @@ namespace WebDAVClient
                 }
             }
 
-            var response = await HttpRequest(srcUri, m_moveMethod, headers, Encoding.UTF8.GetBytes(requestContent), cancellationToken: cancellationToken).ConfigureAwait(false);
+            var response = await HttpRequest(srcUri, m_moveMethod, headers, s_moveRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.Created)
@@ -603,8 +603,6 @@ namespace WebDAVClient
 
         private async Task<bool> Copy(Uri srcUri, Uri dstUri, CancellationToken cancellationToken = default)
         {
-            const string requestContent = "COPY";
-
             IDictionary<string, string> headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0))
             {
                 { "Destination", dstUri.ToString() }
@@ -618,7 +616,7 @@ namespace WebDAVClient
                 }
             }
 
-            var response = await HttpRequest(srcUri, m_copyMethod, headers, Encoding.UTF8.GetBytes(requestContent), cancellationToken: cancellationToken).ConfigureAwait(false);
+            var response = await HttpRequest(srcUri, m_copyMethod, headers, s_copyRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.Created)
