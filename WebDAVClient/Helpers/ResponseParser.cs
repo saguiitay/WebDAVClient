@@ -25,6 +25,8 @@ namespace WebDAVClient.Helpers
 
         internal static XmlReaderSettings XmlReaderSettings = new XmlReaderSettings
         {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
             IgnoreComments = true,
             IgnoreProcessingInstructions = true,
             IgnoreWhitespace = true

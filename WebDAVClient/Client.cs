@@ -49,6 +49,7 @@ namespace WebDAVClient
 
         private IHttpClientWrapper m_httpClientWrapper;
         private readonly bool m_shouldDispose;
+        private readonly HttpClientHandler m_handler;
         private string m_server;
         private string m_basePath = "/";
         private string m_encodedBasePath;
@@ -106,10 +107,23 @@ namespace WebDAVClient
         public ICollection<KeyValuePair<string, string>> CustomHeaders { get; set; }
 
         /// <summary>
-        /// Specify the certificates validation logic
+        /// Specify the certificates validation logic. Wired into the underlying
+        /// HttpClientHandler when this Client owns its handler (i.e. when constructed via
+        /// the <see cref="Client(ICredentials, TimeSpan?, IWebProxy)"/> constructor). The
+        /// callback is invoked lazily on every TLS handshake, so it may be assigned or
+        /// reassigned after construction. When constructed with a caller-supplied
+        /// HttpClient/IHttpClientWrapper, this property has no effect — configure the
+        /// callback on your own handler instead.
         /// </summary>
         public RemoteCertificateValidationCallback ServerCertificateValidationCallback { get; set; }
         #endregion
+
+        /// <summary>
+        /// Test-only access to the owned HttpClientHandler so unit tests can verify that
+        /// <see cref="ServerCertificateValidationCallback"/> is correctly wired. Null when
+        /// the Client was constructed with a caller-supplied HttpClient/IHttpClientWrapper.
+        /// </summary>
+        internal HttpClientHandler OwnedHandler => m_handler;
 
         public Client(ICredentials credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
         {
@@ -131,6 +145,22 @@ namespace WebDAVClient
             {
                 handler.UseDefaultCredentials = true;
             }
+
+            // Wire the certificate-validation callback lazily so callers can assign or
+            // reassign ServerCertificateValidationCallback after construction. When no
+            // user callback is set, fall back to the platform's default trust decision
+            // (errors == None) — never deny by default, which would break all HTTPS.
+            handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
+            {
+                var callback = ServerCertificateValidationCallback;
+                if (callback != null)
+                {
+                    return callback(request, cert, chain, errors);
+                }
+                return errors == SslPolicyErrors.None;
+            };
+
+            m_handler = handler;
 
             var client = new System.Net.Http.HttpClient(handler, disposeHandler: true);
             client.DefaultRequestHeaders.ExpectContinue = false;
@@ -170,18 +200,13 @@ namespace WebDAVClient
             var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
 
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
-            IDictionary<string, string> headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0));
+            IDictionary<string, string> headers = null;
             if (depth != null)
             {
-                headers.Add("Depth", depth.ToString());
-            }
-
-            if (CustomHeaders != null)
-            {
-                foreach (var keyValuePair in CustomHeaders)
+                headers = new Dictionary<string, string>(1)
                 {
-                    headers.Add(keyValuePair);
-                }
+                    { "Depth", depth.ToString() }
+                };
             }
 
             HttpResponseMessage response = null;
@@ -222,7 +247,7 @@ namespace WebDAVClient
                             // top of this method, so the synchronous helper is safe to use here
                             // and avoids the per-item async state machine allocation.
                             var fullHref = BuildServerUrl(item.Href, true);
-                            if (!string.Equals(fullHref.ToString(), listUrl, StringComparison.CurrentCultureIgnoreCase))
+                            if (!string.Equals(fullHref.ToString(), listUrl, StringComparison.OrdinalIgnoreCase))
                             {
                                 result.Add(item);
                             }
@@ -264,17 +289,10 @@ namespace WebDAVClient
         /// <returns>A stream with the content of the downloaded file</returns>
         public Task<Stream> Download(string remoteFilePath, CancellationToken cancellationToken = default)
         {
-            var headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0))
+            var headers = new Dictionary<string, string>(1)
             {
                 { "translate", "f" }
             };
-            if (CustomHeaders != null)
-            {
-                foreach (var keyValuePair in CustomHeaders)
-                {
-                    headers.Add(keyValuePair.Key, keyValuePair.Value);
-                }
-            }
             return DownloadFile(remoteFilePath, headers, cancellationToken);
         }
 
@@ -287,18 +305,11 @@ namespace WebDAVClient
         /// <returns>A stream with the partial content of the downloaded file</returns>
         public Task<Stream> DownloadPartial(string remoteFilePath, long startBytes, long endBytes, CancellationToken cancellationToken = default)
         {
-            var headers = new Dictionary<string, string>(2 + (CustomHeaders?.Count ?? 0))
+            var headers = new Dictionary<string, string>(2)
             { 
                 { "translate", "f" }, 
                 { "Range", "bytes=" + startBytes + "-" + endBytes } 
             };
-            if (CustomHeaders != null)
-            {
-                foreach (var keyValuePair in CustomHeaders)
-                {
-                    headers.Add(keyValuePair.Key, keyValuePair.Value);
-                }
-            }
             return DownloadFile(remoteFilePath, headers, cancellationToken);
         }
 
@@ -314,20 +325,11 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
 
-            IDictionary<string, string> headers = new Dictionary<string, string>(CustomHeaders?.Count ?? 0);
-            if (CustomHeaders != null)
-            {
-                foreach (var keyValuePair in CustomHeaders)
-                {
-                    headers.Add(keyValuePair);
-                }
-            }
-
             HttpResponseMessage response = null;
 
             try
             {
-                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, null, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent &&
@@ -395,20 +397,11 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             var dirUri = await GetServerUrl(remotePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
 
-            IDictionary<string, string> headers = new Dictionary<string, string>(CustomHeaders?.Count ?? 0);
-            if (CustomHeaders != null)
-            {
-                foreach (var keyValuePair in CustomHeaders)
-                {
-                    headers.Add(keyValuePair);
-                }
-            }
-
             HttpResponseMessage response = null;
 
             try
             {
-                response = await HttpRequest(dirUri.Uri, m_mkColMethod, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(dirUri.Uri, m_mkColMethod, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode == HttpStatusCode.Conflict)
                     throw new WebDAVConflictException((int) response.StatusCode, "Failed creating folder.");
@@ -511,16 +504,7 @@ namespace WebDAVClient
         #region Private methods
         private async Task Delete(Uri listUri, CancellationToken cancellationToken = default)
         {
-            IDictionary<string, string> headers = new Dictionary<string, string>(CustomHeaders?.Count ?? 0);
-            if (CustomHeaders != null)
-            {
-                foreach (var keyValuePair in CustomHeaders)
-                {
-                    headers.Add(keyValuePair);
-                }
-            }
-
-            var response = await HttpRequest(listUri, HttpMethod.Delete, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var response = await HttpRequest(listUri, HttpMethod.Delete, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.NoContent)
@@ -532,18 +516,10 @@ namespace WebDAVClient
         private async Task<Item> Get(Uri listUri, CancellationToken cancellationToken = default)
         {
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
-            IDictionary<string, string> headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0))
+            IDictionary<string, string> headers = new Dictionary<string, string>(1)
             {
                 { "Depth", "0" }
             };
-
-            if (CustomHeaders != null)
-            {
-                foreach (var keyValuePair in CustomHeaders)
-                {
-                    headers.Add(keyValuePair);
-                }
-            }
 
             HttpResponseMessage response = null;
 
@@ -577,18 +553,10 @@ namespace WebDAVClient
 
         private async Task<bool> Move(Uri srcUri, Uri dstUri, CancellationToken cancellationToken = default)
         {
-            IDictionary<string, string> headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0))
+            IDictionary<string, string> headers = new Dictionary<string, string>(1)
             {
                 { "Destination", dstUri.ToString() }
             };
-
-            if (CustomHeaders != null)
-            {
-                foreach (var keyValuePair in CustomHeaders)
-                {
-                    headers.Add(keyValuePair);
-                }
-            }
 
             var response = await HttpRequest(srcUri, m_moveMethod, headers, s_moveRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -603,18 +571,10 @@ namespace WebDAVClient
 
         private async Task<bool> Copy(Uri srcUri, Uri dstUri, CancellationToken cancellationToken = default)
         {
-            IDictionary<string, string> headers = new Dictionary<string, string>(1 + (CustomHeaders?.Count ?? 0))
+            IDictionary<string, string> headers = new Dictionary<string, string>(1)
             {
                 { "Destination", dstUri.ToString() }
             };
-
-            if (CustomHeaders != null)
-            {
-                foreach (var keyValuePair in CustomHeaders)
-                {
-                    headers.Add(keyValuePair);
-                }
-            }
 
             var response = await HttpRequest(srcUri, m_copyMethod, headers, s_copyRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -648,6 +608,25 @@ namespace WebDAVClient
         /// <param name="method"></param>
         /// <param name="headers"></param>
         /// <param name="content"></param>
+        // Defends against HTTP header injection (CRLF injection) when callers populate
+        // CustomHeaders from untrusted input. Modern .NET's HttpHeaders.Add already
+        // throws FormatException for CR/LF in values, but the protection is runtime-
+        // dependent and gives a generic error. We validate explicitly so the failure
+        // is consistent across runtimes and clearly identifies the offending header.
+        private static void EnsureHeaderHasNoCrlf(string key, string value)
+        {
+            if (key != null && (key.IndexOf('\r') >= 0 || key.IndexOf('\n') >= 0))
+            {
+                throw new ArgumentException(
+                    "Custom header name contains CR/LF characters; refusing to send (possible HTTP header injection).", nameof(key));
+            }
+            if (value != null && (value.IndexOf('\r') >= 0 || value.IndexOf('\n') >= 0))
+            {
+                throw new ArgumentException(
+                    $"Custom header value for '{key}' contains CR/LF characters; refusing to send (possible HTTP header injection).", nameof(value));
+            }
+        }
+
         private async Task<HttpResponseMessage> HttpRequest(Uri uri, HttpMethod method, IDictionary<string, string> headers = null, byte[] content = null, CancellationToken cancellationToken = default)
         {
             using (var request = new HttpRequestMessage(method, uri))
@@ -662,6 +641,15 @@ namespace WebDAVClient
                 {
                     foreach (var kvp in headers)
                     {
+                        request.Headers.Add(kvp.Key, kvp.Value);
+                    }
+                }
+
+                if (CustomHeaders != null)
+                {
+                    foreach (var kvp in CustomHeaders)
+                    {
+                        EnsureHeaderHasNoCrlf(kvp.Key, kvp.Value);
                         request.Headers.Add(kvp.Key, kvp.Value);
                     }
                 }
@@ -700,6 +688,15 @@ namespace WebDAVClient
                 {
                     foreach (var kvp in headers)
                     {
+                        request.Headers.Add(kvp.Key, kvp.Value);
+                    }
+                }
+
+                if (CustomHeaders != null)
+                {
+                    foreach (var kvp in CustomHeaders)
+                    {
+                        EnsureHeaderHasNoCrlf(kvp.Key, kvp.Value);
                         request.Headers.Add(kvp.Key, kvp.Value);
                     }
                 }
@@ -754,6 +751,21 @@ namespace WebDAVClient
             return BuildServerUrl(path, appendTrailingSlash);
         }
 
+        // Defends against SSRF / open-redirect attacks where a malicious or compromised
+        // WebDAV server returns absolute <href> URLs (in PROPFIND multistatus responses)
+        // that point at a different host than the configured Server. Any absolute URI
+        // that gets fed back into BuildServerUrl must belong to the configured Server.
+        private void EnsureSameHost(Uri absoluteUri, string source)
+        {
+            var serverUri = new Uri(m_server);
+            if (!string.Equals(absoluteUri.Host, serverUri.Host, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Absolute URI host '{absoluteUri.Host}' from {source} does not match the configured Server host '{serverUri.Host}'. " +
+                    "Refusing to issue a request to a foreign host (possible SSRF / malicious WebDAV response).");
+            }
+        }
+
         // Synchronous core of GetServerUrl. Callers must ensure m_encodedBasePath
         // has already been initialized (i.e. GetServerUrl was awaited at least once).
         private UriBuilder BuildServerUrl(string path, bool appendTrailingSlash)
@@ -764,6 +776,7 @@ namespace WebDAVClient
                 // If the resolved base path is an absolute URI, use it
                 if (TryCreateAbsolute(m_encodedBasePath, out Uri absoluteBaseUri))
                 {
+                    EnsureSameHost(absoluteBaseUri, "server-resolved base path");
                     return new UriBuilder(absoluteBaseUri);
                 }
 
@@ -782,6 +795,7 @@ namespace WebDAVClient
             // If the requested path is absolute, use it
             if (TryCreateAbsolute(path, out Uri absoluteUri))
             {
+                EnsureSameHost(absoluteUri, "absolute path argument");
                 return new UriBuilder(absoluteUri);
             }
             else
@@ -790,6 +804,7 @@ namespace WebDAVClient
                 UriBuilder baseUri;
                 if (TryCreateAbsolute(m_encodedBasePath, out absoluteUri))
                 {
+                    EnsureSameHost(absoluteUri, "server-resolved base path");
                     baseUri = new UriBuilder(absoluteUri);
 
                     baseUri.Path = baseUri.Path.TrimEnd('/') + "/" + path.TrimStart('/');

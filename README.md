@@ -2,7 +2,7 @@
 
 ## Overview
 
-WebDAV Client for .Net Core, strongly typed, async and open-sourced, imnplemented in C#.
+WebDAV Client for .Net Core, strongly typed, async and open-sourced, implemented in C#.
 
 WebDAVClient is based originally on <https://github.com/kvdb/WebDAVClient>. I've added Async support (instead of Callback), as well strong-types responses.
 
@@ -12,7 +12,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 ## Features
 
-* Available as a NuGet packages
+* Available as a NuGet package
 * Fully support Async/Await
 * Strong-typed
 * Implemented using HttpClient, which means support for extendibility such as throttling and monitoring
@@ -28,9 +28,25 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 ## Release Notes
 
++ **2.6.0** _(upcoming)_  Security & hardening:
+  - **XXE hardening**: `ResponseParser` now sets `DtdProcessing = Prohibit` and `XmlResolver = null` explicitly so XXE attacks from malicious WebDAV servers are blocked even on runtimes (e.g. Mono) where the .NET defaults differ.
+  - **Certificate validation wired**: `ServerCertificateValidationCallback` is now actually plumbed into the underlying `HttpClientHandler` (it was a dead property before). When unset, the wired closure defers to the platform's default trust decision.
+  - **SSRF protection**: `BuildServerUrl` now validates that any absolute URI it accepts (path argument or server-resolved base path) belongs to the configured `Server` host, preventing a malicious server from steering the client at a foreign host via crafted `<href>` values.
+  - **Header injection protection**: `CustomHeaders` entries are now validated for CR/LF in both the name and the value before being sent.
++ **2.5.x**  Performance & bug-fix rollup:
+  - `List()` no longer issues an `await GetServerUrl` per returned item — the encoded base path is resolved once and reused, dramatically reducing async overhead on large listings.
+  - `CustomHeaders` and the internal headers dictionary are no longer copied or double-looked-up per request; they are iterated in place.
+  - Cached static byte arrays for the `MOVE`/`COPY` request bodies and `PROPFIND` body to eliminate per-call allocations.
+  - `ResponseParser` avoids a per-node string allocation when reading element local names.
+  - **Bug fix**: parent-folder URL comparison in `List()` now uses `OrdinalIgnoreCase` instead of `CurrentCultureIgnoreCase` — avoids the Turkish dotted/dotless `I` issue and the slower culture-aware path.
+  - **Bug fix**: when `uploadTimeout` is set, the upload `HttpClient` no longer disposes the `HttpClientHandler` it shares with the main client.
+  - Added a `WebDAVClient.UnitTests` project covering the public surface.
 + **2.4.0**   Framework support update:
   - Added support for .NET 10
   - Dropped support for .NET 9 (STS); supported targets are now .NET 8 (LTS) and .NET 10 (LTS)
++ **2.3.0**   Framework support update:
+  - Updated to .NET Core 8.0 and 9.0; dropped older targets
+  - Packaging cleanup
 + **2.2.1**   Minor packaging improvements
 + **2.2.0**   Improvement: 
   - Implement `IDisposable` to avoid `HttpClient` leak
@@ -90,26 +106,47 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 # Usage
 
-``` csharp
-// Basic authentication required
-IClient c = new Client(new NetworkCredential { UserName = "USERNAME" , Password = "PASSWORD"});
-// OR without authentication
-var client = new WebDAVClient.Client(new NetworkCredential());
+`Client` implements `IDisposable` — wrap it in a `using` to make sure the underlying `HttpClient`/`HttpClientHandler` are released. Most async methods accept an optional `CancellationToken` so requests can be cancelled cleanly.
 
-// Set basic information for WebDAV provider
-c.Server = "https://dav.dumptruck.goldenfrog.com/";
-c.BasePath = "/dav/";
+``` csharp
+// Pick one of the constructors below.
+
+// (1) Basic authentication
+using IClient client = new Client(
+    new NetworkCredential { UserName = "USERNAME", Password = "PASSWORD" });
+
+// (2) ...or no authentication
+// using IClient client = new Client(new NetworkCredential());
+
+// (3) ...or supply your own HttpClient (e.g. for IHttpClientFactory / DI scenarios)
+// using IClient client = new Client(myHttpClient);
+
+// Set basic information for the WebDAV provider
+client.Server = "https://dav.example.com/";
+client.BasePath = "/dav/";
+
+// Optional configuration
+client.Port = 8443;                                   // override the default port
+client.UserAgent = "MyApp";                           // override the default User-Agent
+client.CustomHeaders = new[]                          // sent with every request
+{
+    new KeyValuePair<string, string>("X-Tenant", "acme"),
+};
+
+// Most operations accept a CancellationToken
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+var token = cts.Token;
 
 // List items in the root folder
-var files = await c.List();
+var files = await client.List(cancellationToken: token);
 
 // Find folder named 'Test'
 var folder = files.FirstOrDefault(f => f.Href.EndsWith("/Test/"));
 // Reload folder 'Test'
-var folderReloaded = await c.GetFolder(folder.Href);
+var folderReloaded = await client.GetFolder(folder.Href, cancellationToken: token);
 
 // Retrieve list of items in 'Test' folder
-var folderFiles = await c.List(folderReloaded.Href);
+var folderFiles = await client.List(folderReloaded.Href, cancellationToken: token);
 // Find first file in 'Test' folder
 var folderFile = folderFiles.FirstOrDefault(f => f.IsCollection == false);
 
@@ -117,25 +154,31 @@ var tempFileName = Path.GetTempFileName();
 
 // Download item into a temporary file
 using (var tempFile = File.OpenWrite(tempFileName))
-using (var stream = await c.Download(folderFile.Href))
-	await stream.CopyToAsync(tempFile);
+using (var stream = await client.Download(folderFile.Href, cancellationToken: token))
+    await stream.CopyToAsync(tempFile, token);
 
-// Update file back to webdav
+// Upload file back to webdav
 var tempName = Path.GetRandomFileName();
 using (var fileStream = File.OpenRead(tempFileName))
 {
-	var fileUploaded = await c.Upload(folder.Href, fileStream, tempName);
+    var fileUploaded = await client.Upload(folder.Href, fileStream, tempName, cancellationToken: token);
 }
 
 // Create a folder
 var tempFolderName = Path.GetRandomFileName();
-var isfolderCreated = await c.CreateDir("/", tempFolderName);
+var isfolderCreated = await client.CreateDir("/", tempFolderName, cancellationToken: token);
+
+// Copy a file
+await client.CopyFile(folderFile.Href, "/" + tempFolderName + "/copy.bin", cancellationToken: token);
+
+// Copy a folder
+await client.CopyFolder(folder.Href, "/" + tempFolderName + "-copy/", cancellationToken: token);
 
 // Delete created folder
-var folderCreated = await c.GetFolder("/" + tempFolderName);
-await c.DeleteFolder(folderCreated.Href);
+var folderCreated = await client.GetFolder("/" + tempFolderName, cancellationToken: token);
+await client.DeleteFolder(folderCreated.Href, cancellationToken: token);
 ```
 
 ## Contact
 
-You can contact me on twitter [@saguiitay](https://twitter.com/saguiitay).
+You can contact me on twitter [@saguiitay](https://twitter.com/saguiitay) or on my [website](https://www.saguiitay.com/)

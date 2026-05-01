@@ -539,6 +539,136 @@ namespace WebDAVClient.UnitTests.ClientTests
             Assert.IsTrue(result);
         }
 
+        [TestMethod]
+        public void OwnedHandler_certificate_callback_is_wired_and_delegates_to_user_callback()
+        {
+            // Regression: the (ICredentials, TimeSpan?, IWebProxy) constructor must wire
+            // ServerCertificateValidationCallback into the underlying HttpClientHandler.
+            // Before the fix the handler's callback was null, so any user-supplied callback
+            // (for cert pinning, custom CA trust, self-signed acceptance, ...) was silently
+            // ignored — a false sense of security.
+            using var client = new Client();
+            var handler = client.OwnedHandler;
+            Assert.IsNotNull(handler, "Client(ICredentials...) ctor must own its HttpClientHandler.");
+            Assert.IsNotNull(handler.ServerCertificateCustomValidationCallback,
+                "Handler's ServerCertificateCustomValidationCallback must be wired at construction.");
+
+            // Lazy binding: the callback can be assigned AFTER construction and must still
+            // be honoured on the next handshake.
+            var invoked = 0;
+            client.ServerCertificateValidationCallback = (s, c, ch, errors) =>
+            {
+                Interlocked.Increment(ref invoked);
+                return true;
+            };
+
+            var result = handler.ServerCertificateCustomValidationCallback(
+                new HttpRequestMessage(), null, null, System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors);
+
+            Assert.IsTrue(result, "User callback's return value must propagate to the handler.");
+            Assert.AreEqual(1, invoked, "User callback must be invoked exactly once per handshake.");
+        }
+
+        [TestMethod]
+        public void OwnedHandler_certificate_callback_falls_back_to_default_validation_when_unset()
+        {
+            // When no user callback is set the wired closure must defer to the platform's
+            // default trust decision — i.e. accept iff there are no SSL policy errors.
+            // It must NOT blanket-reject (which would silently break HTTPS for everyone).
+            using var client = new Client();
+            var handler = client.OwnedHandler;
+            Assert.IsNotNull(handler.ServerCertificateCustomValidationCallback);
+
+            Assert.IsTrue(handler.ServerCertificateCustomValidationCallback(
+                new HttpRequestMessage(), null, null, System.Net.Security.SslPolicyErrors.None));
+            Assert.IsFalse(handler.ServerCertificateCustomValidationCallback(
+                new HttpRequestMessage(), null, null, System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors));
+        }
+
+        // -------------------- SSRF protection (absolute URI host validation) --------------------
+
+        [TestMethod]
+        public async Task BuildServerUrl_rejects_absolute_path_pointing_at_foreign_host()
+        {
+            // Regression: a malicious or compromised WebDAV server could return absolute
+            // <href> values pointing at a different host (e.g. internal infrastructure).
+            // If those hrefs are passed back into List/Download/Delete/etc., the client
+            // must NOT silently issue a request to that foreign host.
+            using var harness = new ClientHarness(Responder(_ =>
+                StubHttpMessageHandler.Multistatus(WebDAVResponses.FolderListing())), Server, BasePath);
+
+            // First call: warms up m_encodedBasePath with a legitimate PROPFIND so we know
+            // the failure on the second call is due to host validation, not setup.
+            await harness.Client.List();
+
+            var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+                () => harness.Client.List("http://evil.example.org/webdav/"));
+
+            StringAssert.Contains(ex.Message, "evil.example.org");
+            StringAssert.Contains(ex.Message, "example.com");
+        }
+
+        [TestMethod]
+        public async Task BuildServerUrl_accepts_absolute_path_on_same_host_case_insensitive()
+        {
+            // Same-host absolute paths are legitimate (servers commonly return absolute
+            // hrefs in PROPFIND responses), and host comparison must be case-insensitive
+            // per RFC 3986 §3.2.2.
+            using var harness = new ClientHarness(Responder(_ =>
+                StubHttpMessageHandler.Multistatus(WebDAVResponses.FolderListing())), Server, BasePath);
+
+            await harness.Client.List();
+
+            // Mixed-case host on the configured Server (http://example.com) must still be
+            // accepted — no exception expected.
+            await harness.Client.List("http://EXAMPLE.com/webdav/sub/");
+        }
+
+        // -------------------- CRLF header injection in CustomHeaders --------------------
+
+        [TestMethod]
+        public async Task CustomHeaders_value_with_crlf_throws_ArgumentException()
+        {
+            // Regression: a CustomHeaders value containing CR/LF could inject extra headers
+            // into the outgoing HTTP request (HTTP header injection). The library must
+            // reject such values explicitly with a descriptive error rather than relying on
+            // runtime-dependent behaviour of HttpHeaders.Add.
+            using var harness = new ClientHarness(Responder(_ =>
+                StubHttpMessageHandler.Multistatus(WebDAVResponses.FolderListing())), Server, BasePath);
+
+            // Warm up m_encodedBasePath so the failure on the next call is clearly due to
+            // header validation and not the initial base PROPFIND.
+            await harness.Client.List();
+
+            harness.Client.CustomHeaders = new[]
+            {
+                new System.Collections.Generic.KeyValuePair<string, string>(
+                    "X-Test", "value\r\nInjected-Header: bad")
+            };
+
+            var ex = await Assert.ThrowsExceptionAsync<ArgumentException>(() => harness.Client.List());
+            StringAssert.Contains(ex.Message, "X-Test");
+            StringAssert.Contains(ex.Message, "CR/LF");
+        }
+
+        [TestMethod]
+        public async Task CustomHeaders_name_with_crlf_throws_ArgumentException()
+        {
+            using var harness = new ClientHarness(Responder(_ =>
+                StubHttpMessageHandler.Multistatus(WebDAVResponses.FolderListing())), Server, BasePath);
+
+            await harness.Client.List();
+
+            harness.Client.CustomHeaders = new[]
+            {
+                new System.Collections.Generic.KeyValuePair<string, string>(
+                    "X-Test\r\nInjected-Header", "value")
+            };
+
+            var ex = await Assert.ThrowsExceptionAsync<ArgumentException>(() => harness.Client.List());
+            StringAssert.Contains(ex.Message, "CR/LF");
+        }
+
         // -------------------- Dispose --------------------
 
         [TestMethod]
