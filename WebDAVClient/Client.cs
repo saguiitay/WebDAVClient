@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using WebDAVClient.Helpers;
 using WebDAVClient.HttpClient;
 using WebDAVClient.Model;
+using WebDAVClient.Authentication;
 
 namespace WebDAVClient
 {
@@ -50,8 +51,8 @@ namespace WebDAVClient
         private const string c_defaultLockOwner = "WebDAVClient";
 
         private IHttpClientWrapper m_httpClientWrapper;
-        private readonly bool m_shouldDispose;
-        private readonly HttpClientHandler m_handler;
+        private bool m_shouldDispose;
+        private HttpClientHandler m_handler;
         private string m_server;
         private string m_basePath = "/";
         private string m_encodedBasePath;
@@ -129,6 +130,44 @@ namespace WebDAVClient
 
         public Client(ICredentials credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
         {
+            InitializeOwnedHttpClients(credential, authHandler: null, uploadTimeout, proxy);
+        }
+
+        /// <summary>
+        /// Creates a Client that authenticates every request with a static
+        /// <c>Authorization: Bearer &lt;token&gt;</c> header — the standard
+        /// transport for OAuth 2.0 / JWT / Azure AD / Nextcloud-app-password
+        /// scenarios where no <see cref="ICredentials"/> implementation fits.
+        /// </summary>
+        /// <param name="bearerToken">The bearer token to send on every request. Required, non-empty.</param>
+        /// <param name="uploadTimeout">Optional override for the upload <see cref="System.Net.Http.HttpClient"/>'s timeout.</param>
+        /// <param name="proxy">Optional <see cref="IWebProxy"/> to apply to the underlying handler.</param>
+        public Client(string bearerToken, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
+        {
+            if (string.IsNullOrWhiteSpace(bearerToken))
+                throw new ArgumentException("Bearer token must be a non-empty string.", nameof(bearerToken));
+            InitializeOwnedHttpClients(credential: null, new BearerTokenAuthenticationHandler(bearerToken), uploadTimeout, proxy);
+        }
+
+        /// <summary>
+        /// Creates a Client whose every request asks the supplied async
+        /// <paramref name="bearerTokenProvider"/> for the current bearer token —
+        /// supports refresh / rotation flows (Azure Identity's
+        /// <c>TokenCredential</c>, MSAL, IdentityModel, custom OAuth 2.0 token
+        /// stores). The provider may return <c>null</c> to send the request
+        /// without an <c>Authorization</c> header.
+        /// </summary>
+        /// <param name="bearerTokenProvider">Async token provider invoked once per outbound request. Required.</param>
+        /// <param name="uploadTimeout">Optional override for the upload <see cref="System.Net.Http.HttpClient"/>'s timeout.</param>
+        /// <param name="proxy">Optional <see cref="IWebProxy"/> to apply to the underlying handler.</param>
+        public Client(Func<CancellationToken, Task<string>> bearerTokenProvider, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
+        {
+            if (bearerTokenProvider == null) throw new ArgumentNullException(nameof(bearerTokenProvider));
+            InitializeOwnedHttpClients(credential: null, new BearerTokenAuthenticationHandler(bearerTokenProvider), uploadTimeout, proxy);
+        }
+
+        private void InitializeOwnedHttpClients(ICredentials credential, DelegatingHandler authHandler, TimeSpan? uploadTimeout, IWebProxy proxy)
+        {
             var handler = new HttpClientHandler();
             if (proxy != null && handler.SupportsProxy)
             {
@@ -143,8 +182,10 @@ namespace WebDAVClient
                 handler.Credentials = credential;
                 handler.PreAuthenticate = true;
             }
-            else
+            else if (authHandler == null)
             {
+                // Only fall back to default credentials when no other auth is wired —
+                // a Bearer-token Client is intentionally not a Windows-auth Client.
                 handler.UseDefaultCredentials = true;
             }
 
@@ -164,13 +205,25 @@ namespace WebDAVClient
 
             m_handler = handler;
 
-            var client = new System.Net.Http.HttpClient(handler, disposeHandler: true);
+            // If an authentication delegating handler was supplied, chain it
+            // ahead of the HttpClientHandler so it sees every outbound request
+            // (including the upload pipeline). The DelegatingHandler owns the
+            // inner handler's lifetime once chained, so disposeHandler on the
+            // resulting HttpClient still cleans the whole chain up.
+            HttpMessageHandler pipeline = handler;
+            if (authHandler != null)
+            {
+                authHandler.InnerHandler = handler;
+                pipeline = authHandler;
+            }
+
+            var client = new System.Net.Http.HttpClient(pipeline, disposeHandler: true);
             client.DefaultRequestHeaders.ExpectContinue = false;
 
             System.Net.Http.HttpClient uploadClient = null;
             if (uploadTimeout != null)
             {
-                uploadClient = new System.Net.Http.HttpClient(handler, disposeHandler: false);
+                uploadClient = new System.Net.Http.HttpClient(pipeline, disposeHandler: false);
                 uploadClient.DefaultRequestHeaders.ExpectContinue = false;
                 uploadClient.Timeout = uploadTimeout.Value;
             }
