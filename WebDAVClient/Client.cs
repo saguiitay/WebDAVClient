@@ -660,9 +660,9 @@ namespace WebDAVClient
 
                 if (headers != null)
                 {
-                    foreach (string key in headers.Keys)
+                    foreach (var kvp in headers)
                     {
-                        request.Headers.Add(key, headers[key]);
+                        request.Headers.Add(kvp.Key, kvp.Value);
                     }
                 }
 
@@ -698,9 +698,9 @@ namespace WebDAVClient
 
                 if (headers != null)
                 {
-                    foreach (string key in headers.Keys)
+                    foreach (var kvp in headers)
                     {
-                        request.Headers.Add(key, headers[key]);
+                        request.Headers.Add(kvp.Key, kvp.Value);
                     }
                 }
 
