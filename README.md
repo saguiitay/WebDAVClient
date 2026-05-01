@@ -28,7 +28,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 ## Release Notes
 
-+ **2.6.0** _(upcoming)_  Security & hardening:
++ **2.7.0** _(upcoming)_  Security & hardening:
   - **WebDAV LOCK / UNLOCK** (RFC 4918 §9.10–9.11): new `LockFile`/`LockFolder`/`UnlockFile`/`UnlockFolder`/`RefreshLock` methods on `IClient`. Returns a strongly-typed `LockInfo` (token, owner, type/scope, depth, timeout, lock-root). Lock tokens are normalized so callers can pass them either bare or `<...>`-wrapped.
   - **XXE hardening**:`ResponseParser` now sets `DtdProcessing = Prohibit` and `XmlResolver = null` explicitly so XXE attacks from malicious WebDAV servers are blocked even on runtimes (e.g. Mono) where the .NET defaults differ.
   - **Certificate validation wired**: `ServerCertificateValidationCallback` is now actually plumbed into the underlying `HttpClientHandler` (it was a dead property before). When unset, the wired closure defers to the platform's default trust decision.
