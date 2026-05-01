@@ -204,6 +204,7 @@ namespace WebDAVClient
                     }
 
                     var listUrl = listUri.ToString();
+                    var listUriPath = listUri.Path;
 
                     var result = new List<Item>(items.Count);
                     foreach (var item in items)
@@ -215,9 +216,11 @@ namespace WebDAVClient
                         }
                         else
                         {
-                            // If it's not the requested parent folder, add it to the result
-                            var fullHref = await GetServerUrl(item.Href, true).ConfigureAwait(false);
-                            if (!string.Equals(fullHref.ToString(), listUrl, StringComparison.CurrentCultureIgnoreCase))
+                            // If it's not the requested parent folder, add it to the result.
+                            // Compare directly against the already-resolved listUri instead of
+                            // calling GetServerUrl per item, which would build a UriBuilder and
+                            // allocate an async state machine for every collection entry.
+                            if (!IsSameAsListUri(item.Href, listUriPath, listUrl))
                             {
                                 result.Add(item);
                             }
@@ -730,6 +733,29 @@ namespace WebDAVClient
         private static bool TryCreateAbsolute(string uriString, out Uri uriResult)
         {
             return Uri.TryCreate(uriString, UriKind.Absolute, out uriResult) && uriResult.Scheme != Uri.UriSchemeFile;
+        }
+
+        // Determines whether an item's Href refers to the same resource as the listed folder URI.
+        // The server may return Hrefs as either absolute URLs or server-relative paths, with or
+        // without a trailing slash. We compare full URLs when absolute, otherwise just the path
+        // component, normalized so a missing trailing slash doesn't cause a false negative.
+        private static bool IsSameAsListUri(string itemHref, string listUriPath, string listUrl)
+        {
+            if (string.IsNullOrEmpty(itemHref))
+                return false;
+
+            if (TryCreateAbsolute(itemHref, out var absolute))
+            {
+                var normalized = absolute.AbsoluteUri;
+                if (!normalized.EndsWith("/", StringComparison.Ordinal))
+                    normalized += "/";
+                return string.Equals(normalized, listUrl, StringComparison.CurrentCultureIgnoreCase);
+            }
+
+            var hrefPath = itemHref;
+            if (!hrefPath.EndsWith("/", StringComparison.Ordinal))
+                hrefPath += "/";
+            return string.Equals(hrefPath, listUriPath, StringComparison.CurrentCultureIgnoreCase);
         }
 
         private async Task<UriBuilder> GetServerUrl(string path, bool appendTrailingSlash)
