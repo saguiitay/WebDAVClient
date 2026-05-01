@@ -8,6 +8,8 @@ This document outlines the recommended improvements and missing features for the
 **Priority: High**
 **Target: v3.0.0**
 
+> **Status update (2.7.0)**: Bearer token / OAuth 2.0 authentication has shipped via two new `Client` constructor overloads (static token + async refreshable provider) backed by the public `WebDAVClient.Authentication.BearerTokenAuthenticationHandler`. The remaining items below — `TokenCredential` / `ApiKeyCredential` integration, `AuthenticationOptions`, and the fluent `ClientBuilder` — are still planned for v3.0.0.
+
 The current implementation only supports basic authentication and Windows authentication. We need to add support for modern authentication methods using established .NET patterns:
 
 #### Modern Authentication Patterns
@@ -153,6 +155,8 @@ var client = ClientBuilder.Create()
 **Priority: High**
 **Target: v3.0.0**
 
+> **Status update (2.7.0)**: Shipped. `IClient` now exposes `LockFile` / `LockFolder` / `UnlockFile` / `UnlockFolder` / `RefreshLock` returning a strongly-typed `LockInfo`, and the `If` lock-token header is sent on PUT / DELETE / MOVE / COPY when callers pass the new optional `lockToken` (and source / destination variants) parameters.
+
 Critical WebDAV operations that are currently missing:
 
 #### New Methods to Implement
@@ -181,6 +185,8 @@ public class LockInfo
 ### 3. WebDAV Properties Management (PROPPATCH)
 **Priority: Medium**
 **Target: v3.1.0**
+
+> **Status update (2.7.0)**: Shipped. `IClient.SetProperty(path, name, namespace, value)` and `IClient.RemoveProperty(path, name, namespace)` are available; targeted PROPFIND via `<prop>` / `<propname/>` also shipped (see the new `List` / `GetFolder` / `GetFile` overloads taking `IEnumerable<PropertyName>` and the `*PropertyNames` methods).
 
 The client can read properties but cannot set or manage custom properties:
 
@@ -316,6 +322,8 @@ public class WebDAVException : Exception
 ### 11. Health Checking and Diagnostics
 **Priority: Medium**
 **Target: v3.0.0**
+
+> **Status update (2.7.0)**: `GetServerCapabilities` is partially covered by the new `IClient.GetServerOptions(path, ct)` returning a strongly-typed `ServerOptions` (DAV compliance classes + allowed methods). The full `CheckHealth` / `GetConnectionInfo` surface below remains planned.
 
 Add server connectivity and health monitoring:
 

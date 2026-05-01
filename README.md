@@ -16,23 +16,36 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 * Fully support Async/Await
 * Strong-typed
 * Implemented using HttpClient, which means support for extendibility such as throttling and monitoring
-* Supports Unauthenticated or Windows Authentication-based access
+* Authentication: unauthenticated, Windows / Basic / Digest (via `ICredentials`), and Bearer / OAuth 2.0 (via static token or async refreshable provider)
 * Supports custom Certificate validation
 * Supports the full WebDAV API:
   * Retrieving files & folders
-  * Listing items in a folder
+  * Listing items in a folder (`<allprop/>`, targeted `<prop>`, and `<propname/>` PROPFIND variants)
   * Creating & deleting folders
   * Downloading & uploading files
   * Downloading & uploading partial content
-  * Moving & copying files and folders
+  * Moving & copying files and folders (with the `Overwrite` header and optional destination lock-token)
+  * Locking & unlocking resources (LOCK / UNLOCK / RefreshLock) with a strongly-typed `LockInfo`
+  * Setting & removing custom (dead) properties via PROPPATCH
+  * Discovering server capabilities via OPTIONS (DAV compliance classes + allowed methods)
+  * Submitting WebDAV lock tokens through the `If` header on PUT / DELETE / MOVE / COPY
 
 ## Release Notes
 
-+ **2.6.0** _(upcoming)_  Security & hardening:
-  - **XXE hardening**: `ResponseParser` now sets `DtdProcessing = Prohibit` and `XmlResolver = null` explicitly so XXE attacks from malicious WebDAV servers are blocked even on runtimes (e.g. Mono) where the .NET defaults differ.
-  - **Certificate validation wired**: `ServerCertificateValidationCallback` is now actually plumbed into the underlying `HttpClientHandler` (it was a dead property before). When unset, the wired closure defers to the platform's default trust decision.
-  - **SSRF protection**: `BuildServerUrl` now validates that any absolute URI it accepts (path argument or server-resolved base path) belongs to the configured `Server` host, preventing a malicious server from steering the client at a foreign host via crafted `<href>` values.
-  - **Header injection protection**: `CustomHeaders` entries are now validated for CR/LF in both the name and the value before being sent.
++ **2.7.0** _(upcoming)_  Security & hardening:
+  - **WebDAV LOCK / UNLOCK** (RFC 4918 §9.10–9.11): new `LockFile` / `LockFolder` / `UnlockFile` / `UnlockFolder` / `RefreshLock` methods returning a strongly-typed `LockInfo`.
+  - **WebDAV PROPPATCH** (RFC 4918 §9.2): new `SetProperty` / `RemoveProperty` methods for managing custom (dead) properties.
+  - **Bug fix — `Overwrite` header on COPY / MOVE** (RFC 4918 §9.8.3 / §9.9.3): always sent (default `T`); new optional `overwrite` parameter to opt out. `204 No Content` accepted as success.
+  - **Bug fix — `Depth: infinity` on DELETE** (RFC 4918 §9.6.1): now sent as required by the spec for collection deletes.
+  - **`If` lock-token submission on PUT / DELETE / MOVE / COPY** (RFC 4918 §10.4): new optional `lockToken` (and source / destination variants) parameters so locked-resource servers no longer reject modifications with `423 Locked`.
+  - **Internal refactor**: extracted the static helpers in `Client.cs` into focused, unit-testable helper classes under `WebDAVClient.Helpers`. No public-API change.
+  - **PROPFIND request-body variants** (RFC 4918 §9.1): new overloads to request a targeted `<prop>` set or discover property names via `<propname/>`, in addition to the existing `<allprop/>` behaviour.
+  - **HTTP `OPTIONS` support** (RFC 4918 §9.1, RFC 9110 §9.3.7): new `GetServerOptions` method returning a strongly-typed `ServerOptions` (DAV compliance classes + allowed methods).
+  - **Bearer token / OAuth 2.0 authentication**: new `Client` constructor overloads — static token or async refreshable provider — backed by a public `WebDAVClient.Authentication.BearerTokenAuthenticationHandler`.
+  - **XXE hardening**: `ResponseParser` now sets `DtdProcessing = Prohibit` and `XmlResolver = null` explicitly.
+  - **Certificate validation wired**: `ServerCertificateValidationCallback` is now actually plumbed into the underlying `HttpClientHandler`.
+  - **SSRF protection**: `BuildServerUrl` validates that any absolute URI it accepts belongs to the configured `Server` host.
+  - **Header injection protection**: `CustomHeaders` entries are validated for CR/LF in both name and value before being sent.
 + **2.5.x**  Performance & bug-fix rollup:
   - `List()` no longer issues an `await GetServerUrl` per returned item — the encoded base path is resolved once and reused, dramatically reducing async overhead on large listings.
   - `CustomHeaders` and the internal headers dictionary are no longer copied or double-looked-up per request; they are iterated in place.
@@ -121,6 +134,9 @@ using IClient client = new Client(
 // (3) ...or supply your own HttpClient (e.g. for IHttpClientFactory / DI scenarios)
 // using IClient client = new Client(myHttpClient);
 
+// (4) ...or Bearer / OAuth 2.0 — see "What's new in 2.7.0" below for refresh-aware variant
+// using IClient client = new Client("eyJ0eXAiOiJKV1Qi...");
+
 // Set basic information for the WebDAV provider
 client.Server = "https://dav.example.com/";
 client.BasePath = "/dav/";
@@ -177,6 +193,94 @@ await client.CopyFolder(folder.Href, "/" + tempFolderName + "-copy/", cancellati
 // Delete created folder
 var folderCreated = await client.GetFolder("/" + tempFolderName, cancellationToken: token);
 await client.DeleteFolder(folderCreated.Href, cancellationToken: token);
+```
+
+## What's new in 2.7.0
+
+### Bearer token / OAuth 2.0 authentication
+
+```csharp
+// Static token (Nextcloud app-password, long-lived service token, …)
+using IClient client = new Client("eyJ0eXAiOiJKV1Qi...");
+
+// Async, refreshable token provider (Azure AD / MSAL / IdentityModel / custom)
+using IClient client = new Client(async ct => await tokenSource.GetTokenAsync(ct));
+```
+
+Returning `null` / empty from the provider omits the `Authorization` header (the server then naturally returns `401`). The handler is also exposed publicly as `WebDAVClient.Authentication.BearerTokenAuthenticationHandler` if you need to compose it into your own `HttpClient` pipeline.
+
+### Discover server capabilities (OPTIONS)
+
+```csharp
+var options = await client.GetServerOptions("/dav/", cancellationToken: token);
+if (!options.IsWebDavServer)
+    throw new InvalidOperationException("Endpoint is not a WebDAV server");
+
+bool supportsLock = options.IsClass2 && options.SupportsMethod("LOCK");
+```
+
+### Lock / unlock and refresh
+
+```csharp
+// Take an exclusive write lock on a file (default timeout: 600 seconds)
+var info = await client.LockFile("/dav/report.docx", owner: "alice", cancellationToken: token);
+
+// Use the lock token on subsequent writes via the If header
+using (var fs = File.OpenRead(localPath))
+    await client.Upload("/dav/", fs, "report.docx", lockToken: info.Token, cancellationToken: token);
+
+// Extend / release the lock
+await client.RefreshLock("/dav/report.docx", info.Token, timeoutSeconds: 600, cancellationToken: token);
+await client.UnlockFile("/dav/report.docx", info.Token, cancellationToken: token);
+```
+
+`LockInfo.Token` is accepted in either bare (`opaquelocktoken:abc`) or `<opaquelocktoken:abc>` form everywhere it's used.
+
+### Set / remove custom properties (PROPPATCH)
+
+```csharp
+// Set a custom dead property in your own namespace (the DAV: namespace is reserved for live properties and is rejected client-side)
+await client.SetProperty("/dav/report.docx", "author", "https://example.com/ns", "Alice", token);
+
+// Remove it later
+await client.RemoveProperty("/dav/report.docx", "author", "https://example.com/ns", token);
+```
+
+### Targeted PROPFIND — `<prop>` and `<propname/>`
+
+```csharp
+// Ask only for the properties you need (saves bandwidth on large directories)
+var props = new[]
+{
+    new PropertyName("getetag",          "DAV:"),
+    new PropertyName("getcontentlength", "DAV:"),
+    new PropertyName("author",           "https://example.com/ns"),
+};
+var items = await client.List("/dav/", depth: 1, properties: props, cancellationToken: token);
+
+foreach (var item in items)
+{
+    // Standard DAV: live properties light up on Item directly (Etag, ContentLength, …)
+    // Custom properties land in FoundProperties / NotFoundProperties.
+    var author = item.FoundProperties?.FirstOrDefault(p => p.Name.LocalName == "author");
+}
+
+// Discover what properties a resource exposes
+var names = await client.GetFilePropertyNames("/dav/report.docx", cancellationToken: token);
+foreach (var n in names.AvailablePropertyNames)
+    Console.WriteLine($"{n.Namespace}:{n.LocalName}");
+```
+
+### Lock-token-aware writes (If header)
+
+```csharp
+// PUT / DELETE / MOVE / COPY now accept the relevant lock tokens, so locked-resource servers stop rejecting the request with 423 Locked.
+await client.DeleteFile("/dav/report.docx", lockToken: info.Token, cancellationToken: token);
+await client.MoveFile("/dav/old.txt", "/dav/new.txt",
+    sourceLockToken: srcToken, destinationLockToken: dstToken, cancellationToken: token);
+
+// Opt out of clobbering an existing destination (sends Overwrite: F → server returns 412 Precondition Failed)
+await client.CopyFile("/dav/a.txt", "/dav/b.txt", overwrite: false, cancellationToken: token);
 ```
 
 ## Contact
