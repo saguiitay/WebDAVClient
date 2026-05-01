@@ -148,40 +148,44 @@ namespace WebDAVClient
         /// </summary>
         /// <param name="srcFolderPath">Source path of the folder on the server</param>
         /// <param name="dstFolderPath">Destination path of the folder on the server</param>
+        /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
         /// <returns>True if the folder was moved successfully. False otherwise.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
-        Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, CancellationToken cancellationToken = default);
+        Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Move a file on the server
         /// </summary>
         /// <param name="srcFilePath">Source path and filename of the file on the server</param>
         /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
+        /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
         /// <returns>True if the file was moved successfully. False otherwise.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
-        Task<bool> MoveFile(string srcFilePath, string dstFilePath, CancellationToken cancellationToken = default);
+        Task<bool> MoveFile(string srcFilePath, string dstFilePath, bool overwrite = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Copies a folder on the server
         /// </summary>
         /// <param name="srcFolderPath">Source path of the folder on the server</param>
         /// <param name="dstFolderPath">Destination path of the folder on the server</param>
+        /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
         /// <returns>True if the folder was copied successfully. False otherwise.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
-        Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, CancellationToken cancellationToken = default);
+        Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Copies a file on the server
         /// </summary>
         /// <param name="srcFilePath">Source path and filename of the file on the server</param>
         /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
+        /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
         /// <returns>True if the file was copied successfully. False otherwise.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
-        Task<bool> CopyFile(string srcFilePath, string dstFilePath, CancellationToken cancellationToken = default);
+        Task<bool> CopyFile(string srcFilePath, string dstFilePath, bool overwrite = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Acquire an exclusive write lock on a file (RFC 4918 §9.10, <c>Depth: 0</c>).

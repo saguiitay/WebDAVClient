@@ -459,14 +459,15 @@ namespace WebDAVClient
         /// </summary>
         /// <param name="srcFolderPath">Source path of the folder on the server</param>
         /// <param name="dstFolderPath">Destination path of the folder on the server</param>
+        /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <returns>True if the folder was moved successfully. False otherwise</returns>
-        public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, CancellationToken cancellationToken = default)
+        public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, CancellationToken cancellationToken = default)
         {
             // Should have a trailing slash.
             var srcUri = await GetServerUrl(srcFolderPath, true).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFolderPath, true).ConfigureAwait(false);
 
-            return await Move(srcUri.Uri, dstUri.Uri, cancellationToken).ConfigureAwait(false);
+            return await Move(srcUri.Uri, dstUri.Uri, overwrite, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -474,14 +475,15 @@ namespace WebDAVClient
         /// </summary>
         /// <param name="srcFilePath">Source path and filename of the file on the server</param>
         /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
+        /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <returns>True if the file was moved successfully. False otherwise</returns>
-        public async Task<bool> MoveFile(string srcFilePath, string dstFilePath, CancellationToken cancellationToken = default)
+        public async Task<bool> MoveFile(string srcFilePath, string dstFilePath, bool overwrite = true, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var srcUri = await GetServerUrl(srcFilePath, false).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFilePath, false).ConfigureAwait(false);
 
-            return await Move(srcUri.Uri, dstUri.Uri, cancellationToken).ConfigureAwait(false);
+            return await Move(srcUri.Uri, dstUri.Uri, overwrite, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -489,14 +491,15 @@ namespace WebDAVClient
         /// </summary>
         /// <param name="srcFolderPath">Source path of the folder on the server</param>
         /// <param name="dstFolderPath">Destination path of the folder on the server</param>
+        /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <returns>True if the folder was copied successfully. False otherwise</returns>
-        public async Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, CancellationToken cancellationToken = default)
+        public async Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, CancellationToken cancellationToken = default)
         {
             // Should have a trailing slash.
             var srcUri = await GetServerUrl(srcFolderPath, true).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFolderPath, true).ConfigureAwait(false);
 
-            return await Copy(srcUri.Uri, dstUri.Uri, cancellationToken).ConfigureAwait(false);
+            return await Copy(srcUri.Uri, dstUri.Uri, overwrite, cancellationToken).ConfigureAwait(false);
         }
         
         /// <summary>
@@ -504,14 +507,15 @@ namespace WebDAVClient
         /// </summary>
         /// <param name="srcFilePath">Source path and filename of the file on the server</param>
         /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
+        /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <returns>True if the file was copied successfully. False otherwise</returns>
-        public async Task<bool> CopyFile(string srcFilePath, string dstFilePath, CancellationToken cancellationToken = default)
+        public async Task<bool> CopyFile(string srcFilePath, string dstFilePath, bool overwrite = true, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var srcUri = await GetServerUrl(srcFilePath, false).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFilePath, false).ConfigureAwait(false);
 
-            return await Copy(srcUri.Uri, dstUri.Uri, cancellationToken).ConfigureAwait(false);
+            return await Copy(srcUri.Uri, dstUri.Uri, overwrite, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -679,17 +683,19 @@ namespace WebDAVClient
             }
         }
 
-        private async Task<bool> Move(Uri srcUri, Uri dstUri, CancellationToken cancellationToken = default)
+        private async Task<bool> Move(Uri srcUri, Uri dstUri, bool overwrite, CancellationToken cancellationToken = default)
         {
-            IDictionary<string, string> headers = new Dictionary<string, string>(1)
+            IDictionary<string, string> headers = new Dictionary<string, string>(2)
             {
-                { "Destination", dstUri.ToString() }
+                { "Destination", dstUri.ToString() },
+                { "Overwrite", overwrite ? "T" : "F" }
             };
 
             var response = await HttpRequest(srcUri, m_moveMethod, headers, s_moveRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
-                response.StatusCode != HttpStatusCode.Created)
+                response.StatusCode != HttpStatusCode.Created &&
+                response.StatusCode != HttpStatusCode.NoContent)
             {
                 throw new WebDAVException((int)response.StatusCode, "Failed moving file.");
             }
@@ -697,17 +703,19 @@ namespace WebDAVClient
             return response.IsSuccessStatusCode;
         }
 
-        private async Task<bool> Copy(Uri srcUri, Uri dstUri, CancellationToken cancellationToken = default)
+        private async Task<bool> Copy(Uri srcUri, Uri dstUri, bool overwrite, CancellationToken cancellationToken = default)
         {
-            IDictionary<string, string> headers = new Dictionary<string, string>(1)
+            IDictionary<string, string> headers = new Dictionary<string, string>(2)
             {
-                { "Destination", dstUri.ToString() }
+                { "Destination", dstUri.ToString() },
+                { "Overwrite", overwrite ? "T" : "F" }
             };
 
             var response = await HttpRequest(srcUri, m_copyMethod, headers, s_copyRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
-                response.StatusCode != HttpStatusCode.Created)
+                response.StatusCode != HttpStatusCode.Created &&
+                response.StatusCode != HttpStatusCode.NoContent)
             {
                 throw new WebDAVException((int)response.StatusCode, "Failed copying file.");
             }
