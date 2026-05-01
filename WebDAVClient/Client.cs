@@ -21,6 +21,7 @@ namespace WebDAVClient
         private static readonly HttpMethod m_copyMethod = new HttpMethod("COPY");
         private static readonly HttpMethod s_lockMethod = new HttpMethod("LOCK");
         private static readonly HttpMethod s_unlockMethod = new HttpMethod("UNLOCK");
+        private static readonly HttpMethod s_propPatchMethod = new HttpMethod("PROPPATCH");
 
         private static readonly HttpMethod m_mkColMethod = new HttpMethod(WebRequestMethods.Http.MkCol);
 
@@ -610,6 +611,22 @@ namespace WebDAVClient
             }
         }
 
+        /// <summary>
+        /// Set a single dead property on a resource (RFC 4918 §9.2 PROPPATCH).
+        /// </summary>
+        public Task<bool> SetProperty(string path, string propertyName, string propertyNamespace, string value, CancellationToken cancellationToken = default)
+        {
+            return PropPatch(path, propertyName, propertyNamespace, value, isRemove: false, cancellationToken);
+        }
+
+        /// <summary>
+        /// Remove a single dead property from a resource (RFC 4918 §9.2 PROPPATCH).
+        /// </summary>
+        public Task<bool> RemoveProperty(string path, string propertyName, string propertyNamespace, CancellationToken cancellationToken = default)
+        {
+            return PropPatch(path, propertyName, propertyNamespace, value: null, isRemove: true, cancellationToken);
+        }
+
         #endregion
         
         #region Private methods
@@ -778,6 +795,135 @@ namespace WebDAVClient
                 {
                     throw new WebDAVException((int)response.StatusCode, "Failed releasing lock.");
                 }
+            }
+        }
+
+        // Build the PROPPATCH request body with XmlWriter so the XML stack handles all
+        // escaping / character validity, then check the server's atomic per-property
+        // outcome. Used by both SetProperty (isRemove = false) and RemoveProperty
+        // (isRemove = true).
+        private async Task<bool> PropPatch(string path, string propertyName, string propertyNamespace, string value, bool isRemove, CancellationToken cancellationToken)
+        {
+            ValidatePropertyName(propertyName);
+            ValidatePropertyNamespace(propertyNamespace);
+
+            var uri = await GetServerUrl(path, false).ConfigureAwait(false);
+            var body = BuildPropPatchBody(propertyName, propertyNamespace, value, isRemove);
+
+            using (var response = await HttpRequest(uri.Uri, s_propPatchMethod, headers: null, body, cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                if ((int)response.StatusCode != c_httpStatusCode_MultiStatus)
+                {
+                    throw CreateWebDAVException((int)response.StatusCode, "PROPPATCH failed.");
+                }
+
+                IList<PropPatchResponseParser.PropStatResult> results;
+                if (response.Content == null)
+                {
+                    throw new WebDAVException((int)response.StatusCode, "PROPPATCH response had no body to confirm property status.");
+                }
+
+                using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                {
+                    try
+                    {
+                        results = PropPatchResponseParser.Parse(stream);
+                    }
+                    catch (System.Xml.XmlException ex)
+                    {
+                        throw new WebDAVException((int)response.StatusCode, "PROPPATCH response body could not be parsed.", ex);
+                    }
+                }
+
+                // No propstat at all = ambiguous response. RFC 4918 §9.2 requires the server to
+                // report per-property outcomes; treat absence as failure rather than vacuous success.
+                if (results.Count == 0)
+                {
+                    throw new WebDAVException((int)response.StatusCode,
+                        "PROPPATCH response did not contain any propstat status — cannot confirm the property change.");
+                }
+
+                foreach (var r in results)
+                {
+                    if (r.StatusCode < 200 || r.StatusCode >= 300)
+                    {
+                        var msg = "PROPPATCH server reported failure for property '" + propertyName + "': " + (r.StatusLine ?? "(no status line)");
+                        if (!string.IsNullOrEmpty(r.ResponseDescription))
+                            msg += " — " + r.ResponseDescription;
+                        // r.StatusCode may be 0 for a malformed status line; surface 0 verbatim
+                        // rather than synthesizing a fake code.
+                        throw CreateWebDAVException(r.StatusCode, msg);
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        // Centralised so 409 keeps mapping to WebDAVConflictException everywhere.
+        private static WebDAVException CreateWebDAVException(int httpCode, string message)
+        {
+            if (httpCode == (int)HttpStatusCode.Conflict)
+                return new WebDAVConflictException(httpCode, message);
+            return new WebDAVException(httpCode, message);
+        }
+
+        private static void ValidatePropertyName(string propertyName)
+        {
+            if (string.IsNullOrWhiteSpace(propertyName))
+                throw new ArgumentException("Property name must be a non-empty string.", nameof(propertyName));
+            try
+            {
+                System.Xml.XmlConvert.VerifyNCName(propertyName);
+            }
+            catch (System.Xml.XmlException ex)
+            {
+                throw new ArgumentException(
+                    "Property name '" + propertyName + "' is not a valid XML NCName (no colons, no spaces, must start with a letter or underscore).",
+                    nameof(propertyName), ex);
+            }
+        }
+
+        private static void ValidatePropertyNamespace(string propertyNamespace)
+        {
+            if (string.IsNullOrWhiteSpace(propertyNamespace))
+                throw new ArgumentException("Property namespace must be a non-empty string.", nameof(propertyNamespace));
+            // RFC 4918 §15 — DAV-namespaced properties are protected (live). PROPPATCH would be
+            // rejected by the server; fail fast with a clearer error than a 403/409 from the wire.
+            if (string.Equals(propertyNamespace, "DAV:", StringComparison.Ordinal))
+                throw new ArgumentException(
+                    "The DAV: namespace is reserved for protected (live) properties; SetProperty/RemoveProperty only support custom (dead) properties.",
+                    nameof(propertyNamespace));
+        }
+
+        private static byte[] BuildPropPatchBody(string propertyName, string propertyNamespace, string value, bool isRemove)
+        {
+            using (var ms = new MemoryStream())
+            {
+                var settings = new System.Xml.XmlWriterSettings
+                {
+                    Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                    OmitXmlDeclaration = false,
+                    Indent = false
+                };
+                using (var writer = System.Xml.XmlWriter.Create(ms, settings))
+                {
+                    writer.WriteStartDocument();
+                    writer.WriteStartElement("D", "propertyupdate", "DAV:");
+                    writer.WriteStartElement("D", isRemove ? "remove" : "set", "DAV:");
+                    writer.WriteStartElement("D", "prop", "DAV:");
+                    writer.WriteStartElement("X", propertyName, propertyNamespace);
+                    if (!isRemove)
+                    {
+                        writer.WriteString(value ?? string.Empty);
+                    }
+                    writer.WriteEndElement(); // property
+                    writer.WriteEndElement(); // prop
+                    writer.WriteEndElement(); // set/remove
+                    writer.WriteEndElement(); // propertyupdate
+                    writer.WriteEndDocument();
+                }
+                return ms.ToArray();
             }
         }
 
