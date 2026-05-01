@@ -458,6 +458,113 @@ namespace WebDAVClient.UnitTests.ClientTests
             Assert.AreEqual(403, ex.GetHttpCode());
         }
 
+        // -------------------- Overwrite header (RFC 4918 §9.8.3 / §9.9.3) --------------------
+
+        [TestMethod]
+        public async Task MoveFile_sends_overwrite_T_by_default()
+        {
+            using var harness = new ClientHarness(Responder(req =>
+            {
+                Assert.IsTrue(req.Headers.Contains("Overwrite"), "MOVE must send the Overwrite header per RFC 4918 §9.9.3.");
+                Assert.AreEqual("T", req.Headers.GetValues("Overwrite").First());
+                return StubHttpMessageHandler.StatusOnly(HttpStatusCode.Created);
+            }), Server, BasePath);
+
+            var ok = await harness.Client.MoveFile("src.txt", "dst.txt");
+            Assert.IsTrue(ok);
+        }
+
+        [TestMethod]
+        public async Task MoveFolder_sends_overwrite_F_when_caller_opts_out()
+        {
+            using var harness = new ClientHarness(Responder(req =>
+            {
+                Assert.AreEqual("F", req.Headers.GetValues("Overwrite").First());
+                return StubHttpMessageHandler.StatusOnly(HttpStatusCode.Created);
+            }), Server, BasePath);
+
+            var ok = await harness.Client.MoveFolder("src", "dst", overwrite: false);
+            Assert.IsTrue(ok);
+        }
+
+        [TestMethod]
+        public async Task CopyFile_sends_overwrite_T_by_default()
+        {
+            using var harness = new ClientHarness(Responder(req =>
+            {
+                Assert.IsTrue(req.Headers.Contains("Overwrite"), "COPY must send the Overwrite header per RFC 4918 §9.8.3.");
+                Assert.AreEqual("T", req.Headers.GetValues("Overwrite").First());
+                return StubHttpMessageHandler.StatusOnly(HttpStatusCode.Created);
+            }), Server, BasePath);
+
+            var ok = await harness.Client.CopyFile("src.txt", "dst.txt");
+            Assert.IsTrue(ok);
+        }
+
+        [TestMethod]
+        public async Task CopyFolder_sends_overwrite_F_when_caller_opts_out()
+        {
+            using var harness = new ClientHarness(Responder(req =>
+            {
+                Assert.AreEqual("F", req.Headers.GetValues("Overwrite").First());
+                return StubHttpMessageHandler.StatusOnly(HttpStatusCode.Created);
+            }), Server, BasePath);
+
+            var ok = await harness.Client.CopyFolder("src", "dst", overwrite: false);
+            Assert.IsTrue(ok);
+        }
+
+        [TestMethod]
+        public async Task MoveFile_accepts_204_NoContent_as_success()
+        {
+            // RFC 4918 §9.9.4 / §9.8.5: 204 No Content is the canonical response when an
+            // existing destination is overwritten. Treating it as a failure (as the
+            // pre-fix code did) would break the very flow Overwrite: T enables.
+            using var harness = new ClientHarness(Responder(_ =>
+                StubHttpMessageHandler.StatusOnly(HttpStatusCode.NoContent)), Server, BasePath);
+
+            var ok = await harness.Client.MoveFile("src.txt", "dst.txt");
+            Assert.IsTrue(ok);
+        }
+
+        [TestMethod]
+        public async Task CopyFile_accepts_204_NoContent_as_success()
+        {
+            using var harness = new ClientHarness(Responder(_ =>
+                StubHttpMessageHandler.StatusOnly(HttpStatusCode.NoContent)), Server, BasePath);
+
+            var ok = await harness.Client.CopyFile("src.txt", "dst.txt");
+            Assert.IsTrue(ok);
+        }
+
+        [TestMethod]
+        public async Task MoveFile_surfaces_412_when_overwrite_false_and_destination_exists()
+        {
+            using var harness = new ClientHarness(Responder(req =>
+            {
+                Assert.AreEqual("F", req.Headers.GetValues("Overwrite").First());
+                return StubHttpMessageHandler.StatusOnly(HttpStatusCode.PreconditionFailed);
+            }), Server, BasePath);
+
+            var ex = await Assert.ThrowsExceptionAsync<WebDAVException>(
+                () => harness.Client.MoveFile("a", "b", overwrite: false));
+            Assert.AreEqual(412, ex.GetHttpCode());
+        }
+
+        [TestMethod]
+        public async Task CopyFile_surfaces_412_when_overwrite_false_and_destination_exists()
+        {
+            using var harness = new ClientHarness(Responder(req =>
+            {
+                Assert.AreEqual("F", req.Headers.GetValues("Overwrite").First());
+                return StubHttpMessageHandler.StatusOnly(HttpStatusCode.PreconditionFailed);
+            }), Server, BasePath);
+
+            var ex = await Assert.ThrowsExceptionAsync<WebDAVException>(
+                () => harness.Client.CopyFile("a", "b", overwrite: false));
+            Assert.AreEqual(412, ex.GetHttpCode());
+        }
+
         // -------------------- UserAgent + custom headers --------------------
 
         [TestMethod]
