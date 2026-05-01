@@ -4,7 +4,7 @@ Strongly-typed, async WebDAV client library for .NET. Published as the [`WebDAVC
 
 ## Build, test, run
 
-Targets `net8.0` and `net9.0` (multi-targeted). The CI workflow (`.github/workflows/manual.yml`) installs both SDKs.
+Targets `net8.0` and `net10.0` (multi-targeted, both LTS). The CI workflow (`.github/workflows/manual.yml`) installs both SDKs.
 
 ```pwsh
 dotnet restore

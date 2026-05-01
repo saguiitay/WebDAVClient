@@ -28,6 +28,9 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 ## Release Notes
 
++ **2.4.0**   Framework support update:
+  - Added support for .NET 10
+  - Dropped support for .NET 9 (STS); supported targets are now .NET 8 (LTS) and .NET 10 (LTS)
 + **2.2.1**   Minor packaging improvements
 + **2.2.0**   Improvement: 
   - Implement `IDisposable` to avoid `HttpClient` leak
