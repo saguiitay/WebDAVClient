@@ -5,7 +5,7 @@
     <Configurations>Debug;Release;Release-Unsigned</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>WebDAVClient</PackageId>
-    <Version>2.4.0</Version>
+    <Version>2.5.0</Version>
     <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
@@ -13,10 +13,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2025 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>* Added support for .NET 10
-* Dropped support for .NET 9 (STS); supported targets are now .NET 8 (LTS) and .NET 10 (LTS)</PackageReleaseNotes>
-    <AssemblyVersion>2.4.0.0</AssemblyVersion>
-    <FileVersion>2.4.0.0</FileVersion>
+    <PackageReleaseNotes>* Fixed shared HttpClientHandler being disposed twice when an uploadTimeout is provided</PackageReleaseNotes>
+    <AssemblyVersion>2.5.0.0</AssemblyVersion>
+    <FileVersion>2.5.0.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
