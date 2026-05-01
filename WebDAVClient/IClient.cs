@@ -182,5 +182,86 @@ namespace WebDAVClient
         /// <returns>True if the file was copied successfully. False otherwise.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
         Task<bool> CopyFile(string srcFilePath, string dstFilePath, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Acquire an exclusive write lock on a file (RFC 4918 §9.10, <c>Depth: 0</c>).
+        /// </summary>
+        /// <param name="filePath">Path and filename of the file on the server.</param>
+        /// <param name="timeoutSeconds">
+        /// Requested lock timeout in seconds (sent as <c>Timeout: Second-{n}</c>). The server may grant a shorter
+        /// timeout — inspect <see cref="LockInfo.TimeoutSeconds"/> on the returned value. Must be greater than zero.
+        /// </param>
+        /// <param name="owner">
+        /// Free-form identifier for the lock owner, embedded in the request body's <c>&lt;D:owner&gt;</c> element so
+        /// that other clients (and humans inspecting the lock) can identify who holds it. When <c>null</c>, defaults
+        /// to <c>WebDAVClient</c>.
+        /// </param>
+        /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+        /// <returns>A <see cref="LockInfo"/> describing the granted lock; <see cref="LockInfo.Token"/> is the value to pass to <see cref="UnlockFile"/> / <see cref="RefreshLock"/>.</returns>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server refuses the lock (e.g. <c>423 Locked</c>) or returns any other non-success status.</exception>
+        Task<LockInfo> LockFile(string filePath, int timeoutSeconds = 600, string owner = null, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Acquire an exclusive write lock on a folder (RFC 4918 §9.10, <c>Depth: infinity</c>) — locks the
+        /// collection and all of its members.
+        /// </summary>
+        /// <param name="folderPath">Path of the folder on the server.</param>
+        /// <param name="timeoutSeconds">
+        /// Requested lock timeout in seconds. The server may grant a shorter timeout. Must be greater than zero.
+        /// </param>
+        /// <param name="owner">
+        /// Free-form identifier for the lock owner. Defaults to <c>WebDAVClient</c> when <c>null</c>.
+        /// </param>
+        /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+        /// <returns>A <see cref="LockInfo"/> describing the granted lock.</returns>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server refuses the lock or returns a non-success status. <c>207 Multi-Status</c> on a depth-infinity LOCK indicates a partial failure (RFC 4918 §9.10.6) and is also surfaced as <c>WebDAVException</c>.</exception>
+        Task<LockInfo> LockFolder(string folderPath, int timeoutSeconds = 600, string owner = null, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Release a lock previously acquired with <see cref="LockFile"/> (RFC 4918 §9.11).
+        /// </summary>
+        /// <param name="filePath">Path and filename of the file on the server.</param>
+        /// <param name="lockToken">
+        /// The lock token returned by <see cref="LockFile"/> (i.e. <see cref="LockInfo.Token"/>). May be passed in
+        /// either bare form (<c>opaquelocktoken:...</c>) or wrapped in angle brackets (<c>&lt;opaquelocktoken:...&gt;</c>);
+        /// the client normalizes it before sending the <c>Lock-Token</c> header.
+        /// </param>
+        /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+        /// <exception cref="System.ArgumentException">Thrown when <paramref name="lockToken"/> is <c>null</c>, empty, or malformed.</exception>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-<c>204</c> status (e.g. <c>409 Conflict</c> when the token does not match the lock).</exception>
+        Task UnlockFile(string filePath, string lockToken, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Release a lock previously acquired with <see cref="LockFolder"/> (RFC 4918 §9.11).
+        /// </summary>
+        /// <param name="folderPath">Path of the folder on the server.</param>
+        /// <param name="lockToken">
+        /// The lock token returned by <see cref="LockFolder"/>. Bare or angle-bracketed forms are both accepted.
+        /// </param>
+        /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+        /// <exception cref="System.ArgumentException">Thrown when <paramref name="lockToken"/> is <c>null</c>, empty, or malformed.</exception>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-<c>204</c> status.</exception>
+        Task UnlockFolder(string folderPath, string lockToken, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Refresh an existing lock by sending a body-less LOCK request with the <c>If</c> header carrying the
+        /// current lock token (RFC 4918 §9.10.2). Use this before <c>TimeoutSeconds</c> elapses to keep the lock alive.
+        /// </summary>
+        /// <param name="path">Path of the locked file or folder on the server.</param>
+        /// <param name="lockToken">
+        /// The current lock token, in either bare or angle-bracketed form.
+        /// </param>
+        /// <param name="timeoutSeconds">
+        /// Requested new timeout in seconds. The server may grant a shorter value. Must be greater than zero.
+        /// </param>
+        /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+        /// <returns>
+        /// A <see cref="LockInfo"/> reflecting the refreshed lock state. If the server's response carries no
+        /// <c>activelock</c> body (some servers do this), the returned <see cref="LockInfo.Token"/> is the
+        /// caller-supplied token and the other fields will be <c>null</c>.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Thrown when <paramref name="lockToken"/> is <c>null</c>, empty, or malformed.</exception>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status (e.g. <c>412 Precondition Failed</c> when the token no longer matches an active lock).</exception>
+        Task<LockInfo> RefreshLock(string path, string lockToken, int timeoutSeconds = 600, CancellationToken cancellationToken = default);
     }
 }

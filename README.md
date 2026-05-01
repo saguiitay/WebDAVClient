@@ -29,7 +29,8 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.6.0** _(upcoming)_  Security & hardening:
-  - **XXE hardening**: `ResponseParser` now sets `DtdProcessing = Prohibit` and `XmlResolver = null` explicitly so XXE attacks from malicious WebDAV servers are blocked even on runtimes (e.g. Mono) where the .NET defaults differ.
+  - **WebDAV LOCK / UNLOCK** (RFC 4918 §9.10–9.11): new `LockFile`/`LockFolder`/`UnlockFile`/`UnlockFolder`/`RefreshLock` methods on `IClient`. Returns a strongly-typed `LockInfo` (token, owner, type/scope, depth, timeout, lock-root). Lock tokens are normalized so callers can pass them either bare or `<...>`-wrapped.
+  - **XXE hardening**:`ResponseParser` now sets `DtdProcessing = Prohibit` and `XmlResolver = null` explicitly so XXE attacks from malicious WebDAV servers are blocked even on runtimes (e.g. Mono) where the .NET defaults differ.
   - **Certificate validation wired**: `ServerCertificateValidationCallback` is now actually plumbed into the underlying `HttpClientHandler` (it was a dead property before). When unset, the wired closure defers to the platform's default trust decision.
   - **SSRF protection**: `BuildServerUrl` now validates that any absolute URI it accepts (path argument or server-resolved base path) belongs to the configured `Server` host, preventing a malicious server from steering the client at a foreign host via crafted `<href>` values.
   - **Header injection protection**: `CustomHeaders` entries are now validated for CR/LF in both the name and the value before being sent.

@@ -19,6 +19,8 @@ namespace WebDAVClient
         private static readonly HttpMethod m_propFindMethod = new HttpMethod("PROPFIND");
         private static readonly HttpMethod m_moveMethod = new HttpMethod("MOVE");
         private static readonly HttpMethod m_copyMethod = new HttpMethod("COPY");
+        private static readonly HttpMethod s_lockMethod = new HttpMethod("LOCK");
+        private static readonly HttpMethod s_unlockMethod = new HttpMethod("UNLOCK");
 
         private static readonly HttpMethod m_mkColMethod = new HttpMethod(WebRequestMethods.Http.MkCol);
 
@@ -46,6 +48,18 @@ namespace WebDAVClient
         private static readonly byte[] s_propFindRequestContentBytes = Encoding.UTF8.GetBytes(c_propFindRequestContent);
         private static readonly byte[] s_moveRequestContentBytes = Encoding.UTF8.GetBytes("MOVE");
         private static readonly byte[] s_copyRequestContentBytes = Encoding.UTF8.GetBytes("COPY");
+
+        // RFC 4918 §9.10 LOCK request body. The owner is interpolated as raw text content
+        // of <D:owner> — callers' owner strings are XML-escaped before substitution.
+        private const string c_lockRequestContentFormat =
+            "<?xml version=\"1.0\" encoding=\"utf-8\" ?>" +
+            "<D:lockinfo xmlns:D=\"DAV:\">" +
+            "<D:lockscope><D:exclusive/></D:lockscope>" +
+            "<D:locktype><D:write/></D:locktype>" +
+            "<D:owner>{0}</D:owner>" +
+            "</D:lockinfo>";
+
+        private const string c_defaultLockOwner = "WebDAVClient";
 
         private IHttpClientWrapper m_httpClientWrapper;
         private readonly bool m_shouldDispose;
@@ -499,6 +513,103 @@ namespace WebDAVClient
             return await Copy(srcUri.Uri, dstUri.Uri, cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Acquire an exclusive write lock on a file (RFC 4918 §9.10, <c>Depth: 0</c>).
+        /// </summary>
+        public async Task<LockInfo> LockFile(string filePath, int timeoutSeconds = 600, string owner = null, CancellationToken cancellationToken = default)
+        {
+            var uri = await GetServerUrl(filePath, false).ConfigureAwait(false);
+            return await Lock(uri.Uri, depth: "0", timeoutSeconds, owner, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Acquire an exclusive write lock on a folder (RFC 4918 §9.10, <c>Depth: infinity</c>).
+        /// </summary>
+        public async Task<LockInfo> LockFolder(string folderPath, int timeoutSeconds = 600, string owner = null, CancellationToken cancellationToken = default)
+        {
+            var uri = await GetServerUrl(folderPath, true).ConfigureAwait(false);
+            return await Lock(uri.Uri, depth: "infinity", timeoutSeconds, owner, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Release a lock previously acquired with <see cref="LockFile"/> (RFC 4918 §9.11).
+        /// </summary>
+        public async Task UnlockFile(string filePath, string lockToken, CancellationToken cancellationToken = default)
+        {
+            var uri = await GetServerUrl(filePath, false).ConfigureAwait(false);
+            await Unlock(uri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Release a lock previously acquired with <see cref="LockFolder"/> (RFC 4918 §9.11).
+        /// </summary>
+        public async Task UnlockFolder(string folderPath, string lockToken, CancellationToken cancellationToken = default)
+        {
+            var uri = await GetServerUrl(folderPath, true).ConfigureAwait(false);
+            await Unlock(uri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Refresh an existing lock (RFC 4918 §9.10.2). Sends a body-less LOCK request with the
+        /// <c>If</c> header carrying the current lock token and a new <c>Timeout</c> header.
+        /// </summary>
+        public async Task<LockInfo> RefreshLock(string path, string lockToken, int timeoutSeconds = 600, CancellationToken cancellationToken = default)
+        {
+            if (timeoutSeconds <= 0)
+                throw new ArgumentOutOfRangeException(nameof(timeoutSeconds), "Lock timeout must be greater than zero seconds.");
+
+            var bareToken = NormalizeLockToken(lockToken);
+
+            // Folder vs file is unknown at this entry point — but the URL shape only differs by a
+            // trailing slash, and we want to refresh the same href the caller originally locked.
+            // GetServerUrl with appendTrailingSlash=false leaves the caller's path as-is (it only
+            // adds a slash when asked to), which matches how the original Lock URL was built.
+            var uri = await GetServerUrl(path, false).ConfigureAwait(false);
+
+            IDictionary<string, string> headers = new Dictionary<string, string>(2)
+            {
+                { "If", "(<" + bareToken + ">)" },
+                { "Timeout", "Second-" + timeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture) }
+            };
+
+            HttpResponseMessage response = null;
+            try
+            {
+                response = await HttpRequest(uri.Uri, s_lockMethod, headers, content: null, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    throw new WebDAVException((int)response.StatusCode, "Failed refreshing lock.");
+                }
+
+                LockInfo info = null;
+                if (response.Content != null)
+                {
+                    using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    {
+                        info = LockResponseParser.Parse(stream);
+                    }
+                }
+
+                if (info == null)
+                {
+                    // Some servers omit the body on refresh. Carry the caller's token through so the
+                    // returned LockInfo is still actionable for the next refresh / unlock.
+                    info = new LockInfo { Token = bareToken };
+                }
+                else if (string.IsNullOrEmpty(info.Token))
+                {
+                    info.Token = bareToken;
+                }
+
+                return info;
+            }
+            finally
+            {
+                response?.Dispose();
+            }
+        }
+
         #endregion
         
         #region Private methods
@@ -585,6 +696,148 @@ namespace WebDAVClient
             }
 
             return response.IsSuccessStatusCode;
+        }
+
+        private async Task<LockInfo> Lock(Uri uri, string depth, int timeoutSeconds, string owner, CancellationToken cancellationToken)
+        {
+            if (timeoutSeconds <= 0)
+                throw new ArgumentOutOfRangeException(nameof(timeoutSeconds), "Lock timeout must be greater than zero seconds.");
+
+            var ownerText = string.IsNullOrEmpty(owner) ? c_defaultLockOwner : owner;
+            var body = Encoding.UTF8.GetBytes(string.Format(c_lockRequestContentFormat, EscapeXml(ownerText)));
+
+            IDictionary<string, string> headers = new Dictionary<string, string>(2)
+            {
+                { "Depth", depth },
+                { "Timeout", "Second-" + timeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture) }
+            };
+
+            HttpResponseMessage response = null;
+            try
+            {
+                response = await HttpRequest(uri, s_lockMethod, headers, body, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                // RFC 4918 §9.10.6: 207 Multi-Status from a depth-infinity LOCK indicates that
+                // at least one member could not be locked — the lock as requested was NOT granted
+                // and must not be treated as success.
+                if (response.StatusCode != HttpStatusCode.OK &&
+                    response.StatusCode != HttpStatusCode.Created)
+                {
+                    throw new WebDAVException((int)response.StatusCode, "Failed acquiring lock.");
+                }
+
+                LockInfo info = null;
+                if (response.Content != null)
+                {
+                    using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    {
+                        info = LockResponseParser.Parse(stream);
+                    }
+                }
+
+                if (info == null)
+                {
+                    info = new LockInfo();
+                }
+
+                // RFC 4918 §10.5: the canonical lock token of the new lock is the value of the
+                // Lock-Token response header. Prefer the header value over any body-derived token
+                // (and use the header to populate Token when the body parser came up empty).
+                var headerToken = ExtractLockTokenHeader(response);
+                if (!string.IsNullOrEmpty(headerToken))
+                {
+                    info.Token = headerToken;
+                }
+
+                if (string.IsNullOrEmpty(info.Token))
+                {
+                    throw new WebDAVException((int)response.StatusCode,
+                        "Lock response did not contain a lock token in either the Lock-Token header or the response body.");
+                }
+
+                return info;
+            }
+            finally
+            {
+                response?.Dispose();
+            }
+        }
+
+        private async Task Unlock(Uri uri, string lockToken, CancellationToken cancellationToken)
+        {
+            var bareToken = NormalizeLockToken(lockToken);
+
+            IDictionary<string, string> headers = new Dictionary<string, string>(1)
+            {
+                { "Lock-Token", "<" + bareToken + ">" }
+            };
+
+            using (var response = await HttpRequest(uri, s_unlockMethod, headers, content: null, cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                if (response.StatusCode != HttpStatusCode.NoContent)
+                {
+                    throw new WebDAVException((int)response.StatusCode, "Failed releasing lock.");
+                }
+            }
+        }
+
+        // Lock tokens flow through this client in *bare* form (no surrounding angle brackets).
+        // The Lock-Token and If headers add the brackets when emitting. Accept either form from
+        // callers because real-world tokens are commonly copy-pasted from response headers
+        // including the brackets.
+        internal static string NormalizeLockToken(string lockToken)
+        {
+            if (string.IsNullOrWhiteSpace(lockToken))
+                throw new ArgumentException("Lock token must be a non-empty string.", nameof(lockToken));
+
+            var trimmed = lockToken.Trim();
+            if (trimmed.Length >= 2 && trimmed[0] == '<' && trimmed[trimmed.Length - 1] == '>')
+            {
+                trimmed = trimmed.Substring(1, trimmed.Length - 2).Trim();
+            }
+
+            if (trimmed.Length == 0
+                || trimmed.IndexOf('<') >= 0
+                || trimmed.IndexOf('>') >= 0
+                || trimmed.IndexOf('\r') >= 0
+                || trimmed.IndexOf('\n') >= 0)
+            {
+                throw new ArgumentException("Lock token is malformed.", nameof(lockToken));
+            }
+
+            return trimmed;
+        }
+
+        // RFC 4918 §10.5: Lock-Token = "Lock-Token" ":" Coded-URL where Coded-URL = "<" absolute-URI ">"
+        private static string ExtractLockTokenHeader(HttpResponseMessage response)
+        {
+            if (response.Headers.TryGetValues("Lock-Token", out var values))
+            {
+                foreach (var v in values)
+                {
+                    if (string.IsNullOrWhiteSpace(v))
+                        continue;
+                    var trimmed = v.Trim();
+                    if (trimmed.Length >= 2 && trimmed[0] == '<' && trimmed[trimmed.Length - 1] == '>')
+                    {
+                        return trimmed.Substring(1, trimmed.Length - 2).Trim();
+                    }
+                    return trimmed;
+                }
+            }
+            return null;
+        }
+
+        private static string EscapeXml(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return value;
+            return value
+                .Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;")
+                .Replace("\"", "&quot;")
+                .Replace("'", "&apos;");
         }
 
         private async Task<Stream> DownloadFile(string remoteFilePath, Dictionary<string, string> header, CancellationToken cancellationToken = default)
