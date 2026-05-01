@@ -624,6 +624,51 @@ namespace WebDAVClient.UnitTests.ClientTests
             await harness.Client.List("http://EXAMPLE.com/webdav/sub/");
         }
 
+        // -------------------- CRLF header injection in CustomHeaders --------------------
+
+        [TestMethod]
+        public async Task CustomHeaders_value_with_crlf_throws_ArgumentException()
+        {
+            // Regression: a CustomHeaders value containing CR/LF could inject extra headers
+            // into the outgoing HTTP request (HTTP header injection). The library must
+            // reject such values explicitly with a descriptive error rather than relying on
+            // runtime-dependent behaviour of HttpHeaders.Add.
+            using var harness = new ClientHarness(Responder(_ =>
+                StubHttpMessageHandler.Multistatus(WebDAVResponses.FolderListing())), Server, BasePath);
+
+            // Warm up m_encodedBasePath so the failure on the next call is clearly due to
+            // header validation and not the initial base PROPFIND.
+            await harness.Client.List();
+
+            harness.Client.CustomHeaders = new[]
+            {
+                new System.Collections.Generic.KeyValuePair<string, string>(
+                    "X-Test", "value\r\nInjected-Header: bad")
+            };
+
+            var ex = await Assert.ThrowsExceptionAsync<ArgumentException>(() => harness.Client.List());
+            StringAssert.Contains(ex.Message, "X-Test");
+            StringAssert.Contains(ex.Message, "CR/LF");
+        }
+
+        [TestMethod]
+        public async Task CustomHeaders_name_with_crlf_throws_ArgumentException()
+        {
+            using var harness = new ClientHarness(Responder(_ =>
+                StubHttpMessageHandler.Multistatus(WebDAVResponses.FolderListing())), Server, BasePath);
+
+            await harness.Client.List();
+
+            harness.Client.CustomHeaders = new[]
+            {
+                new System.Collections.Generic.KeyValuePair<string, string>(
+                    "X-Test\r\nInjected-Header", "value")
+            };
+
+            var ex = await Assert.ThrowsExceptionAsync<ArgumentException>(() => harness.Client.List());
+            StringAssert.Contains(ex.Message, "CR/LF");
+        }
+
         // -------------------- Dispose --------------------
 
         [TestMethod]

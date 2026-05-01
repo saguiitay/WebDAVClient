@@ -608,6 +608,25 @@ namespace WebDAVClient
         /// <param name="method"></param>
         /// <param name="headers"></param>
         /// <param name="content"></param>
+        // Defends against HTTP header injection (CRLF injection) when callers populate
+        // CustomHeaders from untrusted input. Modern .NET's HttpHeaders.Add already
+        // throws FormatException for CR/LF in values, but the protection is runtime-
+        // dependent and gives a generic error. We validate explicitly so the failure
+        // is consistent across runtimes and clearly identifies the offending header.
+        private static void EnsureHeaderHasNoCrlf(string key, string value)
+        {
+            if (key != null && (key.IndexOf('\r') >= 0 || key.IndexOf('\n') >= 0))
+            {
+                throw new ArgumentException(
+                    "Custom header name contains CR/LF characters; refusing to send (possible HTTP header injection).", nameof(key));
+            }
+            if (value != null && (value.IndexOf('\r') >= 0 || value.IndexOf('\n') >= 0))
+            {
+                throw new ArgumentException(
+                    $"Custom header value for '{key}' contains CR/LF characters; refusing to send (possible HTTP header injection).", nameof(value));
+            }
+        }
+
         private async Task<HttpResponseMessage> HttpRequest(Uri uri, HttpMethod method, IDictionary<string, string> headers = null, byte[] content = null, CancellationToken cancellationToken = default)
         {
             using (var request = new HttpRequestMessage(method, uri))
@@ -630,6 +649,7 @@ namespace WebDAVClient
                 {
                     foreach (var kvp in CustomHeaders)
                     {
+                        EnsureHeaderHasNoCrlf(kvp.Key, kvp.Value);
                         request.Headers.Add(kvp.Key, kvp.Value);
                     }
                 }
@@ -676,6 +696,7 @@ namespace WebDAVClient
                 {
                     foreach (var kvp in CustomHeaders)
                     {
+                        EnsureHeaderHasNoCrlf(kvp.Key, kvp.Value);
                         request.Headers.Add(kvp.Key, kvp.Value);
                     }
                 }
