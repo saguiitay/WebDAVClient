@@ -215,8 +215,11 @@ namespace WebDAVClient
                         }
                         else
                         {
-                            // If it's not the requested parent folder, add it to the result
-                            var fullHref = await GetServerUrl(item.Href, true).ConfigureAwait(false);
+                            // If it's not the requested parent folder, add it to the result.
+                            // m_encodedBasePath was initialized by the GetServerUrl call at the
+                            // top of this method, so the synchronous helper is safe to use here
+                            // and avoids the per-item async state machine allocation.
+                            var fullHref = BuildServerUrl(item.Href, true);
                             if (!string.Equals(fullHref.ToString(), listUrl, StringComparison.CurrentCultureIgnoreCase))
                             {
                                 result.Add(item);
@@ -750,6 +753,13 @@ namespace WebDAVClient
                 m_encodedBasePath = root.Href;
             }
 
+            return BuildServerUrl(path, appendTrailingSlash);
+        }
+
+        // Synchronous core of GetServerUrl. Callers must ensure m_encodedBasePath
+        // has already been initialized (i.e. GetServerUrl was awaited at least once).
+        private UriBuilder BuildServerUrl(string path, bool appendTrailingSlash)
+        {
             // If we've been asked for the "root" folder
             if (string.IsNullOrEmpty(path))
             {
