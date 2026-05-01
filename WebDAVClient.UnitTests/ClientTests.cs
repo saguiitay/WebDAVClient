@@ -585,6 +585,45 @@ namespace WebDAVClient.UnitTests.ClientTests
                 new HttpRequestMessage(), null, null, System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors));
         }
 
+        // -------------------- SSRF protection (absolute URI host validation) --------------------
+
+        [TestMethod]
+        public async Task BuildServerUrl_rejects_absolute_path_pointing_at_foreign_host()
+        {
+            // Regression: a malicious or compromised WebDAV server could return absolute
+            // <href> values pointing at a different host (e.g. internal infrastructure).
+            // If those hrefs are passed back into List/Download/Delete/etc., the client
+            // must NOT silently issue a request to that foreign host.
+            using var harness = new ClientHarness(Responder(_ =>
+                StubHttpMessageHandler.Multistatus(WebDAVResponses.FolderListing())), Server, BasePath);
+
+            // First call: warms up m_encodedBasePath with a legitimate PROPFIND so we know
+            // the failure on the second call is due to host validation, not setup.
+            await harness.Client.List();
+
+            var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+                () => harness.Client.List("http://evil.example.org/webdav/"));
+
+            StringAssert.Contains(ex.Message, "evil.example.org");
+            StringAssert.Contains(ex.Message, "example.com");
+        }
+
+        [TestMethod]
+        public async Task BuildServerUrl_accepts_absolute_path_on_same_host_case_insensitive()
+        {
+            // Same-host absolute paths are legitimate (servers commonly return absolute
+            // hrefs in PROPFIND responses), and host comparison must be case-insensitive
+            // per RFC 3986 §3.2.2.
+            using var harness = new ClientHarness(Responder(_ =>
+                StubHttpMessageHandler.Multistatus(WebDAVResponses.FolderListing())), Server, BasePath);
+
+            await harness.Client.List();
+
+            // Mixed-case host on the configured Server (http://example.com) must still be
+            // accepted — no exception expected.
+            await harness.Client.List("http://EXAMPLE.com/webdav/sub/");
+        }
+
         // -------------------- Dispose --------------------
 
         [TestMethod]
