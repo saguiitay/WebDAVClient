@@ -21,6 +21,11 @@ namespace WebDAVClient.Helpers
     /// </summary>
     internal static class LockTokenHeaderHelper
     {
+        // Characters that must not appear inside a normalized lock token: angle brackets
+        // would corrupt the If/Lock-Token header framing, and CR/LF would enable HTTP
+        // header injection. Cached so IndexOfAny doesn't reallocate on every call.
+        private static readonly char[] s_lockTokenForbiddenChars = { '<', '>', '\r', '\n' };
+
         /// <summary>
         /// Returns the lock token in bare (no angle brackets) form, throwing
         /// <see cref="ArgumentException"/> if the token is null/empty/whitespace or contains
@@ -37,11 +42,7 @@ namespace WebDAVClient.Helpers
                 trimmed = trimmed.Substring(1, trimmed.Length - 2).Trim();
             }
 
-            if (trimmed.Length == 0
-                || trimmed.IndexOf('<') >= 0
-                || trimmed.IndexOf('>') >= 0
-                || trimmed.IndexOf('\r') >= 0
-                || trimmed.IndexOf('\n') >= 0)
+            if (trimmed.Length == 0 || trimmed.IndexOfAny(s_lockTokenForbiddenChars) >= 0)
             {
                 throw new ArgumentException("Lock token is malformed.", nameof(lockToken));
             }
