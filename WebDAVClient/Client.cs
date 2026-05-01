@@ -22,6 +22,7 @@ namespace WebDAVClient
         private static readonly HttpMethod s_lockMethod = new HttpMethod("LOCK");
         private static readonly HttpMethod s_unlockMethod = new HttpMethod("UNLOCK");
         private static readonly HttpMethod s_propPatchMethod = new HttpMethod("PROPPATCH");
+        private static readonly HttpMethod s_optionsMethod = HttpMethod.Options;
 
         private static readonly HttpMethod m_mkColMethod = new HttpMethod(WebRequestMethods.Http.MkCol);
 
@@ -189,6 +190,60 @@ namespace WebDAVClient
         }
 
         #region WebDAV operations
+
+        /// <summary>
+        /// HTTP <c>OPTIONS</c> against the resource at <paramref name="path"/>
+        /// (RFC 4918 §9.1, RFC 9110 §9.3.7). Returns the WebDAV compliance
+        /// classes and the methods the server reports it supports.
+        /// </summary>
+        /// <param name="path">Resource to issue OPTIONS against. Defaults to the configured base path.</param>
+        /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+        public async Task<ServerOptions> GetServerOptions(string path = "/", CancellationToken cancellationToken = default)
+        {
+            var uri = await GetServerUrl(path, true).ConfigureAwait(false);
+
+            HttpResponseMessage response = null;
+            try
+            {
+                response = await HttpRequest(uri.Uri, s_optionsMethod, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                // OPTIONS is expected to succeed with 200 OK or 204 No Content.
+                // Some servers return 200 even when the resource is missing; the
+                // DAV header tells us whether it's a WebDAV resource at all.
+                if (response.StatusCode != HttpStatusCode.OK
+                    && response.StatusCode != HttpStatusCode.NoContent)
+                {
+                    throw new WebDAVException((int)response.StatusCode, "Failed retrieving server OPTIONS.");
+                }
+
+                string rawDav = null;
+                if (response.Headers.TryGetValues("DAV", out var davValues))
+                {
+                    rawDav = OptionsHeaderParser.Join(davValues);
+                }
+
+                string rawAllow = null;
+                // Allow lives on Content.Headers per RFC, but some servers send it
+                // on the response headers directly when the body is empty. Probe both.
+                if (response.Content?.Headers?.Allow != null && response.Content.Headers.Allow.Count > 0)
+                {
+                    rawAllow = OptionsHeaderParser.Join(response.Content.Headers.Allow);
+                }
+                else if (response.Headers.TryGetValues("Allow", out var allowValues))
+                {
+                    rawAllow = OptionsHeaderParser.Join(allowValues);
+                }
+
+                var compliance = OptionsHeaderParser.Split(rawDav);
+                var allow = OptionsHeaderParser.Split(rawAllow);
+
+                return new ServerOptions(compliance, allow, rawDav, rawAllow);
+            }
+            finally
+            {
+                response?.Dispose();
+            }
+        }
 
         /// <summary>
         /// List all files present on the server.

@@ -40,6 +40,20 @@ namespace WebDAVClient
         ICollection<KeyValuePair<string, string>> CustomHeaders { get; set; }
 
         /// <summary>
+        /// Issues an HTTP <c>OPTIONS</c> request against <paramref name="path"/>
+        /// (RFC 4918 §9.1, RFC 9110 §9.3.7) and returns the parsed
+        /// <c>DAV</c> compliance classes and <c>Allow</c> methods. Use this to
+        /// verify a server is WebDAV-enabled before making any other request,
+        /// or to discover which compliance classes (1 / 2 / 3) and HTTP /
+        /// WebDAV methods it supports.
+        /// </summary>
+        /// <param name="path">Resource to issue <c>OPTIONS</c> against. Defaults to the configured base path.</param>
+        /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+        /// <returns>A <see cref="ServerOptions"/> describing the server's reported capabilities.</returns>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a status other than <c>200 OK</c> / <c>204 No Content</c>.</exception>
+        Task<ServerOptions> GetServerOptions(string path = "/", CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// List all files present on the server.
         /// </summary>
         /// <param name="path">List only files in this path. Defaults to <c>/</c> (the configured base path).</param>
