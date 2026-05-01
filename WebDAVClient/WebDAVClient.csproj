@@ -5,7 +5,7 @@
     <Configurations>Debug;Release;Release-Unsigned</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>WebDAVClient</PackageId>
-    <Version>2.5.5</Version>
+    <Version>2.7.0</Version>
     <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
@@ -13,15 +13,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>* Performance: HttpRequest and HttpUploadRequest no longer perform a redundant dictionary lookup per header. The header dictionary is now iterated as KeyValuePair entries instead of iterating Keys and indexing back into the dictionary.
-* Bug fix / performance: List() now compares the parent-folder URL using StringComparison.OrdinalIgnoreCase instead of CurrentCultureIgnoreCase. URLs are not locale-sensitive, so this avoids both the slower culture-aware comparison and potential wrong results in locales like Turkish (the dotted/dotless 'I' issue).
-* Performance: CustomHeaders are no longer copied into a per-call merged dictionary. HttpRequest/HttpUploadRequest now iterate CustomHeaders directly, eliminating one Dictionary allocation and one extra iteration per request.
-* Security: ResponseParser's XmlReaderSettings now explicitly sets DtdProcessing = Prohibit and XmlResolver = null to harden against XXE (XML External Entity) attacks from malicious or compromised WebDAV servers. Defends against arbitrary file disclosure, SSRF, and "billion laughs" denial-of-service on runtimes (e.g. Mono) where the .NET defaults may differ.
-* Security / bug fix: ServerCertificateValidationCallback was previously a dead property — never wired to the underlying HttpClientHandler — so users relying on it for certificate pinning, custom CA trust, or self-signed cert acceptance were silently ignored. The (ICredentials, TimeSpan?, IWebProxy) constructor now wires the callback into HttpClientHandler.ServerCertificateCustomValidationCallback via a closure that resolves the property lazily on each handshake, so callers can still assign or reassign it after construction. When unset, the wired closure defers to the platform's default trust decision (errors == None) instead of denying. Has no effect on Clients constructed with a caller-supplied HttpClient/IHttpClientWrapper — configure the callback on your own handler in that case.
-* Security: BuildServerUrl now validates that any absolute URI it accepts (either an absolute path argument or an absolute server-resolved base path) belongs to the configured Server host. Previously a malicious or compromised WebDAV server could return absolute &lt;href&gt; values pointing at a different host (e.g. internal infrastructure); if those hrefs were passed back into operations like List/Download/DeleteFolder the client would issue requests to that arbitrary host, enabling SSRF and host-confusion attacks. Mismatched hosts now throw InvalidOperationException with a descriptive message. Host comparison is case-insensitive (RFC 3986 §3.2.2).
-* Security: CustomHeaders entries are now validated for CR/LF characters in both the header name and value before being added to outgoing requests. Previously a CR/LF in a CustomHeaders value could be used for HTTP header injection when callers populated CustomHeaders from untrusted input. Modern .NET's HttpHeaders.Add already throws FormatException for CR/LF in values, but the protection was runtime-dependent and gave a generic error; we now throw ArgumentException with a clear message identifying the offending header consistently across runtimes.</PackageReleaseNotes>
-    <AssemblyVersion>2.5.5.0</AssemblyVersion>
-    <FileVersion>2.5.5.0</FileVersion>
+    <PackageReleaseNotes>* Feature: WebDAV LOCK / UNLOCK support per RFC 4918 §9.10–9.11. New IClient methods LockFile / LockFolder / UnlockFile / UnlockFolder / RefreshLock return a strongly-typed LockInfo (token, owner, type/scope, depth, timeout, lock-root). Lock tokens are normalized so callers can pass them either bare (opaquelocktoken:...) or angle-bracket-wrapped.</PackageReleaseNotes>
+    <AssemblyVersion>2.7.0.0</AssemblyVersion>
+    <FileVersion>2.7.0.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
