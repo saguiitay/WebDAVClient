@@ -5,17 +5,17 @@
     <Configurations>Debug;Release;Release-Unsigned</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>WebDAVClient</PackageId>
-    <Version>2.5.2</Version>
+    <Version>2.5.1</Version>
     <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
     <PackageProjectUrl>https://github.com/saguiitay/WebDAVClient</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Copyright>Copyright © 2025 Sagui Itay</Copyright>
+    <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
     <PackageReleaseNotes>* Added a unit test project (MSTest) covering the public Client surface, response parsing, and exception types</PackageReleaseNotes>
-    <AssemblyVersion>2.5.2.0</AssemblyVersion>
-    <FileVersion>2.5.2.0</FileVersion>
+    <AssemblyVersion>2.5.1.0</AssemblyVersion>
+    <FileVersion>2.5.1.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
