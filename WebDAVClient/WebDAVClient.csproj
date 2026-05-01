@@ -5,7 +5,7 @@
     <Configurations>Debug;Release;Release-Unsigned</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>WebDAVClient</PackageId>
-    <Version>2.5.2</Version>
+    <Version>2.5.3</Version>
     <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
@@ -13,9 +13,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>* Performance: List() no longer awaits GetServerUrl per collection item. The async state machine, string allocations and UriBuilder construction that previously happened once per subdirectory now happen at most once per List() call, making large directory listings noticeably cheaper.</PackageReleaseNotes>
-    <AssemblyVersion>2.5.2.0</AssemblyVersion>
-    <FileVersion>2.5.2.0</FileVersion>
+    <PackageReleaseNotes>* Performance: Move() and Copy() no longer allocate a fresh UTF-8 byte array for the "MOVE"/"COPY" request body on every call. The bytes are cached in static readonly fields, mirroring the existing s_propFindRequestContentBytes pattern.</PackageReleaseNotes>
+    <AssemblyVersion>2.5.3.0</AssemblyVersion>
+    <FileVersion>2.5.3.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
