@@ -636,7 +636,16 @@ namespace WebDAVClient
         #region Private methods
         private async Task Delete(Uri listUri, CancellationToken cancellationToken = default)
         {
-            var response = await HttpRequest(listUri, HttpMethod.Delete, cancellationToken: cancellationToken).ConfigureAwait(false);
+            // RFC 4918 §9.6.1: DELETE on a collection MUST act as if Depth: infinity
+            // were specified, and a client MUST NOT submit any other depth value. We
+            // send the header explicitly so strict servers that reject DELETE without
+            // it are satisfied; on a non-collection resource the header is harmless.
+            IDictionary<string, string> headers = new Dictionary<string, string>(1)
+            {
+                { "Depth", "infinity" }
+            };
+
+            var response = await HttpRequest(listUri, HttpMethod.Delete, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.NoContent)
