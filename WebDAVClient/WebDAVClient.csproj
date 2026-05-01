@@ -5,7 +5,7 @@
     <Configurations>Debug;Release;Release-Unsigned</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>WebDAVClient</PackageId>
-    <Version>2.5.4</Version>
+    <Version>2.5.5</Version>
     <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
@@ -13,9 +13,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>* Performance: ResponseParser no longer calls LocalName.ToLower() on every XML element. Element names are now matched with ordinal case-insensitive comparisons, eliminating a per-node string allocation that was amplified for large directory listings.</PackageReleaseNotes>
-    <AssemblyVersion>2.5.4.0</AssemblyVersion>
-    <FileVersion>2.5.4.0</FileVersion>
+    <PackageReleaseNotes>* Performance: HttpRequest and HttpUploadRequest no longer perform a redundant dictionary lookup per header. The header dictionary is now iterated as KeyValuePair entries instead of iterating Keys and indexing back into the dictionary.</PackageReleaseNotes>
+    <AssemblyVersion>2.5.5.0</AssemblyVersion>
+    <FileVersion>2.5.5.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
