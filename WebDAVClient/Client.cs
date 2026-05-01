@@ -49,6 +49,7 @@ namespace WebDAVClient
 
         private IHttpClientWrapper m_httpClientWrapper;
         private readonly bool m_shouldDispose;
+        private readonly HttpClientHandler m_handler;
         private string m_server;
         private string m_basePath = "/";
         private string m_encodedBasePath;
@@ -106,10 +107,23 @@ namespace WebDAVClient
         public ICollection<KeyValuePair<string, string>> CustomHeaders { get; set; }
 
         /// <summary>
-        /// Specify the certificates validation logic
+        /// Specify the certificates validation logic. Wired into the underlying
+        /// HttpClientHandler when this Client owns its handler (i.e. when constructed via
+        /// the <see cref="Client(ICredentials, TimeSpan?, IWebProxy)"/> constructor). The
+        /// callback is invoked lazily on every TLS handshake, so it may be assigned or
+        /// reassigned after construction. When constructed with a caller-supplied
+        /// HttpClient/IHttpClientWrapper, this property has no effect — configure the
+        /// callback on your own handler instead.
         /// </summary>
         public RemoteCertificateValidationCallback ServerCertificateValidationCallback { get; set; }
         #endregion
+
+        /// <summary>
+        /// Test-only access to the owned HttpClientHandler so unit tests can verify that
+        /// <see cref="ServerCertificateValidationCallback"/> is correctly wired. Null when
+        /// the Client was constructed with a caller-supplied HttpClient/IHttpClientWrapper.
+        /// </summary>
+        internal HttpClientHandler OwnedHandler => m_handler;
 
         public Client(ICredentials credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
         {
@@ -131,6 +145,22 @@ namespace WebDAVClient
             {
                 handler.UseDefaultCredentials = true;
             }
+
+            // Wire the certificate-validation callback lazily so callers can assign or
+            // reassign ServerCertificateValidationCallback after construction. When no
+            // user callback is set, fall back to the platform's default trust decision
+            // (errors == None) — never deny by default, which would break all HTTPS.
+            handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
+            {
+                var callback = ServerCertificateValidationCallback;
+                if (callback != null)
+                {
+                    return callback(request, cert, chain, errors);
+                }
+                return errors == SslPolicyErrors.None;
+            };
+
+            m_handler = handler;
 
             var client = new System.Net.Http.HttpClient(handler, disposeHandler: true);
             client.DefaultRequestHeaders.ExpectContinue = false;

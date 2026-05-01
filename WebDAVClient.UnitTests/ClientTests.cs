@@ -539,6 +539,52 @@ namespace WebDAVClient.UnitTests.ClientTests
             Assert.IsTrue(result);
         }
 
+        [TestMethod]
+        public void OwnedHandler_certificate_callback_is_wired_and_delegates_to_user_callback()
+        {
+            // Regression: the (ICredentials, TimeSpan?, IWebProxy) constructor must wire
+            // ServerCertificateValidationCallback into the underlying HttpClientHandler.
+            // Before the fix the handler's callback was null, so any user-supplied callback
+            // (for cert pinning, custom CA trust, self-signed acceptance, ...) was silently
+            // ignored — a false sense of security.
+            using var client = new Client();
+            var handler = client.OwnedHandler;
+            Assert.IsNotNull(handler, "Client(ICredentials...) ctor must own its HttpClientHandler.");
+            Assert.IsNotNull(handler.ServerCertificateCustomValidationCallback,
+                "Handler's ServerCertificateCustomValidationCallback must be wired at construction.");
+
+            // Lazy binding: the callback can be assigned AFTER construction and must still
+            // be honoured on the next handshake.
+            var invoked = 0;
+            client.ServerCertificateValidationCallback = (s, c, ch, errors) =>
+            {
+                Interlocked.Increment(ref invoked);
+                return true;
+            };
+
+            var result = handler.ServerCertificateCustomValidationCallback(
+                new HttpRequestMessage(), null, null, System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors);
+
+            Assert.IsTrue(result, "User callback's return value must propagate to the handler.");
+            Assert.AreEqual(1, invoked, "User callback must be invoked exactly once per handshake.");
+        }
+
+        [TestMethod]
+        public void OwnedHandler_certificate_callback_falls_back_to_default_validation_when_unset()
+        {
+            // When no user callback is set the wired closure must defer to the platform's
+            // default trust decision — i.e. accept iff there are no SSL policy errors.
+            // It must NOT blanket-reject (which would silently break HTTPS for everyone).
+            using var client = new Client();
+            var handler = client.OwnedHandler;
+            Assert.IsNotNull(handler.ServerCertificateCustomValidationCallback);
+
+            Assert.IsTrue(handler.ServerCertificateCustomValidationCallback(
+                new HttpRequestMessage(), null, null, System.Net.Security.SslPolicyErrors.None));
+            Assert.IsFalse(handler.ServerCertificateCustomValidationCallback(
+                new HttpRequestMessage(), null, null, System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors));
+        }
+
         // -------------------- Dispose --------------------
 
         [TestMethod]
