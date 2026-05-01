@@ -5,7 +5,7 @@
     <Configurations>Debug;Release;Release-Unsigned</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>WebDAVClient</PackageId>
-    <Version>2.5.1</Version>
+    <Version>2.5.2</Version>
     <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
@@ -13,9 +13,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>* Added a unit test project (MSTest) covering the public Client surface, response parsing, and exception types</PackageReleaseNotes>
-    <AssemblyVersion>2.5.1.0</AssemblyVersion>
-    <FileVersion>2.5.1.0</FileVersion>
+    <PackageReleaseNotes>* Performance: List() no longer awaits GetServerUrl per collection item. The async state machine, string allocations and UriBuilder construction that previously happened once per subdirectory now happen at most once per List() call, making large directory listings noticeably cheaper.</PackageReleaseNotes>
+    <AssemblyVersion>2.5.2.0</AssemblyVersion>
+    <FileVersion>2.5.2.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
