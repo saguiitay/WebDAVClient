@@ -45,108 +45,113 @@ namespace WebDAVClient.Helpers
                 {
                     if (reader.NodeType == XmlNodeType.Element)
                     {
-                        switch (reader.LocalName.ToLower())
+                        var localName = reader.LocalName;
+                        if (string.Equals(localName, "response", StringComparison.OrdinalIgnoreCase))
                         {
-                            case "response":
-                                itemInfo = new Item();
-                                break;
-                            case "href":
-                                if (!reader.IsEmptyElement)
+                            itemInfo = new Item();
+                        }
+                        else if (string.Equals(localName, "href", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!reader.IsEmptyElement)
+                            {
+                                reader.Read();
+                                var value = reader.Value;
+                                value = value.Replace("#", "%23");
+                                itemInfo.Href = value;
+                            }
+                        }
+                        else if (string.Equals(localName, "creationdate", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!reader.IsEmptyElement)
+                            {
+                                reader.Read();
+                                if (DateTime.TryParse(reader.Value, out var creationDate))
                                 {
-                                    reader.Read();
-                                    var value = reader.Value;
-                                    value = value.Replace("#", "%23");
-                                    itemInfo.Href = value;
+                                    itemInfo.CreationDate = creationDate;
                                 }
-                                break;
-                            case "creationdate":
-                                if (!reader.IsEmptyElement)
+                            }
+                        }
+                        else if (string.Equals(localName, "getlastmodified", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!reader.IsEmptyElement)
+                            {
+                                reader.Read();
+                                if (DateTime.TryParse(reader.Value, out var lastModified))
                                 {
-                                    reader.Read();
-                                    if (DateTime.TryParse(reader.Value, out var creationDate))
-                                    {
-                                        itemInfo.CreationDate = creationDate;
-                                    }
+                                    itemInfo.LastModified = lastModified;
                                 }
-                                break;
-                            case "getlastmodified":
-                                if (!reader.IsEmptyElement)
+                            }
+                        }
+                        else if (string.Equals(localName, "displayname", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!reader.IsEmptyElement)
+                            {
+                                reader.Read();
+                                itemInfo.DisplayName = reader.Value;
+                            }
+                        }
+                        else if (string.Equals(localName, "getcontentlength", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!reader.IsEmptyElement)
+                            {
+                                reader.Read();
+                                if (long.TryParse(reader.Value, out long contentLength))
                                 {
-                                    reader.Read();
-                                    if (DateTime.TryParse(reader.Value, out var lastModified))
-                                    {
-                                        itemInfo.LastModified = lastModified;
-                                    }
+                                    itemInfo.ContentLength = contentLength;
                                 }
-                                break;
-                            case "displayname":
-                                if (!reader.IsEmptyElement)
+                            }
+                        }
+                        else if (string.Equals(localName, "getcontenttype", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!reader.IsEmptyElement)
+                            {
+                                reader.Read();
+                                itemInfo.ContentType = reader.Value;
+                            }
+                        }
+                        else if (string.Equals(localName, "getetag", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!reader.IsEmptyElement)
+                            {
+                                reader.Read();
+                                itemInfo.Etag = reader.Value;
+                            }
+                        }
+                        else if (string.Equals(localName, "iscollection", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!reader.IsEmptyElement)
+                            {
+                                reader.Read();
+                                if (bool.TryParse(reader.Value, out bool isCollection))
                                 {
-                                    reader.Read();
-                                    itemInfo.DisplayName = reader.Value;
+                                    itemInfo.IsCollection = isCollection;
                                 }
-                                break;
-                            case "getcontentlength":
-                                if (!reader.IsEmptyElement)
+                                if (int.TryParse(reader.Value, out int isCollectionInt))
                                 {
-                                    reader.Read();
-                                    if (long.TryParse(reader.Value, out long contentLength))
-                                    {
-                                        itemInfo.ContentLength = contentLength;
-                                    }
+                                    itemInfo.IsCollection = isCollectionInt == 1;
                                 }
-                                break;
-                            case "getcontenttype":
-                                if (!reader.IsEmptyElement)
+                            }
+                        }
+                        else if (string.Equals(localName, "resourcetype", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!reader.IsEmptyElement)
+                            {
+                                reader.Read();
+                                if (string.Equals(reader.LocalName, "collection", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    reader.Read();
-                                    itemInfo.ContentType = reader.Value;
+                                    itemInfo.IsCollection = true;
                                 }
-                                break;
-                            case "getetag":
-                                if (!reader.IsEmptyElement)
-                                {
-                                    reader.Read();
-                                    itemInfo.Etag = reader.Value;
-                                }
-                                break;
-                            case "iscollection":
-                                if (!reader.IsEmptyElement)
-                                {
-                                    reader.Read();
-                                    if (bool.TryParse(reader.Value, out bool isCollection))
-                                    {
-                                        itemInfo.IsCollection = isCollection;
-                                    }
-                                    if (int.TryParse(reader.Value, out int isCollectionInt))
-                                    {
-                                        itemInfo.IsCollection = isCollectionInt == 1;
-                                    }
-                                }
-                                break;
-                            case "resourcetype":
-                                if (!reader.IsEmptyElement)
-                                {
-                                    reader.Read();
-                                    var resourceType = reader.LocalName.ToLower();
-                                    if (string.Equals(resourceType, "collection", StringComparison.InvariantCultureIgnoreCase))
-                                    {
-                                        itemInfo.IsCollection = true;
-                                    }
-                                }
-                                break;
-                            case "hidden":
-                            case "ishidden":
-                                {
-                                    itemInfo.IsHidden = true;
-                                    break;
-                                }
-                            case "checked-in":
-                            case "version-controlled-configuration":
-                                {
-                                    reader.Skip();
-                                    break;
-                                }
+                            }
+                        }
+                        else if (string.Equals(localName, "hidden", StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(localName, "ishidden", StringComparison.OrdinalIgnoreCase))
+                        {
+                            itemInfo.IsHidden = true;
+                        }
+                        else if (string.Equals(localName, "checked-in", StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(localName, "version-controlled-configuration", StringComparison.OrdinalIgnoreCase))
+                        {
+                            reader.Skip();
                         }
                     }
                     else if (reader.NodeType == XmlNodeType.EndElement && 
