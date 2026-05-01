@@ -379,6 +379,38 @@ namespace WebDAVClient.UnitTests.ClientTests
             Assert.AreEqual(403, ex.GetHttpCode());
         }
 
+        [TestMethod]
+        public async Task DeleteFolder_sends_depth_infinity_header()
+        {
+            // RFC 4918 §9.6.1: DELETE on a collection MUST behave as if Depth: infinity
+            // were specified. Sending the header explicitly keeps strict servers happy
+            // (some reject the request when it is omitted).
+            using var harness = new ClientHarness(Responder(req =>
+            {
+                Assert.IsTrue(req.Headers.Contains("Depth"), "DELETE on a collection must send the Depth header per RFC 4918 §9.6.1.");
+                Assert.AreEqual("infinity", req.Headers.GetValues("Depth").First());
+                return StubHttpMessageHandler.StatusOnly(HttpStatusCode.NoContent);
+            }), Server, BasePath);
+
+            await harness.Client.DeleteFolder("folder");
+        }
+
+        [TestMethod]
+        public async Task DeleteFile_sends_depth_infinity_header()
+        {
+            // For non-collections the Depth header is harmless but sent for consistency:
+            // RFC 4918 §9.6 says clients MUST NOT submit any other value than infinity,
+            // so the safe choice is to always emit infinity from the single Delete helper.
+            using var harness = new ClientHarness(Responder(req =>
+            {
+                Assert.IsTrue(req.Headers.Contains("Depth"));
+                Assert.AreEqual("infinity", req.Headers.GetValues("Depth").First());
+                return StubHttpMessageHandler.StatusOnly(HttpStatusCode.NoContent);
+            }), Server, BasePath);
+
+            await harness.Client.DeleteFile("file.txt");
+        }
+
         // -------------------- Move / Copy --------------------
 
         [TestMethod]
