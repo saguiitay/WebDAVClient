@@ -335,16 +335,19 @@ namespace WebDAVClient
         /// <param name="content"></param>
         /// <param name="name"></param>
         /// <returns>True if the file was uploaded successfully. False otherwise</returns>
-        public async Task<bool> Upload(string remoteFilePath, Stream content, string name, CancellationToken cancellationToken = default)
+        /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. Pass the token returned by <see cref="LockFile"/> / <see cref="LockFolder"/> when the destination resource (or a parent collection) is locked, otherwise the server will reject the request with <c>423 Locked</c>. Bare (<c>opaquelocktoken:...</c>) and angle-bracket-wrapped forms are both accepted.</param>
+        public async Task<bool> Upload(string remoteFilePath, Stream content, string name, string lockToken = null, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
+
+            var headers = BuildLockTokenHeaders(uploadUri.Uri, lockToken);
 
             HttpResponseMessage response = null;
 
             try
             {
-                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, null, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent &&
@@ -370,7 +373,8 @@ namespace WebDAVClient
         /// <param name="startBytes">Start byte position of the target content</param>
         /// <param name="endBytes">End bytes of the target content. Must match the length of <paramref name="content"/> plus <paramref name="startBytes"/></param>
         /// <returns>True if the file part was uploaded successfully. False otherwise</returns>
-        public async Task<bool> UploadPartial(string remoteFilePath, Stream content, string name, long startBytes, long endBytes, CancellationToken cancellationToken = default)
+        /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. See <see cref="Upload"/> for details.</param>
+        public async Task<bool> UploadPartial(string remoteFilePath, Stream content, string name, long startBytes, long endBytes, string lockToken = null, CancellationToken cancellationToken = default)
         {
             if (startBytes + content.Length != endBytes)
             {
@@ -380,11 +384,13 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
 
+            var headers = BuildLockTokenHeaders(uploadUri.Uri, lockToken);
+
             HttpResponseMessage response = null;
 
             try
             {
-                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, null, startBytes, endBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, headers, startBytes, endBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent &&
@@ -439,19 +445,21 @@ namespace WebDAVClient
         /// <summary>
         /// Deletes a folder from the server.
         /// </summary>
-        public async Task DeleteFolder(string href, CancellationToken cancellationToken = default)
+        /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the folder being deleted. Required when the folder (or a locked descendant) is locked; otherwise the server returns <c>423 Locked</c>.</param>
+        public async Task DeleteFolder(string href, string lockToken = null, CancellationToken cancellationToken = default)
         {
             var listUri = await GetServerUrl(href, true).ConfigureAwait(false);
-            await Delete(listUri.Uri, cancellationToken).ConfigureAwait(false);
+            await Delete(listUri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Deletes a file from the server.
         /// </summary>
-        public async Task DeleteFile(string href, CancellationToken cancellationToken = default)
+        /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the file being deleted. Required when the file (or its parent collection) is locked; otherwise the server returns <c>423 Locked</c>.</param>
+        public async Task DeleteFile(string href, string lockToken = null, CancellationToken cancellationToken = default)
         {
             var listUri = await GetServerUrl(href, false).ConfigureAwait(false);
-            await Delete(listUri.Uri, cancellationToken).ConfigureAwait(false);
+            await Delete(listUri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -460,14 +468,16 @@ namespace WebDAVClient
         /// <param name="srcFolderPath">Source path of the folder on the server</param>
         /// <param name="dstFolderPath">Destination path of the folder on the server</param>
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
+        /// <param name="sourceLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the source folder. Required when the source is locked, since MOVE removes the source.</param>
+        /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination folder (or its locked parent collection).</param>
         /// <returns>True if the folder was moved successfully. False otherwise</returns>
-        public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, CancellationToken cancellationToken = default)
+        public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             // Should have a trailing slash.
             var srcUri = await GetServerUrl(srcFolderPath, true).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFolderPath, true).ConfigureAwait(false);
 
-            return await Move(srcUri.Uri, dstUri.Uri, overwrite, cancellationToken).ConfigureAwait(false);
+            return await Move(srcUri.Uri, dstUri.Uri, overwrite, sourceLockToken, destinationLockToken, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -476,14 +486,16 @@ namespace WebDAVClient
         /// <param name="srcFilePath">Source path and filename of the file on the server</param>
         /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
+        /// <param name="sourceLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the source file. Required when the source is locked, since MOVE removes the source.</param>
+        /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination file (or its locked parent collection).</param>
         /// <returns>True if the file was moved successfully. False otherwise</returns>
-        public async Task<bool> MoveFile(string srcFilePath, string dstFilePath, bool overwrite = true, CancellationToken cancellationToken = default)
+        public async Task<bool> MoveFile(string srcFilePath, string dstFilePath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var srcUri = await GetServerUrl(srcFilePath, false).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFilePath, false).ConfigureAwait(false);
 
-            return await Move(srcUri.Uri, dstUri.Uri, overwrite, cancellationToken).ConfigureAwait(false);
+            return await Move(srcUri.Uri, dstUri.Uri, overwrite, sourceLockToken, destinationLockToken, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -492,14 +504,15 @@ namespace WebDAVClient
         /// <param name="srcFolderPath">Source path of the folder on the server</param>
         /// <param name="dstFolderPath">Destination path of the folder on the server</param>
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
+        /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination folder (or its locked parent collection). For COPY only the destination needs a lock token because the source is not modified (RFC 4918 §7.5.1).</param>
         /// <returns>True if the folder was copied successfully. False otherwise</returns>
-        public async Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, CancellationToken cancellationToken = default)
+        public async Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             // Should have a trailing slash.
             var srcUri = await GetServerUrl(srcFolderPath, true).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFolderPath, true).ConfigureAwait(false);
 
-            return await Copy(srcUri.Uri, dstUri.Uri, overwrite, cancellationToken).ConfigureAwait(false);
+            return await Copy(srcUri.Uri, dstUri.Uri, overwrite, destinationLockToken, cancellationToken).ConfigureAwait(false);
         }
         
         /// <summary>
@@ -508,14 +521,15 @@ namespace WebDAVClient
         /// <param name="srcFilePath">Source path and filename of the file on the server</param>
         /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
+        /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination file (or its locked parent collection). For COPY only the destination needs a lock token because the source is not modified (RFC 4918 §7.5.1).</param>
         /// <returns>True if the file was copied successfully. False otherwise</returns>
-        public async Task<bool> CopyFile(string srcFilePath, string dstFilePath, bool overwrite = true, CancellationToken cancellationToken = default)
+        public async Task<bool> CopyFile(string srcFilePath, string dstFilePath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var srcUri = await GetServerUrl(srcFilePath, false).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFilePath, false).ConfigureAwait(false);
 
-            return await Copy(srcUri.Uri, dstUri.Uri, overwrite, cancellationToken).ConfigureAwait(false);
+            return await Copy(srcUri.Uri, dstUri.Uri, overwrite, destinationLockToken, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -634,16 +648,17 @@ namespace WebDAVClient
         #endregion
         
         #region Private methods
-        private async Task Delete(Uri listUri, CancellationToken cancellationToken = default)
+        private async Task Delete(Uri listUri, string lockToken, CancellationToken cancellationToken = default)
         {
             // RFC 4918 §9.6.1: DELETE on a collection MUST act as if Depth: infinity
             // were specified, and a client MUST NOT submit any other depth value. We
             // send the header explicitly so strict servers that reject DELETE without
             // it are satisfied; on a non-collection resource the header is harmless.
-            IDictionary<string, string> headers = new Dictionary<string, string>(1)
+            IDictionary<string, string> headers = new Dictionary<string, string>(2)
             {
                 { "Depth", "infinity" }
             };
+            AddIfHeader(headers, listUri, lockToken, destinationUri: null, destinationLockToken: null);
 
             var response = await HttpRequest(listUri, HttpMethod.Delete, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -692,13 +707,14 @@ namespace WebDAVClient
             }
         }
 
-        private async Task<bool> Move(Uri srcUri, Uri dstUri, bool overwrite, CancellationToken cancellationToken = default)
+        private async Task<bool> Move(Uri srcUri, Uri dstUri, bool overwrite, string sourceLockToken, string destinationLockToken, CancellationToken cancellationToken = default)
         {
-            IDictionary<string, string> headers = new Dictionary<string, string>(2)
+            IDictionary<string, string> headers = new Dictionary<string, string>(3)
             {
-                { "Destination", dstUri.ToString() },
+                { "Destination", dstUri.AbsoluteUri },
                 { "Overwrite", overwrite ? "T" : "F" }
             };
+            AddIfHeader(headers, srcUri, sourceLockToken, dstUri, destinationLockToken);
 
             var response = await HttpRequest(srcUri, m_moveMethod, headers, s_moveRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -712,13 +728,15 @@ namespace WebDAVClient
             return response.IsSuccessStatusCode;
         }
 
-        private async Task<bool> Copy(Uri srcUri, Uri dstUri, bool overwrite, CancellationToken cancellationToken = default)
+        private async Task<bool> Copy(Uri srcUri, Uri dstUri, bool overwrite, string destinationLockToken, CancellationToken cancellationToken = default)
         {
-            IDictionary<string, string> headers = new Dictionary<string, string>(2)
+            IDictionary<string, string> headers = new Dictionary<string, string>(3)
             {
-                { "Destination", dstUri.ToString() },
+                { "Destination", dstUri.AbsoluteUri },
                 { "Overwrite", overwrite ? "T" : "F" }
             };
+            // RFC 4918 §7.5.1: source is not modified by COPY, so source lock token is not required.
+            AddIfHeader(headers, srcUri, sourceLockToken: null, destinationUri: dstUri, destinationLockToken: destinationLockToken);
 
             var response = await HttpRequest(srcUri, m_copyMethod, headers, s_copyRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -969,6 +987,70 @@ namespace WebDAVClient
             }
 
             return trimmed;
+        }
+
+        // RFC 4918 §10.4: If-header lock-token submission helpers.
+        //
+        // Forms emitted:
+        //   - request-URI lock only  → no-tag-list:  If: (<token>)
+        //   - destination lock only  → tagged-list:  If: <dest-uri> (<token>)
+        //   - both                   → tagged-list:  If: <src-uri> (<src-token>) <dest-uri> (<dest-token>)
+        //
+        // The "both" form is two tagged productions; per §10.4.3 they OR at If-evaluation time,
+        // but server-side WebDAV lock-token-submitted rules require only that each needed token
+        // *appear* in the header, which both productions guarantee.
+        //
+        // Caller helpers below are non-throwing when no lock tokens are supplied so the normal
+        // unlocked code path stays a single allocation.
+        private static IDictionary<string, string> BuildLockTokenHeaders(Uri requestUri, string lockToken)
+        {
+            if (lockToken == null)
+                return null;
+
+            var headers = new Dictionary<string, string>(1);
+            AddIfHeader(headers, requestUri, lockToken, destinationUri: null, destinationLockToken: null);
+            return headers;
+        }
+
+        private static void AddIfHeader(IDictionary<string, string> headers, Uri requestUri, string sourceLockToken, Uri destinationUri, string destinationLockToken)
+        {
+            var value = BuildIfHeader(requestUri, sourceLockToken, destinationUri, destinationLockToken);
+            if (value != null)
+            {
+                headers["If"] = value;
+            }
+        }
+
+        private static string BuildIfHeader(Uri requestUri, string sourceLockToken, Uri destinationUri, string destinationLockToken)
+        {
+            if (sourceLockToken == null && destinationLockToken == null)
+                return null;
+
+            var srcToken = sourceLockToken == null ? null : NormalizeLockToken(sourceLockToken);
+            var dstToken = destinationLockToken == null ? null : NormalizeLockToken(destinationLockToken);
+
+            // Only the request-URI is locked → no-tag-list.
+            if (srcToken != null && dstToken == null)
+            {
+                return "(<" + srcToken + ">)";
+            }
+
+            // Destination is locked → tagged-list (cannot mix no-tag and tagged in one header).
+            var sb = new StringBuilder();
+            if (srcToken != null)
+            {
+                if (requestUri == null)
+                    throw new InvalidOperationException("requestUri is required when emitting a tagged If-header for the source lock token.");
+                sb.Append('<').Append(requestUri.AbsoluteUri).Append("> (<").Append(srcToken).Append(">)");
+            }
+            if (dstToken != null)
+            {
+                if (destinationUri == null)
+                    throw new InvalidOperationException("destinationUri is required when a destinationLockToken is supplied.");
+                if (sb.Length > 0) sb.Append(' ');
+                sb.Append('<').Append(destinationUri.AbsoluteUri).Append("> (<").Append(dstToken).Append(">)");
+            }
+            return sb.ToString();
         }
 
         // RFC 4918 §10.5: Lock-Token = "Lock-Token" ":" Coded-URL where Coded-URL = "<" absolute-URI ">"
