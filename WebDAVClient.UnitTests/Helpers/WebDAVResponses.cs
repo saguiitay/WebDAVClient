@@ -118,5 +118,40 @@ namespace WebDAVClient.UnitTests.Helpers
         </D:activelock>
     </D:lockdiscovery>
 </D:prop>";
+
+        // RFC 4918 §9.2.1-style PROPPATCH success body. A multistatus with a single response and
+        // a single propstat carrying the requested property and a 200 OK status.
+        public static string PropPatchSuccess(
+            string href = "/webdav/file.txt",
+            string propertyXml = @"<Z:author xmlns:Z=""http://example.com/ns""/>",
+            string status = "HTTP/1.1 200 OK") =>
+            $@"<?xml version=""1.0"" encoding=""utf-8""?>
+<D:multistatus xmlns:D=""DAV:"">
+    <D:response>
+        <D:href>{href}</D:href>
+        <D:propstat>
+            <D:prop>{propertyXml}</D:prop>
+            <D:status>{status}</D:status>
+        </D:propstat>
+    </D:response>
+</D:multistatus>";
+
+        // PROPPATCH failure with a non-2xx propstat status (e.g. 403, 409, 424 per RFC 4918 §11.4).
+        public static string PropPatchFailure(
+            string href = "/webdav/file.txt",
+            string propertyXml = @"<Z:author xmlns:Z=""http://example.com/ns""/>",
+            string status = "HTTP/1.1 403 Forbidden",
+            string responseDescription = null) =>
+            $@"<?xml version=""1.0"" encoding=""utf-8""?>
+<D:multistatus xmlns:D=""DAV:"">
+    <D:response>
+        <D:href>{href}</D:href>
+        <D:propstat>
+            <D:prop>{propertyXml}</D:prop>
+            <D:status>{status}</D:status>
+            {(responseDescription != null ? $"<D:responsedescription>{responseDescription}</D:responsedescription>" : string.Empty)}
+        </D:propstat>
+    </D:response>
+</D:multistatus>";
     }
 }

@@ -13,7 +13,8 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>* Feature: WebDAV LOCK / UNLOCK support per RFC 4918 §9.10–9.11. New IClient methods LockFile / LockFolder / UnlockFile / UnlockFolder / RefreshLock return a strongly-typed LockInfo (token, owner, type/scope, depth, timeout, lock-root). Lock tokens are normalized so callers can pass them either bare (opaquelocktoken:...) or angle-bracket-wrapped.</PackageReleaseNotes>
+    <PackageReleaseNotes>* Feature: WebDAV LOCK / UNLOCK support per RFC 4918 §9.10–9.11. New IClient methods LockFile / LockFolder / UnlockFile / UnlockFolder / RefreshLock return a strongly-typed LockInfo (token, owner, type/scope, depth, timeout, lock-root). Lock tokens are normalized so callers can pass them either bare (opaquelocktoken:...) or angle-bracket-wrapped.
+* Feature: WebDAV PROPPATCH support per RFC 4918 §9.2. New IClient methods SetProperty(path, name, namespace, value) and RemoveProperty(path, name, namespace) for managing dead (custom) properties on resources. The DAV: namespace is rejected client-side (live properties are protected); the request body is built with XmlWriter for safe escaping; the 207 Multi-Status response is parsed and any non-2xx per-property status is surfaced as WebDAVException (or WebDAVConflictException for 409).</PackageReleaseNotes>
     <AssemblyVersion>2.7.0.0</AssemblyVersion>
     <FileVersion>2.7.0.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

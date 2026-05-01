@@ -263,5 +263,65 @@ namespace WebDAVClient
         /// <exception cref="System.ArgumentException">Thrown when <paramref name="lockToken"/> is <c>null</c>, empty, or malformed.</exception>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status (e.g. <c>412 Precondition Failed</c> when the token no longer matches an active lock).</exception>
         Task<LockInfo> RefreshLock(string path, string lockToken, int timeoutSeconds = 600, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Set (create or replace) a single dead property on a resource (RFC 4918 §9.2 PROPPATCH).
+        /// </summary>
+        /// <param name="path">Path of the file or folder on the server.</param>
+        /// <param name="propertyName">
+        /// Local XML name of the property. Must be a valid XML <c>NCName</c> (no colons, no spaces,
+        /// must start with a letter or underscore).
+        /// </param>
+        /// <param name="propertyNamespace">
+        /// Namespace URI for the property. Required and must be non-empty. The reserved <c>DAV:</c>
+        /// namespace is rejected because RFC 4918 §15 declares those properties protected; use a
+        /// custom namespace (e.g. <c>http://example.com/ns</c>) for application metadata.
+        /// </param>
+        /// <param name="value">
+        /// Text value to assign. The value is XML-escaped before being sent. <c>null</c> is treated
+        /// the same as the empty string. To remove a property, call <see cref="RemoveProperty"/>
+        /// instead.
+        /// </param>
+        /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+        /// <returns><c>true</c> when the server confirms the property was set successfully.</returns>
+        /// <exception cref="System.ArgumentException">
+        /// Thrown when <paramref name="propertyName"/> is not a valid XML <c>NCName</c>, when
+        /// <paramref name="propertyNamespace"/> is null/empty, or when <paramref name="propertyNamespace"/>
+        /// equals <c>DAV:</c>.
+        /// </exception>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVConflictException">
+        /// Thrown when the server returns <c>409 Conflict</c> at the HTTP layer, or when an individual
+        /// <c>D:propstat</c> in the multistatus response carries a <c>409 Conflict</c> status (e.g. the
+        /// resource is in a state that does not permit the property change).
+        /// </exception>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVException">
+        /// Thrown when the HTTP status is anything other than <c>207 Multi-Status</c>, when the multistatus
+        /// body is missing or malformed (no parsable <c>D:propstat</c> with a status line), or when the
+        /// per-property status is non-2xx (e.g. <c>403 Forbidden</c> for a protected property,
+        /// <c>424 Failed Dependency</c> per RFC 4918 §11.4).
+        /// </exception>
+        Task<bool> SetProperty(string path, string propertyName, string propertyNamespace, string value, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Remove a single dead property from a resource (RFC 4918 §9.2 PROPPATCH).
+        /// </summary>
+        /// <param name="path">Path of the file or folder on the server.</param>
+        /// <param name="propertyName">Local XML name of the property. Must be a valid XML <c>NCName</c>.</param>
+        /// <param name="propertyNamespace">
+        /// Namespace URI for the property. Required and must be non-empty; <c>DAV:</c> is rejected.
+        /// </param>
+        /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+        /// <returns>
+        /// <c>true</c> when the server confirms the removal. Per RFC 4918 §9.2, removing a property that
+        /// does not exist is not an error — the server reports <c>200 OK</c> for that property and this
+        /// method returns <c>true</c>.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">
+        /// Thrown for an invalid <paramref name="propertyName"/>, an empty <paramref name="propertyNamespace"/>,
+        /// or <paramref name="propertyNamespace"/> equal to <c>DAV:</c>.
+        /// </exception>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVConflictException">Thrown for <c>409 Conflict</c> at either the HTTP layer or in a <c>D:propstat</c>.</exception>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown for any other non-success status or a malformed multistatus body.</exception>
+        Task<bool> RemoveProperty(string path, string propertyName, string propertyNamespace, CancellationToken cancellationToken = default);
     }
 }
