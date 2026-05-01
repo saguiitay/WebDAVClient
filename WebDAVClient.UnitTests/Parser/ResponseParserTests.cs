@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WebDAVClient.Helpers;
 
@@ -209,6 +210,38 @@ namespace WebDAVClient.UnitTests.Parser
             Assert.IsNull(item.CreationDate);
             Assert.IsNull(item.LastModified);
             Assert.IsNull(item.ContentLength);
+        }
+
+        [TestMethod]
+        public void XmlReaderSettings_explicitly_hardens_against_xxe()
+        {
+            // Defense-in-depth: even though modern .NET defaults DtdProcessing to Prohibit,
+            // the parser must set it explicitly so that runtimes with different defaults
+            // (notably Mono, which this library supports) are also safe from XXE attacks
+            // coming from a malicious or compromised WebDAV server.
+            // Note: XmlReaderSettings.XmlResolver is set-only and cannot be asserted here;
+            // ParseItems_rejects_xml_with_doctype_declaration covers the runtime behavior.
+            Assert.AreEqual(DtdProcessing.Prohibit, ResponseParser.XmlReaderSettings.DtdProcessing,
+                "DtdProcessing must be explicitly set to Prohibit to block external-entity attacks.");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(XmlException))]
+        public void ParseItems_rejects_xml_with_doctype_declaration()
+        {
+            // A malicious WebDAV server could try to exfiltrate local files or trigger SSRF
+            // via an external entity. With DtdProcessing = Prohibit, the parser must throw
+            // before any entity resolution can happen.
+            const string xml = @"<?xml version=""1.0""?>
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM ""file:///etc/passwd""> ]>
+<D:multistatus xmlns:D=""DAV:"">
+    <D:response>
+        <D:href>/&xxe;.txt</D:href>
+        <D:propstat><D:prop><D:displayname>x</D:displayname></D:prop></D:propstat>
+    </D:response>
+</D:multistatus>";
+
+            ResponseParser.ParseItems(Xml(xml));
         }
 
         [TestMethod]
