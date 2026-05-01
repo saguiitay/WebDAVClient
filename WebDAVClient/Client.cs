@@ -217,7 +217,7 @@ namespace WebDAVClient
                             // top of this method, so the synchronous helper is safe to use here
                             // and avoids the per-item async state machine allocation.
                             var fullHref = BuildServerUrl(item.Href, true);
-                            if (!string.Equals(fullHref.ToString(), listUrl, StringComparison.CurrentCultureIgnoreCase))
+                            if (!string.Equals(fullHref.ToString(), listUrl, StringComparison.OrdinalIgnoreCase))
                             {
                                 result.Add(item);
                             }

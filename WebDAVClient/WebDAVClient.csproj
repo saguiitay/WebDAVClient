@@ -14,6 +14,7 @@
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
     <PackageReleaseNotes>* Performance: HttpRequest and HttpUploadRequest no longer perform a redundant dictionary lookup per header. The header dictionary is now iterated as KeyValuePair entries instead of iterating Keys and indexing back into the dictionary.
+* Bug fix / performance: List() now compares the parent-folder URL using StringComparison.OrdinalIgnoreCase instead of CurrentCultureIgnoreCase. URLs are not locale-sensitive, so this avoids both the slower culture-aware comparison and potential wrong results in locales like Turkish (the dotted/dotless 'I' issue).</PackageReleaseNotes>
 * Performance: CustomHeaders are no longer copied into a per-call merged dictionary. HttpRequest/HttpUploadRequest now iterate CustomHeaders directly, eliminating one Dictionary allocation and one extra iteration per request.</PackageReleaseNotes>
     <AssemblyVersion>2.5.5.0</AssemblyVersion>
     <FileVersion>2.5.5.0</FileVersion>
