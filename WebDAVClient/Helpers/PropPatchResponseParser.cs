@@ -101,16 +101,47 @@ namespace WebDAVClient.Helpers
 
         // RFC 7230: status-line = HTTP-version SP status-code SP reason-phrase
         // We only need the status-code token. Returns 0 if the line is malformed.
+        // Span-based scan to avoid the allocation of string.Split.
         private static int ParseStatusCode(string statusLine)
         {
-            if (string.IsNullOrWhiteSpace(statusLine))
+            if (string.IsNullOrEmpty(statusLine))
                 return 0;
 
-            var parts = statusLine.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 2)
+            var span = statusLine.AsSpan();
+
+            // Skip the HTTP-version token (leading whitespace + non-whitespace run).
+            var i = SkipWhitespace(span, 0);
+            if (i >= span.Length)
+                return 0;
+            i = SkipNonWhitespace(span, i);
+
+            // Skip the separating whitespace before the status-code token.
+            i = SkipWhitespace(span, i);
+            if (i >= span.Length)
                 return 0;
 
-            return int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var code) ? code : 0;
+            // Find the end of the status-code token.
+            var end = SkipNonWhitespace(span, i);
+
+            return int.TryParse(span.Slice(i, end - i), NumberStyles.Integer, CultureInfo.InvariantCulture, out var code)
+                ? code
+                : 0;
+        }
+
+        private static int SkipWhitespace(ReadOnlySpan<char> span, int start)
+        {
+            var i = start;
+            while (i < span.Length && (span[i] == ' ' || span[i] == '\t'))
+                i++;
+            return i;
+        }
+
+        private static int SkipNonWhitespace(ReadOnlySpan<char> span, int start)
+        {
+            var i = start;
+            while (i < span.Length && span[i] != ' ' && span[i] != '\t')
+                i++;
+            return i;
         }
 
         private static bool IsDav(XmlReader reader, string localName)
