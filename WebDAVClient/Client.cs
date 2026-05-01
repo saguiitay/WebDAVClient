@@ -31,22 +31,8 @@ namespace WebDAVClient
         private const int c_httpStatusCode_MultiStatus = 207;
 
         // http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
-        private const string c_propFindRequestContent =
-            "<?xml version=\"1.0\" encoding=\"utf-8\" ?>" +
-            "<propfind xmlns=\"DAV:\">" +
-            "<allprop/>" +
-            //"  <propname/>" +
-            //"  <prop>" +
-            //"    <creationdate/>" +
-            //"    <getlastmodified/>" +
-            //"    <displayname/>" +
-            //"    <getcontentlength/>" +
-            //"    <getcontenttype/>" +
-            //"    <getetag/>" +
-            //"    <resourcetype/>" +
-            //"  </prop> " +
-            "</propfind>";
-        private static readonly byte[] s_propFindRequestContentBytes = Encoding.UTF8.GetBytes(c_propFindRequestContent);
+        // The PROPFIND request bodies (allprop / propname / prop) are produced by
+        // PropFindRequestBuilder. Static body bytes are cached inside the helper.
         private static readonly byte[] s_moveRequestContentBytes = Encoding.UTF8.GetBytes("MOVE");
         private static readonly byte[] s_copyRequestContentBytes = Encoding.UTF8.GetBytes("COPY");
 
@@ -212,6 +198,38 @@ namespace WebDAVClient
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
         public async Task<IEnumerable<Item>> List(string path = "/", int? depth = 1, CancellationToken cancellationToken = default)
         {
+            return await ListCore(path, depth, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// PROPFIND with a caller-supplied list of properties (RFC 4918 §9.1
+        /// <c>&lt;prop&gt;</c>). Each returned <see cref="Item"/> has its
+        /// <see cref="Item.FoundProperties"/> and <see cref="Item.NotFoundProperties"/>
+        /// populated from the per-property propstat in the response. Standard
+        /// DAV: live properties (<c>getetag</c>, <c>displayname</c>, etc.) also
+        /// continue to populate the corresponding typed fields on
+        /// <see cref="Item"/>.
+        /// </summary>
+        public async Task<IEnumerable<Item>> List(string path, int? depth, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default)
+        {
+            if (properties == null) throw new ArgumentNullException(nameof(properties));
+            var body = PropFindRequestBuilder.BuildPropBody(properties);
+            return await ListCore(path, depth, body, PropFindMode.NamedProperties, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// PROPFIND <c>&lt;propname/&gt;</c> — discover which properties the
+        /// server reports for each resource (RFC 4918 §9.1). Returned
+        /// <see cref="Item"/>s have <see cref="Item.AvailablePropertyNames"/>
+        /// populated; values are not requested in this mode.
+        /// </summary>
+        public async Task<IEnumerable<Item>> ListPropertyNames(string path = "/", int? depth = 1, CancellationToken cancellationToken = default)
+        {
+            return await ListCore(path, depth, PropFindRequestBuilder.BuildPropNameBody(), PropFindMode.PropName, cancellationToken).ConfigureAwait(false);
+        }
+
+        private async Task<IEnumerable<Item>> ListCore(string path, int? depth, byte[] body, PropFindMode mode, CancellationToken cancellationToken)
+        {
             var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
 
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
@@ -228,7 +246,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(listUri.Uri, m_propFindMethod, headers, s_propFindRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(listUri.Uri, m_propFindMethod, headers, body, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != c_httpStatusCode_MultiStatus)
@@ -238,7 +256,7 @@ namespace WebDAVClient
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
-                    var items = ResponseParser.ParseItems(stream);
+                    var items = ResponseParser.ParseItems(stream, mode);
 
                     if (items == null)
                     {
@@ -284,7 +302,32 @@ namespace WebDAVClient
         public async Task<Item> GetFolder(string path = "/", CancellationToken cancellationToken = default)
         {
             var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
-            return await Get(listUri.Uri, cancellationToken).ConfigureAwait(false);
+            return await Get(listUri.Uri, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// PROPFIND a folder for a caller-supplied list of properties (RFC 4918
+        /// §9.1 <c>&lt;prop&gt;</c>). The returned <see cref="Item"/>'s
+        /// <see cref="Item.FoundProperties"/> / <see cref="Item.NotFoundProperties"/>
+        /// reflect the per-property propstat from the server.
+        /// </summary>
+        public async Task<Item> GetFolder(string path, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default)
+        {
+            if (properties == null) throw new ArgumentNullException(nameof(properties));
+            var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
+            var body = PropFindRequestBuilder.BuildPropBody(properties);
+            return await Get(listUri.Uri, body, PropFindMode.NamedProperties, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// PROPFIND <c>&lt;propname/&gt;</c> on a folder — discover the property
+        /// names the server reports for it. The returned <see cref="Item"/>'s
+        /// <see cref="Item.AvailablePropertyNames"/> is populated.
+        /// </summary>
+        public async Task<Item> GetFolderPropertyNames(string path = "/", CancellationToken cancellationToken = default)
+        {
+            var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
+            return await Get(listUri.Uri, PropFindRequestBuilder.BuildPropNameBody(), PropFindMode.PropName, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -294,7 +337,29 @@ namespace WebDAVClient
         public async Task<Item> GetFile(string path = "/", CancellationToken cancellationToken = default)
         {
             var listUri = await GetServerUrl(path, false).ConfigureAwait(false);
-            return await Get(listUri.Uri, cancellationToken).ConfigureAwait(false);
+            return await Get(listUri.Uri, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// PROPFIND a file for a caller-supplied list of properties (RFC 4918
+        /// §9.1 <c>&lt;prop&gt;</c>). See <see cref="GetFolder(string, IEnumerable{PropertyName}, CancellationToken)"/>.
+        /// </summary>
+        public async Task<Item> GetFile(string path, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default)
+        {
+            if (properties == null) throw new ArgumentNullException(nameof(properties));
+            var listUri = await GetServerUrl(path, false).ConfigureAwait(false);
+            var body = PropFindRequestBuilder.BuildPropBody(properties);
+            return await Get(listUri.Uri, body, PropFindMode.NamedProperties, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// PROPFIND <c>&lt;propname/&gt;</c> on a file — discover the property
+        /// names the server reports for it.
+        /// </summary>
+        public async Task<Item> GetFilePropertyNames(string path = "/", CancellationToken cancellationToken = default)
+        {
+            var listUri = await GetServerUrl(path, false).ConfigureAwait(false);
+            return await Get(listUri.Uri, PropFindRequestBuilder.BuildPropNameBody(), PropFindMode.PropName, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -669,7 +734,7 @@ namespace WebDAVClient
             }
         }
 
-        private async Task<Item> Get(Uri listUri, CancellationToken cancellationToken = default)
+        private async Task<Item> Get(Uri listUri, byte[] body, PropFindMode mode, CancellationToken cancellationToken = default)
         {
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
             IDictionary<string, string> headers = new Dictionary<string, string>(1)
@@ -681,7 +746,7 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(listUri, m_propFindMethod, headers, s_propFindRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(listUri, m_propFindMethod, headers, body, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != c_httpStatusCode_MultiStatus)
@@ -691,7 +756,7 @@ namespace WebDAVClient
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
-                    var result = ResponseParser.ParseItem(stream);
+                    var result = ResponseParser.ParseItem(stream, mode);
 
                     if (result == null)
                     {
@@ -1059,7 +1124,7 @@ namespace WebDAVClient
                 {
                     baseUri.Port = (int)Port;
                 }
-                var root = await Get(baseUri.Uri).ConfigureAwait(false);
+                var root = await Get(baseUri.Uri, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp).ConfigureAwait(false);
 
                 m_encodedBasePath = root.Href;
             }

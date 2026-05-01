@@ -55,6 +55,37 @@ namespace WebDAVClient
         Task<IEnumerable<Item>> List(string path = "/", int? depth = 1, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// PROPFIND with a caller-supplied list of properties (RFC 4918 §9.1
+        /// <c>&lt;prop&gt;</c>) — bandwidth-efficient targeted retrieval. Each
+        /// returned <see cref="Item"/> has its <see cref="Item.FoundProperties"/>
+        /// (status 200) and <see cref="Item.NotFoundProperties"/> (status 404)
+        /// populated from the per-property propstat. Standard DAV: live
+        /// properties (e.g. <c>getetag</c>, <c>displayname</c>, <c>getcontentlength</c>)
+        /// also continue to populate the corresponding typed fields on
+        /// <see cref="Item"/>.
+        /// </summary>
+        /// <param name="path">List only files in this path. Defaults to <c>/</c> (the configured base path).</param>
+        /// <param name="depth">PROPFIND <c>Depth</c> header — see the no-property overload.</param>
+        /// <param name="properties">The qualified property names to request. Must be non-null and non-empty.</param>
+        /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="properties"/> is <c>null</c>.</exception>
+        /// <exception cref="System.ArgumentException">Thrown when <paramref name="properties"/> is empty.</exception>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
+        Task<IEnumerable<Item>> List(string path, int? depth, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// PROPFIND <c>&lt;propname/&gt;</c> (RFC 4918 §9.1) — discover which
+        /// properties the server reports for each resource. The returned items
+        /// have <see cref="Item.AvailablePropertyNames"/> populated; values are
+        /// not requested in this mode.
+        /// </summary>
+        /// <param name="path">List only files in this path.</param>
+        /// <param name="depth">PROPFIND <c>Depth</c> header.</param>
+        /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
+        Task<IEnumerable<Item>> ListPropertyNames(string path = "/", int? depth = 1, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Get folder information from the server.
         /// </summary>
         /// <param name="path">Path of the folder on the server. Defaults to <c>/</c> (the configured base path).</param>
@@ -64,6 +95,20 @@ namespace WebDAVClient
         Task<Item> GetFolder(string path = "/", CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// PROPFIND a folder with a caller-supplied list of properties
+        /// (RFC 4918 §9.1 <c>&lt;prop&gt;</c>). See
+        /// <see cref="List(string, int?, IEnumerable{PropertyName}, CancellationToken)"/>
+        /// for the result shape.
+        /// </summary>
+        Task<Item> GetFolder(string path, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// PROPFIND <c>&lt;propname/&gt;</c> on a folder (RFC 4918 §9.1) —
+        /// discover the property names the server reports for it.
+        /// </summary>
+        Task<Item> GetFolderPropertyNames(string path = "/", CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Get file information from the server.
         /// </summary>
         /// <param name="path">Path and filename of the file on the server. Defaults to <c>/</c> (the configured base path).</param>
@@ -71,6 +116,18 @@ namespace WebDAVClient
         /// <returns>An item representing the retrieved file.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
         Task<Item> GetFile(string path = "/", CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// PROPFIND a file with a caller-supplied list of properties (RFC 4918
+        /// §9.1 <c>&lt;prop&gt;</c>).
+        /// </summary>
+        Task<Item> GetFile(string path, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// PROPFIND <c>&lt;propname/&gt;</c> on a file — discover the property
+        /// names the server reports for it.
+        /// </summary>
+        Task<Item> GetFilePropertyNames(string path = "/", CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Download a file from the server

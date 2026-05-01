@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace WebDAVClient.Model
 {
@@ -83,5 +84,39 @@ namespace WebDAVClient.Model
         /// notably, collections typically do not report a content length.
         /// </summary>
         public long? ContentLength { get; set; }
+
+        /// <summary>
+        /// Properties the server returned with a <c>200 OK</c> status inside
+        /// <c>&lt;D:propstat&gt;</c>, keyed by their qualified
+        /// <see cref="PropertyName"/>. Values are the raw inner-text of the
+        /// property element (no XML markup); empty-element properties produce an
+        /// empty string. Populated only when the resource was retrieved through
+        /// a targeted <c>PROPFIND &lt;prop&gt;</c> request (e.g.
+        /// <see cref="IClient.List(string, int?, System.Collections.Generic.IEnumerable{PropertyName}, System.Threading.CancellationToken)"/>);
+        /// <c>null</c> for the default <c>&lt;allprop/&gt;</c> path so existing
+        /// callers see no behavioural change.
+        /// </summary>
+        public IDictionary<PropertyName, string> FoundProperties { get; set; }
+
+        /// <summary>
+        /// Properties the server reported as missing with a <c>404 Not Found</c>
+        /// status inside <c>&lt;D:propstat&gt;</c>. Lets callers distinguish a
+        /// genuinely-missing property from one whose value is the empty string.
+        /// Populated only on targeted <c>PROPFIND &lt;prop&gt;</c> responses;
+        /// <c>null</c> otherwise.
+        /// </summary>
+        public IList<PropertyName> NotFoundProperties { get; set; }
+
+        /// <summary>
+        /// Property names the server reported as available on this resource in
+        /// response to a <c>PROPFIND &lt;propname/&gt;</c> request (RFC 4918
+        /// §9.1) — i.e. property discovery. Values are not returned by the
+        /// server in this mode. Populated only on
+        /// <see cref="IClient.ListPropertyNames"/> /
+        /// <see cref="IClient.GetFolderPropertyNames"/> /
+        /// <see cref="IClient.GetFilePropertyNames"/> responses; <c>null</c>
+        /// otherwise.
+        /// </summary>
+        public IList<PropertyName> AvailablePropertyNames { get; set; }
     }
 }
