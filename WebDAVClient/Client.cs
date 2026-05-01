@@ -730,6 +730,21 @@ namespace WebDAVClient
             return BuildServerUrl(path, appendTrailingSlash);
         }
 
+        // Defends against SSRF / open-redirect attacks where a malicious or compromised
+        // WebDAV server returns absolute <href> URLs (in PROPFIND multistatus responses)
+        // that point at a different host than the configured Server. Any absolute URI
+        // that gets fed back into BuildServerUrl must belong to the configured Server.
+        private void EnsureSameHost(Uri absoluteUri, string source)
+        {
+            var serverUri = new Uri(m_server);
+            if (!string.Equals(absoluteUri.Host, serverUri.Host, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Absolute URI host '{absoluteUri.Host}' from {source} does not match the configured Server host '{serverUri.Host}'. " +
+                    "Refusing to issue a request to a foreign host (possible SSRF / malicious WebDAV response).");
+            }
+        }
+
         // Synchronous core of GetServerUrl. Callers must ensure m_encodedBasePath
         // has already been initialized (i.e. GetServerUrl was awaited at least once).
         private UriBuilder BuildServerUrl(string path, bool appendTrailingSlash)
@@ -740,6 +755,7 @@ namespace WebDAVClient
                 // If the resolved base path is an absolute URI, use it
                 if (TryCreateAbsolute(m_encodedBasePath, out Uri absoluteBaseUri))
                 {
+                    EnsureSameHost(absoluteBaseUri, "server-resolved base path");
                     return new UriBuilder(absoluteBaseUri);
                 }
 
@@ -758,6 +774,7 @@ namespace WebDAVClient
             // If the requested path is absolute, use it
             if (TryCreateAbsolute(path, out Uri absoluteUri))
             {
+                EnsureSameHost(absoluteUri, "absolute path argument");
                 return new UriBuilder(absoluteUri);
             }
             else
@@ -766,6 +783,7 @@ namespace WebDAVClient
                 UriBuilder baseUri;
                 if (TryCreateAbsolute(m_encodedBasePath, out absoluteUri))
                 {
+                    EnsureSameHost(absoluteUri, "server-resolved base path");
                     baseUri = new UriBuilder(absoluteUri);
 
                     baseUri.Path = baseUri.Path.TrimEnd('/') + "/" + path.TrimStart('/');
