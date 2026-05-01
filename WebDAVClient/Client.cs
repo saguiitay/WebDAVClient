@@ -341,7 +341,7 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
 
-            var headers = BuildLockTokenHeaders(uploadUri.Uri, lockToken);
+            var headers = LockTokenHeaderHelper.BuildLockTokenHeaders(uploadUri.Uri, lockToken);
 
             HttpResponseMessage response = null;
 
@@ -384,7 +384,7 @@ namespace WebDAVClient
             // Should not have a trailing slash.
             var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
 
-            var headers = BuildLockTokenHeaders(uploadUri.Uri, lockToken);
+            var headers = LockTokenHeaderHelper.BuildLockTokenHeaders(uploadUri.Uri, lockToken);
 
             HttpResponseMessage response = null;
 
@@ -577,7 +577,7 @@ namespace WebDAVClient
             if (timeoutSeconds <= 0)
                 throw new ArgumentOutOfRangeException(nameof(timeoutSeconds), "Lock timeout must be greater than zero seconds.");
 
-            var bareToken = NormalizeLockToken(lockToken);
+            var bareToken = LockTokenHeaderHelper.NormalizeLockToken(lockToken);
 
             // Folder vs file is unknown at this entry point — but the URL shape only differs by a
             // trailing slash, and we want to refresh the same href the caller originally locked.
@@ -658,7 +658,7 @@ namespace WebDAVClient
             {
                 { "Depth", "infinity" }
             };
-            AddIfHeader(headers, listUri, lockToken, destinationUri: null, destinationLockToken: null);
+            LockTokenHeaderHelper.AddIfHeader(headers, listUri, lockToken, destinationUri: null, destinationLockToken: null);
 
             var response = await HttpRequest(listUri, HttpMethod.Delete, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -714,7 +714,7 @@ namespace WebDAVClient
                 { "Destination", dstUri.AbsoluteUri },
                 { "Overwrite", overwrite ? "T" : "F" }
             };
-            AddIfHeader(headers, srcUri, sourceLockToken, dstUri, destinationLockToken);
+            LockTokenHeaderHelper.AddIfHeader(headers, srcUri, sourceLockToken, dstUri, destinationLockToken);
 
             var response = await HttpRequest(srcUri, m_moveMethod, headers, s_moveRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -736,7 +736,7 @@ namespace WebDAVClient
                 { "Overwrite", overwrite ? "T" : "F" }
             };
             // RFC 4918 §7.5.1: source is not modified by COPY, so source lock token is not required.
-            AddIfHeader(headers, srcUri, sourceLockToken: null, destinationUri: dstUri, destinationLockToken: destinationLockToken);
+            LockTokenHeaderHelper.AddIfHeader(headers, srcUri, sourceLockToken: null, destinationUri: dstUri, destinationLockToken: destinationLockToken);
 
             var response = await HttpRequest(srcUri, m_copyMethod, headers, s_copyRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -756,7 +756,7 @@ namespace WebDAVClient
                 throw new ArgumentOutOfRangeException(nameof(timeoutSeconds), "Lock timeout must be greater than zero seconds.");
 
             var ownerText = string.IsNullOrEmpty(owner) ? c_defaultLockOwner : owner;
-            var body = Encoding.UTF8.GetBytes(string.Format(c_lockRequestContentFormat, EscapeXml(ownerText)));
+            var body = Encoding.UTF8.GetBytes(string.Format(c_lockRequestContentFormat, XmlEscape.Escape(ownerText)));
 
             IDictionary<string, string> headers = new Dictionary<string, string>(2)
             {
@@ -795,7 +795,7 @@ namespace WebDAVClient
                 // RFC 4918 §10.5: the canonical lock token of the new lock is the value of the
                 // Lock-Token response header. Prefer the header value over any body-derived token
                 // (and use the header to populate Token when the body parser came up empty).
-                var headerToken = ExtractLockTokenHeader(response);
+                var headerToken = LockTokenHeaderHelper.ExtractLockTokenHeader(response);
                 if (!string.IsNullOrEmpty(headerToken))
                 {
                     info.Token = headerToken;
@@ -817,7 +817,7 @@ namespace WebDAVClient
 
         private async Task Unlock(Uri uri, string lockToken, CancellationToken cancellationToken)
         {
-            var bareToken = NormalizeLockToken(lockToken);
+            var bareToken = LockTokenHeaderHelper.NormalizeLockToken(lockToken);
 
             IDictionary<string, string> headers = new Dictionary<string, string>(1)
             {
@@ -839,11 +839,11 @@ namespace WebDAVClient
         // (isRemove = true).
         private async Task<bool> PropPatch(string path, string propertyName, string propertyNamespace, string value, bool isRemove, CancellationToken cancellationToken)
         {
-            ValidatePropertyName(propertyName);
-            ValidatePropertyNamespace(propertyNamespace);
+            PropPatchRequestBuilder.ValidatePropertyName(propertyName);
+            PropPatchRequestBuilder.ValidatePropertyNamespace(propertyNamespace);
 
             var uri = await GetServerUrl(path, false).ConfigureAwait(false);
-            var body = BuildPropPatchBody(propertyName, propertyNamespace, value, isRemove);
+            var body = PropPatchRequestBuilder.BuildPropPatchBody(propertyName, propertyNamespace, value, isRemove);
 
             using (var response = await HttpRequest(uri.Uri, s_propPatchMethod, headers: null, body, cancellationToken: cancellationToken).ConfigureAwait(false))
             {
@@ -901,188 +901,6 @@ namespace WebDAVClient
             if (httpCode == (int)HttpStatusCode.Conflict)
                 return new WebDAVConflictException(httpCode, message);
             return new WebDAVException(httpCode, message);
-        }
-
-        private static void ValidatePropertyName(string propertyName)
-        {
-            if (string.IsNullOrWhiteSpace(propertyName))
-                throw new ArgumentException("Property name must be a non-empty string.", nameof(propertyName));
-            try
-            {
-                System.Xml.XmlConvert.VerifyNCName(propertyName);
-            }
-            catch (System.Xml.XmlException ex)
-            {
-                throw new ArgumentException(
-                    "Property name '" + propertyName + "' is not a valid XML NCName (no colons, no spaces, must start with a letter or underscore).",
-                    nameof(propertyName), ex);
-            }
-        }
-
-        private static void ValidatePropertyNamespace(string propertyNamespace)
-        {
-            if (string.IsNullOrWhiteSpace(propertyNamespace))
-                throw new ArgumentException("Property namespace must be a non-empty string.", nameof(propertyNamespace));
-            // RFC 4918 §15 — DAV-namespaced properties are protected (live). PROPPATCH would be
-            // rejected by the server; fail fast with a clearer error than a 403/409 from the wire.
-            if (string.Equals(propertyNamespace, "DAV:", StringComparison.Ordinal))
-                throw new ArgumentException(
-                    "The DAV: namespace is reserved for protected (live) properties; SetProperty/RemoveProperty only support custom (dead) properties.",
-                    nameof(propertyNamespace));
-        }
-
-        private static byte[] BuildPropPatchBody(string propertyName, string propertyNamespace, string value, bool isRemove)
-        {
-            using (var ms = new MemoryStream())
-            {
-                var settings = new System.Xml.XmlWriterSettings
-                {
-                    Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
-                    OmitXmlDeclaration = false,
-                    Indent = false
-                };
-                using (var writer = System.Xml.XmlWriter.Create(ms, settings))
-                {
-                    writer.WriteStartDocument();
-                    writer.WriteStartElement("D", "propertyupdate", "DAV:");
-                    writer.WriteStartElement("D", isRemove ? "remove" : "set", "DAV:");
-                    writer.WriteStartElement("D", "prop", "DAV:");
-                    writer.WriteStartElement("X", propertyName, propertyNamespace);
-                    if (!isRemove)
-                    {
-                        writer.WriteString(value ?? string.Empty);
-                    }
-                    writer.WriteEndElement(); // property
-                    writer.WriteEndElement(); // prop
-                    writer.WriteEndElement(); // set/remove
-                    writer.WriteEndElement(); // propertyupdate
-                    writer.WriteEndDocument();
-                }
-                return ms.ToArray();
-            }
-        }
-
-        // Lock tokens flow through this client in *bare* form (no surrounding angle brackets).
-        // The Lock-Token and If headers add the brackets when emitting. Accept either form from
-        // callers because real-world tokens are commonly copy-pasted from response headers
-        // including the brackets.
-        internal static string NormalizeLockToken(string lockToken)
-        {
-            if (string.IsNullOrWhiteSpace(lockToken))
-                throw new ArgumentException("Lock token must be a non-empty string.", nameof(lockToken));
-
-            var trimmed = lockToken.Trim();
-            if (trimmed.Length >= 2 && trimmed[0] == '<' && trimmed[trimmed.Length - 1] == '>')
-            {
-                trimmed = trimmed.Substring(1, trimmed.Length - 2).Trim();
-            }
-
-            if (trimmed.Length == 0
-                || trimmed.IndexOf('<') >= 0
-                || trimmed.IndexOf('>') >= 0
-                || trimmed.IndexOf('\r') >= 0
-                || trimmed.IndexOf('\n') >= 0)
-            {
-                throw new ArgumentException("Lock token is malformed.", nameof(lockToken));
-            }
-
-            return trimmed;
-        }
-
-        // RFC 4918 §10.4: If-header lock-token submission helpers.
-        //
-        // Forms emitted:
-        //   - request-URI lock only  → no-tag-list:  If: (<token>)
-        //   - destination lock only  → tagged-list:  If: <dest-uri> (<token>)
-        //   - both                   → tagged-list:  If: <src-uri> (<src-token>) <dest-uri> (<dest-token>)
-        //
-        // The "both" form is two tagged productions; per §10.4.3 they OR at If-evaluation time,
-        // but server-side WebDAV lock-token-submitted rules require only that each needed token
-        // *appear* in the header, which both productions guarantee.
-        //
-        // Caller helpers below are non-throwing when no lock tokens are supplied so the normal
-        // unlocked code path stays a single allocation.
-        private static IDictionary<string, string> BuildLockTokenHeaders(Uri requestUri, string lockToken)
-        {
-            if (lockToken == null)
-                return null;
-
-            var headers = new Dictionary<string, string>(1);
-            AddIfHeader(headers, requestUri, lockToken, destinationUri: null, destinationLockToken: null);
-            return headers;
-        }
-
-        private static void AddIfHeader(IDictionary<string, string> headers, Uri requestUri, string sourceLockToken, Uri destinationUri, string destinationLockToken)
-        {
-            var value = BuildIfHeader(requestUri, sourceLockToken, destinationUri, destinationLockToken);
-            if (value != null)
-            {
-                headers["If"] = value;
-            }
-        }
-
-        private static string BuildIfHeader(Uri requestUri, string sourceLockToken, Uri destinationUri, string destinationLockToken)
-        {
-            if (sourceLockToken == null && destinationLockToken == null)
-                return null;
-
-            var srcToken = sourceLockToken == null ? null : NormalizeLockToken(sourceLockToken);
-            var dstToken = destinationLockToken == null ? null : NormalizeLockToken(destinationLockToken);
-
-            // Only the request-URI is locked → no-tag-list.
-            if (srcToken != null && dstToken == null)
-            {
-                return "(<" + srcToken + ">)";
-            }
-
-            // Destination is locked → tagged-list (cannot mix no-tag and tagged in one header).
-            var sb = new StringBuilder();
-            if (srcToken != null)
-            {
-                if (requestUri == null)
-                    throw new InvalidOperationException("requestUri is required when emitting a tagged If-header for the source lock token.");
-                sb.Append('<').Append(requestUri.AbsoluteUri).Append("> (<").Append(srcToken).Append(">)");
-            }
-            if (dstToken != null)
-            {
-                if (destinationUri == null)
-                    throw new InvalidOperationException("destinationUri is required when a destinationLockToken is supplied.");
-                if (sb.Length > 0) sb.Append(' ');
-                sb.Append('<').Append(destinationUri.AbsoluteUri).Append("> (<").Append(dstToken).Append(">)");
-            }
-            return sb.ToString();
-        }
-
-        // RFC 4918 §10.5: Lock-Token = "Lock-Token" ":" Coded-URL where Coded-URL = "<" absolute-URI ">"
-        private static string ExtractLockTokenHeader(HttpResponseMessage response)
-        {
-            if (response.Headers.TryGetValues("Lock-Token", out var values))
-            {
-                foreach (var v in values)
-                {
-                    if (string.IsNullOrWhiteSpace(v))
-                        continue;
-                    var trimmed = v.Trim();
-                    if (trimmed.Length >= 2 && trimmed[0] == '<' && trimmed[trimmed.Length - 1] == '>')
-                    {
-                        return trimmed.Substring(1, trimmed.Length - 2).Trim();
-                    }
-                    return trimmed;
-                }
-            }
-            return null;
-        }
-
-        private static string EscapeXml(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-                return value;
-            return value
-                .Replace("&", "&amp;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;")
-                .Replace("\"", "&quot;")
-                .Replace("'", "&apos;");
         }
 
         private async Task<Stream> DownloadFile(string remoteFilePath, Dictionary<string, string> header, CancellationToken cancellationToken = default)
