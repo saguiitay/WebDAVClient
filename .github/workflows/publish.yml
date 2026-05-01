@@ -1,0 +1,35 @@
+name: Publish to NuGet
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore
+
+      - name: Pack
+        run: dotnet pack WebDAVClient/WebDAVClient.csproj -c Release --no-build -o ${{ github.workspace }}/Release/nuget
+
+      - name: Push to NuGet
+        run: |
+          for file in Release/nuget/WebDAVClient.*.nupkg; do
+            dotnet nuget push -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }} --skip-duplicate "$file"
+          done
