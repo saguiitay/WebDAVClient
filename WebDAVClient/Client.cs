@@ -833,12 +833,20 @@ namespace WebDAVClient
             };
             LockTokenHeaderHelper.AddIfHeader(headers, listUri, lockToken, destinationUri: null, destinationLockToken: null);
 
-            var response = await HttpRequest(listUri, HttpMethod.Delete, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
-
-            if (response.StatusCode != HttpStatusCode.OK &&
-                response.StatusCode != HttpStatusCode.NoContent)
+            HttpResponseMessage response = null;
+            try
             {
-                throw new WebDAVException((int)response.StatusCode, "Failed deleting item.");
+                response = await HttpRequest(listUri, HttpMethod.Delete, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                if (response.StatusCode != HttpStatusCode.OK &&
+                    response.StatusCode != HttpStatusCode.NoContent)
+                {
+                    throw new WebDAVException((int)response.StatusCode, "Failed deleting item.");
+                }
+            }
+            finally
+            {
+                response?.Dispose();
             }
         }
 
