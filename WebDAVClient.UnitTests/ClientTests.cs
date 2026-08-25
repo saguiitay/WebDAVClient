@@ -370,6 +370,23 @@ namespace WebDAVClient.UnitTests.ClientTests
         }
 
         [TestMethod]
+        public async Task DeleteFolder_disposes_response()
+        {
+            TrackingHttpResponseMessage response = null;
+
+            using var harness = new ClientHarness(Responder(_ =>
+            {
+                response = new TrackingHttpResponseMessage(HttpStatusCode.NoContent);
+                return response;
+            }), Server, BasePath);
+
+            await harness.Client.DeleteFolder("folder");
+
+            Assert.IsNotNull(response);
+            Assert.IsTrue(response.WasDisposed);
+        }
+
+        [TestMethod]
         public async Task DeleteFile_throws_WebDAVException_on_failure()
         {
             using var harness = new ClientHarness(Responder(_ =>
@@ -828,6 +845,26 @@ namespace WebDAVClient.UnitTests.ClientTests
             protected override void Dispose(bool disposing)
             {
                 if (disposing) Interlocked.Increment(ref DisposeCount);
+                base.Dispose(disposing);
+            }
+        }
+
+        private sealed class TrackingHttpResponseMessage : HttpResponseMessage
+        {
+            public bool WasDisposed { get; private set; }
+
+            public TrackingHttpResponseMessage(HttpStatusCode statusCode)
+                : base(statusCode)
+            {
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    WasDisposed = true;
+                }
+
                 base.Dispose(disposing);
             }
         }
