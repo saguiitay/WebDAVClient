@@ -59,11 +59,12 @@ namespace TestWebDAVClient
             {
                 var fileUploaded = await c.Upload(folder.Href, fileStream, tempName);
 
-                var stream = new MemoryStream(new byte[] {0xF0, 0x0B, 0xA5});
-                fileUploaded = await c.UploadPartial(folder.Href, stream, tempName, 2, 6);
+                using var stream = new MemoryStream(new byte[] {0xF0, 0x0B, 0xA5});
+                // Upload end is exclusive; HTTP/download end is inclusive.
+                fileUploaded = await c.UploadPartial(folder.Href, stream, tempName, 2, 5);
                 if (fileUploaded)
                 {
-                    var parts = await c.DownloadPartial(folderFile.Href, 2, 6);
+                    using var parts = await c.DownloadPartial(folder.Href.TrimEnd('/') + "/" + tempName, 2, 4);
                 }
             }
             

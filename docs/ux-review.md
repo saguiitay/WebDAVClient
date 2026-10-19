@@ -7,6 +7,10 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-04: The partial-transfer sample uses upload offsets `[2,5)` for three bytes
+  and download offsets `[2,4]` on the uploaded target, with scoped streams.
+  A fake-transport regression verifies the exact range headers and payload.
+
 - UX-03: The multi-target sample is an executable and is not packable. Its async
   entry point supports offline help and rejects unknown arguments before I/O;
   contributor instructions select a framework explicitly.

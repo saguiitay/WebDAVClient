@@ -1,4 +1,8 @@
 using System.Linq;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WebDAVClient.Model;
@@ -9,6 +13,34 @@ namespace WebDAVClient.UnitTests
     [TestClass]
     public class DocumentationExamplesTests
     {
+        [TestMethod]
+        public async Task Partial_transfer_example_matches_exclusive_upload_and_inclusive_download_ends()
+        {
+            byte[] bytes = { 0xF0, 0x0B, 0xA5 };
+            using var harness = new ClientHarness(request =>
+            {
+                if (request.Method.Method == "PROPFIND")
+                    return StubHttpMessageHandler.Multistatus(WebDAVResponses.Root("/webdav/"));
+                if (request.Method == HttpMethod.Put)
+                {
+                    Assert.AreEqual("bytes 2-4/*", request.Content.Headers.ContentRange.ToString());
+                    Assert.AreEqual(3L, request.Content.Headers.ContentLength);
+                    return new HttpResponseMessage(HttpStatusCode.NoContent);
+                }
+                Assert.AreEqual("bytes=2-4", request.Headers.Range.ToString());
+                var content = new ByteArrayContent(bytes);
+                content.Headers.ContentRange = new ContentRangeHeaderValue(2, 4, 8);
+                return new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = content };
+            });
+            using var input = new MemoryStream(bytes);
+            Assert.IsTrue(await harness.Client.UploadPartial("/", input, "sample.bin", 2, 5));
+            using var part = await harness.Client.DownloadPartial("sample.bin", 2, 4);
+            using var result = new MemoryStream();
+            await part.CopyToAsync(result);
+            CollectionAssert.AreEqual(bytes, result.ToArray());
+            CollectionAssert.AreEqual(bytes, harness.Handler.Requests.Single(r => r.Method == HttpMethod.Put).Body);
+        }
+
         [TestMethod]
         public async Task Targeted_propfind_example_uses_qualified_names_and_dictionary_keys()
         {
