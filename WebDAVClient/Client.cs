@@ -56,6 +56,9 @@ namespace WebDAVClient
         private string m_server;
         private string m_basePath = "/";
         private string m_encodedBasePath;
+        private readonly object m_connectionLock = new object();
+        private long m_connectionVersion;
+        private int? m_port;
         private bool m_disposedValue;
 
         #region WebDAV connection parameters
@@ -65,11 +68,17 @@ namespace WebDAVClient
         /// </summary>
         public string Server
         {
-            get { return m_server; }
+            get { lock (m_connectionLock) return m_server; }
             set
             {
                 value = value.TrimEnd('/');
-                m_server = value;
+                lock (m_connectionLock)
+                {
+                    if (m_server == value) return;
+                    m_server = value;
+                    m_encodedBasePath = null;
+                    m_connectionVersion++;
+                }
             }
         }
 
@@ -78,21 +87,38 @@ namespace WebDAVClient
         /// </summary>
         public string BasePath
         {
-            get { return m_basePath; }
+            get { lock (m_connectionLock) return m_basePath; }
             set
             {
                 value = value.Trim('/');
-                if (string.IsNullOrEmpty(value))
-                    m_basePath = "/";
-                else
-                    m_basePath = "/" + value + "/";
+                var basePath = string.IsNullOrEmpty(value) ? "/" : "/" + value + "/";
+                lock (m_connectionLock)
+                {
+                    if (m_basePath == basePath) return;
+                    m_basePath = basePath;
+                    m_encodedBasePath = null;
+                    m_connectionVersion++;
+                }
             }
         }
 
         /// <summary>
         /// Specify a port to use
         /// </summary>
-        public int? Port { get; set; }
+        public int? Port
+        {
+            get { lock (m_connectionLock) return m_port; }
+            set
+            {
+                lock (m_connectionLock)
+                {
+                    if (m_port == value) return;
+                    m_port = value;
+                    m_encodedBasePath = null;
+                    m_connectionVersion++;
+                }
+            }
+        }
 
         /// <summary>
         /// Specify the UserAgent (and UserAgent version) string to use in requests
@@ -1237,25 +1263,33 @@ namespace WebDAVClient
 
         private async Task<UriBuilder> GetServerUrl(string path, bool appendTrailingSlash)
         {
-            // Resolve the base path on the server
-            if (m_encodedBasePath == null)
+            while (true)
             {
-                var baseUri = new UriBuilder(m_server) 
+                Uri discoveryUri;
+                long version;
+                lock (m_connectionLock)
                 {
-                    Path = m_basePath
-                };
-                if (Port != null)
-                {
-                    baseUri.Port = (int)Port;
+                    if (m_encodedBasePath != null)
+                        return BuildServerUrl(path, appendTrailingSlash);
+                    var baseUri = new UriBuilder(m_server) { Path = m_basePath };
+                    if (m_port.HasValue)
+                        baseUri.Port = m_port.Value;
+                    discoveryUri = baseUri.Uri;
+                    version = m_connectionVersion;
                 }
-                var root = await Get(baseUri.Uri, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp).ConfigureAwait(false);
-
-                if (TryCreateAbsolute(root.Href, out var absoluteRootUri))
-                    EnsureSameOrigin(absoluteRootUri, "server-resolved base path");
-                m_encodedBasePath = root.Href;
+                var root = await Get(discoveryUri, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp).ConfigureAwait(false);
+                lock (m_connectionLock)
+                {
+                    // A discovery started before reconfiguration must not repopulate
+                    // the new connection's cache with the previous root.
+                    if (version != m_connectionVersion)
+                        continue;
+                    if (TryCreateAbsolute(root.Href, out var absoluteRootUri))
+                        EnsureSameOrigin(absoluteRootUri, "server-resolved base path");
+                    m_encodedBasePath = root.Href;
+                    return BuildServerUrl(path, appendTrailingSlash);
+                }
             }
-
-            return BuildServerUrl(path, appendTrailingSlash);
         }
 
         // A matching hostname alone does not prevent HTTPS downgrades or requests to
@@ -1280,6 +1314,16 @@ namespace WebDAVClient
         // Synchronous core of GetServerUrl. Callers must ensure m_encodedBasePath
         // has already been initialized (i.e. GetServerUrl was awaited at least once).
         private UriBuilder BuildServerUrl(string path, bool appendTrailingSlash)
+        {
+            lock (m_connectionLock)
+            {
+                if (m_encodedBasePath == null)
+                    throw new InvalidOperationException("Connection configuration changed during the operation; retry it with the current configuration.");
+                return BuildResolvedServerUrl(path, appendTrailingSlash);
+            }
+        }
+
+        private UriBuilder BuildResolvedServerUrl(string path, bool appendTrailingSlash)
         {
             // If we've been asked for the "root" folder
             if (string.IsNullOrEmpty(path))

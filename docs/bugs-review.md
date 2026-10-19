@@ -11,6 +11,7 @@ This is the original review, before subsequent security remediation.
 - BUG-11: fixed; empty-namespace properties serialize without an illegal namespace prefix.
 - BUG-12: fixed; hidden values are parsed rather than inferred from property presence, consistently across modes.
 - BUG-07: fixed; text and CDATA decode correctly, structured XML is preserved, and metadata text round trips through PROPPATCH/PROPFIND.
+- BUG-03: fixed; changed connection settings invalidate discovery, and version-checked publication prevents stale in-flight roots from being cached.
 
 ## Outcome
 
