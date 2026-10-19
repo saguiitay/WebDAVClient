@@ -275,6 +275,56 @@ using IClient client = new Client(async ct => await tokenSource.GetTokenAsync(ct
 
 Returning `null` / empty from the provider omits the `Authorization` header (the server then naturally returns `401`). The handler is also exposed publicly as `WebDAVClient.Authentication.BearerTokenAuthenticationHandler` if you need to compose it into your own `HttpClient` pipeline.
 
+#### Concurrent token refresh
+
+The provider runs once per request, including discovery, and can run concurrently.
+It must be thread-safe and honor its cancellation token. Provider exceptions and
+cancellation propagate without sending an unauthenticated fallback; return
+`null`/empty only when anonymous access is intentional.
+
+If your identity SDK does not already cache and coordinate refresh, this pattern
+allows only one refresh at a time without serializing WebDAV HTTP operations.
+`tokenSource.RefreshAsync(ct)` is application-supplied and returns `AccessToken`
+and its UTC `ExpiresAt`:
+
+```csharp
+using var refreshGate = new SemaphoreSlim(1, 1);
+string cachedToken = null;
+DateTimeOffset expiresAt = DateTimeOffset.MinValue;
+
+async Task<string> GetTokenAsync(CancellationToken ct)
+{
+    await refreshGate.WaitAsync(ct).ConfigureAwait(false);
+    try
+    {
+        if (cachedToken != null && expiresAt > DateTimeOffset.UtcNow.AddSeconds(30))
+            return cachedToken;
+
+        var fresh = await tokenSource.RefreshAsync(ct).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(fresh.AccessToken) || fresh.ExpiresAt <= DateTimeOffset.UtcNow)
+            throw new InvalidOperationException("Refresh returned an empty or expired token.");
+
+        cachedToken = fresh.AccessToken;
+        expiresAt = fresh.ExpiresAt;
+        return cachedToken;
+    }
+    finally
+    {
+        refreshGate.Release();
+    }
+}
+
+using IClient client = new Client(GetTokenAsync);
+```
+
+The 30-second margin should suit your token lifetime. Cancelling a waiting
+request does not cancel another request's refresh. If the request performing
+refresh fails or is cancelled, it releases the gate without publishing a new
+cached token; another caller can retry. Dispose the client and finish pending
+operations before disposing the gate. For cancellation-independent shared refresh,
+use an identity SDK with its own refresh lifetime rather than sharing one
+request's token with other callers.
+
 ### Discover server capabilities (OPTIONS)
 
 ```csharp

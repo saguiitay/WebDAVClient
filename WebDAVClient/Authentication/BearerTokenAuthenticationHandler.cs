@@ -18,6 +18,9 @@ namespace WebDAVClient.Authentication
     /// an empty string the <c>Authorization</c> header is omitted, allowing
     /// "anonymous request when no token is currently available" semantics
     /// without throwing.
+    /// Providers can be invoked concurrently. They own thread-safe token caching
+    /// and refresh coordination; this handler does not serialize HTTP requests.
+    /// Provider exceptions and cancellation propagate without sending an anonymous fallback.
     /// </remarks>
     public sealed class BearerTokenAuthenticationHandler : DelegatingHandler
     {

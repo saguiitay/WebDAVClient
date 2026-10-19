@@ -7,6 +7,12 @@ workflows, and documentation. No critical-severity defect was established.
 
 ## Remediation progress
 
+- Token concurrency hardening: Documented concurrent, per-request invocation,
+  exception/cancellation propagation, and deliberate anonymous behavior. Added a
+  single-flight cache/refresh recipe with isolated waiter cancellation and no
+  global HTTP serialization. Regression scenarios cover concurrent requests,
+  refresh failure/retry, cancelled waiters, and cancelled refresh owners.
+
 - Upload ownership hardening: Documented the existing request-owned input stream
   contract, caller cleanup before ownership transfer, and reopening/repositioning
   for retries. Focused full/partial upload regressions preserve disposal on
