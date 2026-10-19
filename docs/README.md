@@ -18,7 +18,7 @@ The result should remain usable as a small .NET client package. Installing `WebD
 | --- | --- |
 | [Protocol completeness plan](PROTOCOL-COMPLETENESS-PLAN.md) | Current implementation, RFC 4918 completion backlog, standard extensions, compatibility policy, and conformance gates. |
 | [Server support plan](SERVER-SUPPORT-PLAN.md) | Hosting architecture, storage and transaction contracts, authorization, locking, synchronization, deployment, and server milestones. |
-| [Sub-packages and desktop plan](SUBPACKAGE-AND-DESKTOP-PLAN.md) | Proposed package boundaries, Explorer handlers, drive mounting, desktop editing, synchronization, installers, and platform decisions. |
+| [Sub-packages and desktop index](SUBPACKAGE-AND-DESKTOP-PLAN.md) | Package boundaries and delivery gates, linking to a separate plan for each proposed package and application under `docs\subpackages\`. |
 
 Read these as supplements to `ROADMAP.md`, not a declaration that its previously proposed APIs exist. Repository behavior is grounded in the checked-in source at commit `ac0ef8a7b637b03114cf18a16a1e60d9a53396a1`; the NuGet publication state was not verified.
 
