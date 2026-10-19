@@ -4,6 +4,17 @@ Reviewed 2026-10-19 at revision `ac0ef8a` by a dedicated performance agent.
 
 ## Remediation progress
 
+All five findings are addressed. PERF-01/PERF-02 reuse the existing reliability
+fixes rather than introducing competing implementations.
+
+| Finding | Fix / verification commits |
+|---|---|
+| PERF-01 | Existing `44769de`, `370f337`, `2d1f130`; loopback verification `1acff3a` |
+| PERF-02 | Existing `0510260`; concurrency verification `ce558b0` |
+| PERF-03 | `734e310` |
+| PERF-04 | `43e3d3b` |
+| PERF-05 | `0e8673f` |
+
 - PERF-05: A configuration-scoped asynchronous gate with a second cache check
   limits successful cold-start discovery to one request. Waiters cancel
   independently; owner failure/cancellation/deadline releases the gate for a
@@ -38,6 +49,23 @@ Reviewed 2026-10-19 at revision `ac0ef8a` by a dedicated performance agent.
   the fix and pass afterward, covering success and failure routing.
 
 Original findings below describe the reviewed revision, not current behavior.
+
+## Remediation validation
+
+- Release solution build: zero warnings/errors.
+- Full Release suite: 432/432 pass for net8.0 and 432/432 for net10.0.
+- The bounded loopback workload completes 15 requests on one TCP connection
+  despite unread 64 KiB mutation/error bodies. A .NET 8 sample completed in
+  76.689 ms with `MaxConnectionsPerServer = 1`.
+- In a .NET 8 sample, 32 mid-body metadata waits left available workers unchanged
+  at 32,766; the pool had 6 threads and an unrelated task completed in 0.999 ms.
+  These are illustrative snapshots, not production latency guarantees.
+- Cold discovery coverage verifies exactly 25 HTTP requests for 24 operations,
+  independent waiter cancellation, owner failure/cancellation/deadline recovery,
+  and reconfiguration while old discovery is still blocked.
+- Validation uses generated data, fake delayed streams, and a local TCP listener.
+  No external WebDAV server, production profiling, remote CI, push, or package
+  publication was performed. The upcoming version remains 2.7.1.
 
 ## Local allocation measurements
 
@@ -158,7 +186,7 @@ second cache check. Define retry and per-caller cancellation semantics.
 **Acceptance:** Gate discovery completion, start concurrent calls, and assert one
 discovery request plus one actual request per operation. Use thread-safe captures.
 
-## Validation and limitations
+## Original review validation and limitations
 
 Local production code, relevant tests, workflows, and documentation were reviewed.
 The parent ran the Release unit suite after restoring a missing dependency:

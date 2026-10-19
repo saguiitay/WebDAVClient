@@ -13,7 +13,8 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>* Reliability: Cancellable asynchronous metadata parsing with configurable body deadlines; cancellation-aware discovery; consistent 409 exceptions; complete response ownership; member-level mutation recovery diagnostics.
+    <PackageReleaseNotes>* Performance: Filter listings in place, skip unused property-name XML, retain only selected single-item results, avoid PUT response buffering, and coordinate concurrent root discovery.
+* Reliability: Cancellable asynchronous metadata parsing with configurable body deadlines; cancellation-aware discovery; consistent 409 exceptions; complete response ownership; member-level mutation recovery diagnostics.
 * Bug fixes: Correct partial transfer ranges, connection reconfiguration, URL joining, sparse listings, targeted XML values, PROPFIND failure statuses, OPTIONS discovery, empty-namespace properties and hidden values.
 * Security: Reject absolute WebDAV URLs outside the configured origin (scheme, hostname and effective port), preventing metadata-driven HTTPS downgrades and credential disclosure.
 * Security: Scope PROPFIND resource identities and typed properties to their DAV namespace and structural position.
