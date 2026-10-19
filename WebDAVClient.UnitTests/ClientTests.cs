@@ -297,13 +297,48 @@ namespace WebDAVClient.UnitTests.ClientTests
                 Assert.AreEqual(HttpMethod.Put, req.Method);
                 Assert.IsNotNull(req.Content.Headers.ContentRange);
                 Assert.AreEqual(0L, req.Content.Headers.ContentRange.From);
-                Assert.AreEqual(5L, req.Content.Headers.ContentRange.To);
+                Assert.AreEqual(4L, req.Content.Headers.ContentRange.To);
                 return StubHttpMessageHandler.StatusOnly(HttpStatusCode.Created);
             }), Server, BasePath);
 
             using var content = new MemoryStream(new byte[5]);
             var ok = await harness.Client.UploadPartial("/", content, "x", startBytes: 0, endBytes: 5);
             Assert.IsTrue(ok);
+        }
+
+        [DataTestMethod]
+        [DataRow(1, 0, 0)]
+        [DataRow(5, 0, 10)]
+        [DataRow(5, 2, 10)]
+        public async Task UploadPartial_range_matches_remaining_payload(int length, int position, long start)
+        {
+            using var harness = new ClientHarness(Responder(_ =>
+                StubHttpMessageHandler.StatusOnly(HttpStatusCode.Created)), Server, BasePath);
+            using var content = new MemoryStream(Enumerable.Range(0, length).Select(i => (byte)i).ToArray());
+            content.Position = position;
+            var end = start + length - position;
+
+            await harness.Client.UploadPartial("/", content, "x", start, end);
+
+            var request = harness.Handler.Requests.Last();
+            Assert.AreEqual($"bytes {start}-{end - 1}/*", request.ContentHeaders["Content-Range"].Single());
+            Assert.AreEqual((end - start).ToString(), request.ContentHeaders["Content-Length"].Single());
+            CollectionAssert.AreEqual(Enumerable.Range(position, length - position).Select(i => (byte)i).ToArray(), request.Body);
+        }
+
+        [DataTestMethod]
+        [DataRow(-1L, 4L)]
+        [DataRow(5L, 5L)]
+        [DataRow(5L, 4L)]
+        public async Task UploadPartial_rejects_invalid_intervals_before_sending(long start, long end)
+        {
+            using var harness = new ClientHarness(_ => throw new AssertFailedException("Must not send invalid input"), Server, BasePath);
+            using var content = new MemoryStream(new byte[5]);
+
+            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(
+                () => harness.Client.UploadPartial("/", content, "x", start, end));
+
+            Assert.AreEqual(0, harness.Handler.Requests.Count);
         }
 
         // -------------------- CreateDir --------------------

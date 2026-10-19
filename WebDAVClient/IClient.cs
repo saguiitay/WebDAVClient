@@ -179,10 +179,10 @@ namespace WebDAVClient
         /// Upload a part of a file to the server.
         /// </summary>
         /// <param name="remoteFilePath">Target path excluding the servername and base path</param>
-        /// <param name="content">The content to upload. Must match the length of <paramref name="endBytes"/> minus <paramref name="startBytes"/></param>
+        /// <param name="content">Readable, seekable content sent from its current position. Its remaining length must equal endBytes minus startBytes.</param>
         /// <param name="name">The target filename. The file must exist on the server</param>
         /// <param name="startBytes">StartByte on the target file</param>
-        /// <param name="endBytes">EndByte on the target file</param>
+        /// <param name="endBytes">Exclusive end offset on the target file; the HTTP range ends at endBytes minus one.</param>
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. See <see cref="Upload"/> for details.</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
         /// <returns>True if the file part was uploaded successfully. False otherwise.</returns>

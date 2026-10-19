@@ -541,17 +541,25 @@ namespace WebDAVClient
         /// Partial upload a part of file to the server
         /// </summary>
         /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
-        /// <param name="content">Partial content to update</param>
+        /// <param name="content">Readable, seekable content to send from its current position to its end.</param>
         /// <param name="name">Name of the file to update</param>
         /// <param name="startBytes">Start byte position of the target content</param>
-        /// <param name="endBytes">End bytes of the target content. Must match the length of <paramref name="content"/> plus <paramref name="startBytes"/></param>
+        /// <param name="endBytes">Exclusive end offset. Must equal <paramref name="startBytes"/> plus the remaining content length.</param>
         /// <returns>True if the file part was uploaded successfully. False otherwise</returns>
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. See <see cref="Upload"/> for details.</param>
         public async Task<bool> UploadPartial(string remoteFilePath, Stream content, string name, long startBytes, long endBytes, string lockToken = null, CancellationToken cancellationToken = default)
         {
-            if (startBytes + content.Length != endBytes)
+            if (content == null)
+                throw new ArgumentNullException(nameof(content));
+            if (!content.CanRead || !content.CanSeek)
+                throw new ArgumentException("Partial upload content must be readable and seekable.", nameof(content));
+            if (startBytes < 0)
+                throw new ArgumentOutOfRangeException(nameof(startBytes));
+            if (endBytes <= startBytes)
+                throw new ArgumentOutOfRangeException(nameof(endBytes), "The exclusive end must be greater than the start.");
+            if (content.Length - content.Position != endBytes - startBytes)
             {
-                throw new InvalidOperationException("The length of the given content plus the startBytes must match the endBytes.");
+                throw new InvalidOperationException("The remaining content length must match endBytes minus startBytes.");
             }
 
             // Should not have a trailing slash.
@@ -1204,7 +1212,7 @@ namespace WebDAVClient
                     request.Content = new StreamContent(content);
                     if (startBytes.HasValue && endBytes.HasValue)
                     {
-                        request.Content.Headers.ContentRange = ContentRangeHeaderValue.Parse($"bytes {startBytes}-{endBytes}/*");
+                        request.Content.Headers.ContentRange = new ContentRangeHeaderValue(startBytes.Value, endBytes.Value - 1);
                         request.Content.Headers.ContentLength = endBytes - startBytes;
                     }
                 }

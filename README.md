@@ -32,7 +32,8 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 ## Release Notes
 
-+ **2.7.1** _(upcoming)_ Security fix:
++ **2.7.1** _(upcoming)_ Security and correctness fixes:
+  - Partial uploads preserve their exclusive-end API contract but now send the correct inclusive HTTP endpoint and validate the bytes remaining from the stream's current position.
   - Absolute resource URLs must match the configured origin (scheme, hostname, and effective port, including `Port` overrides). Server-returned metadata can no longer downgrade HTTPS to HTTP or redirect requests to another port on the same host.
   - PROPFIND resource identities are read only from direct `DAV:href` children of `DAV:response` under `DAV:multistatus`. Nested property URLs, response elements, and foreign-namespace lookalikes cannot replace resource identities or typed DAV metadata.
   - Same-origin absolute URLs, case-insensitive hostnames, and explicit default ports remain supported. Cross-origin absolute URLs now throw `InvalidOperationException` before follow-up I/O.
