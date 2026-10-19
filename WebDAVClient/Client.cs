@@ -1325,70 +1325,37 @@ namespace WebDAVClient
 
         private UriBuilder BuildResolvedServerUrl(string path, bool appendTrailingSlash)
         {
-            // If we've been asked for the "root" folder
-            if (string.IsNullOrEmpty(path))
-            {
-                // If the resolved base path is an absolute URI, use it
-                if (TryCreateAbsolute(m_encodedBasePath, out Uri absoluteBaseUri))
-                {
-                    EnsureSameOrigin(absoluteBaseUri, "server-resolved base path");
-                    return new UriBuilder(absoluteBaseUri);
-                }
-
-                // Otherwise, use the resolved base path relatively to the server
-                var baseUri = new UriBuilder(m_server)
-                {
-                    Path = m_encodedBasePath
-                };
-                if (Port != null)
-                {
-                    baseUri.Port = (int)Port;
-                }
-                return baseUri;
-            }
-
-            // If the requested path is absolute, use it
             if (TryCreateAbsolute(path, out Uri absoluteUri))
             {
                 EnsureSameOrigin(absoluteUri, "absolute path argument");
                 return new UriBuilder(absoluteUri);
             }
+
+            UriBuilder baseUri;
+            if (TryCreateAbsolute(m_encodedBasePath, out var absoluteBaseUri))
+            {
+                EnsureSameOrigin(absoluteBaseUri, "server-resolved base path");
+                baseUri = new UriBuilder(absoluteBaseUri);
+            }
             else
             {
-                // Otherwise, create a URI relative to the server
-                UriBuilder baseUri;
-                if (TryCreateAbsolute(m_encodedBasePath, out absoluteUri))
-                {
-                    EnsureSameOrigin(absoluteUri, "server-resolved base path");
-                    baseUri = new UriBuilder(absoluteUri);
-
-                    baseUri.Path = baseUri.Path.TrimEnd('/') + "/" + path.TrimStart('/');
-
-                    if (appendTrailingSlash && !baseUri.Path.EndsWith("/"))
-                        baseUri.Path += "/";
-                }
-                else
-                {
-                    baseUri = new UriBuilder(m_server);
-                    if (Port!= null)
-                    {
-                        baseUri.Port = (int)Port;
-                    }
-
-                    // Ensure we don't add the base path twice
-                    var finalPath = path;
-                    if (!finalPath.StartsWith(m_encodedBasePath, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        finalPath = m_encodedBasePath.TrimEnd('/') + "/" + path;
-                    }
-                    if (appendTrailingSlash)
-                        finalPath = finalPath.TrimEnd('/') + "/";
-
-                    baseUri.Path = finalPath;
-                }
-
-                return baseUri;
+                baseUri = new UriBuilder(m_server) { Path = m_encodedBasePath };
+                if (m_port.HasValue)
+                    baseUri.Port = m_port.Value;
             }
+            if (string.IsNullOrEmpty(path))
+                return baseUri;
+
+            var rootPath = baseUri.Path.TrimEnd('/');
+            var normalizedPath = "/" + path.TrimStart('/');
+            var alreadyRooted = path.StartsWith("/", StringComparison.Ordinal)
+                && (string.Equals(normalizedPath, rootPath, StringComparison.OrdinalIgnoreCase)
+                    || normalizedPath.StartsWith(rootPath + "/", StringComparison.OrdinalIgnoreCase));
+            var finalPath = alreadyRooted ? normalizedPath : rootPath + "/" + path.TrimStart('/');
+            if (appendTrailingSlash)
+                finalPath = finalPath.TrimEnd('/') + "/";
+            baseUri.Path = finalPath;
+            return baseUri;
         }
 
         #endregion
