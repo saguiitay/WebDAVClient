@@ -877,7 +877,7 @@ namespace WebDAVClient
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent)
                 {
-                    throw CreateWebDAVException((int)response.StatusCode, "Failed deleting item.");
+                    throw await CreateMutationException(response, "Failed deleting item.", cancellationToken).ConfigureAwait(false);
                 }
             }
             finally
@@ -935,7 +935,7 @@ namespace WebDAVClient
                 response.StatusCode != HttpStatusCode.Created &&
                 response.StatusCode != HttpStatusCode.NoContent)
             {
-                throw CreateWebDAVException((int)response.StatusCode, "Failed moving file.");
+                throw await CreateMutationException(response, "Failed moving file.", cancellationToken).ConfigureAwait(false);
             }
 
             return response.IsSuccessStatusCode;
@@ -957,7 +957,7 @@ namespace WebDAVClient
                 response.StatusCode != HttpStatusCode.Created &&
                 response.StatusCode != HttpStatusCode.NoContent)
             {
-                throw CreateWebDAVException((int)response.StatusCode, "Failed copying file.");
+                throw await CreateMutationException(response, "Failed copying file.", cancellationToken).ConfigureAwait(false);
             }
 
             return response.IsSuccessStatusCode;
@@ -1099,6 +1099,21 @@ namespace WebDAVClient
                 }
 
                 return true;
+            }
+        }
+
+        private async Task<WebDAVException> CreateMutationException(HttpResponseMessage response, string message, CancellationToken cancellationToken)
+        {
+            if ((int)response.StatusCode != c_httpStatusCode_MultiStatus)
+                return CreateWebDAVException((int)response.StatusCode, message);
+            try
+            {
+                var statuses = await ReadMetadataResponse(response, MultiStatusResponseParser.ParseAsync, cancellationToken).ConfigureAwait(false);
+                return new WebDAVException(c_httpStatusCode_MultiStatus, message) { ResourceStatuses = statuses };
+            }
+            catch (System.Xml.XmlException ex)
+            {
+                return new WebDAVException(c_httpStatusCode_MultiStatus, message + " Multi-status recovery details could not be parsed.", ex);
             }
         }
 

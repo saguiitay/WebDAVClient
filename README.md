@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security, correctness, and reliability fixes:
+  - DELETE/MOVE/COPY still reject partial `207` results, but `WebDAVException.ResourceStatuses` now preserves member-level recovery outcomes instead of discarding them.
   - Disposing a download stream (including `DisposeAsync`) now explicitly disposes its HTTP response and custom content resources exactly once.
   - Metadata (PROPFIND, LOCK/refresh, PROPPATCH) is parsed asynchronously with caller cancellation and an independent, configurable `Client.ResponseBodyTimeout` (100 seconds by default). Stalled bodies cancel and release responses rather than blocking indefinitely.
   - Initial root discovery observes caller cancellation, sends nothing for an already-cancelled operation, and does not cache cancelled discovery.
@@ -220,6 +221,29 @@ var folderCreated = await client.GetFolder("/" + tempFolderName, cancellationTok
 await client.DeleteFolder(folderCreated.Href, cancellationToken: token);
 ```
 
+## Recovery and retry policy
+
+The library intentionally does not automatically retry WebDAV operations.
+A timeout or disconnect during a mutation can occur after the server committed
+the change; cancellation is not a rollback. Reconcile remote state before
+replaying PUT, DELETE, MOVE, COPY, LOCK, or PROPPATCH.
+
+DELETE/MOVE/COPY `207 Multi-Status` remains a failure. The thrown
+`WebDAVException` keeps HTTP 207 and exposes `ResourceStatuses` with each reported
+member's `Href`, `StatusCode`, and optional `ResponseDescription`, including
+successful members. These identifiers are untrusted diagnostics, not URLs to
+automatically follow. Missing/malformed recovery XML keeps HTTP 207 and records
+the parsing error in `InnerException`; do not infer complete failure or success
+from an empty collection.
+
+If adding an application-level retry policy, bound attempts and the total
+operation deadline, respect `Retry-After`, and use jittered backoff for transient
+failures. Recreate requests/content and reopen upload streams for every attempt.
+Do not treat every exception/status as transient, replay partial failures as a
+whole, or resend an ambiguously committed mutation without reconciliation and
+appropriate conditional/lock protections. No automatic retry layer is added by
+these reliability fixes.
+
 ## Transfer stream ownership
 
 Always dispose streams returned by `Download` / `DownloadPartial`, using `using`
@@ -250,7 +274,8 @@ using var client = new Client(credentials)
 var items = await client.List(cancellationToken: cancellationToken);
 ```
 
-Each PROPFIND (including root discovery), LOCK/refresh, and PROPPATCH body has a
+Each PROPFIND (including root discovery), LOCK/refresh, PROPPATCH, and mutation
+multi-status recovery body has a
 100-second total deadline by default, starting after response headers arrive.
 This is independent of `HttpClient.Timeout`, which covers sending the request
 and receiving headers when using `ResponseHeadersRead`. Expiration and caller

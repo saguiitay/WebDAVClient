@@ -33,6 +33,9 @@ namespace WebDAVClient.UnitTests
         [DataRow("Refresh", ActiveLock + "<D:timeout>Second-")]
         [DataRow("PropPatch", Response + "<D:propstat><D:status>HTTP/1.1 ")]
         [DataRow("PropPatch", Response + "<D:propstat><D:status>HTTP/1.1 200 OK</D:status><D:responsedescription>text")]
+        [DataRow("Delete", Response + "<D:status>HTTP/1.1 ")]
+        [DataRow("Move", Response + "<D:status>HTTP/1.1 ")]
+        [DataRow("Copy", Response + "<D:responsedescription>text")]
         public async Task Stalled_metadata_observes_cancellation_and_independent_body_deadline(string operation, string prefix)
         {
             foreach (bool useDeadline in new[] { false, true })
@@ -139,6 +142,9 @@ namespace WebDAVClient.UnitTests
             "Lock" => client.LockFile("file", cancellationToken: token),
             "Refresh" => client.RefreshLock("file", "opaquelocktoken:test", cancellationToken: token),
             "PropPatch" => client.SetProperty("file", "name", "urn:test", "value", token),
+            "Delete" => client.DeleteFolder("folder", cancellationToken: token),
+            "Move" => client.MoveFolder("source", "destination", cancellationToken: token),
+            "Copy" => client.CopyFolder("source", "destination", cancellationToken: token),
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 

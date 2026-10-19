@@ -485,7 +485,7 @@ namespace WebDAVClient.Helpers
 
         // RFC 7230 status-line parser. Zero is reserved for an omitted status.
         // Span-based to avoid a string.Split allocation per propstat block.
-        private static int ParseStatusCode(string statusLine)
+        internal static int ParseStatusCode(string statusLine)
         {
             if (string.IsNullOrEmpty(statusLine))
                 throw new XmlException("A DAV:status must contain an HTTP status line.");

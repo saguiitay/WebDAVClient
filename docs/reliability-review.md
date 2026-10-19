@@ -7,6 +7,13 @@ workflows, and documentation. No critical-severity defect was established.
 
 ## Remediation progress
 
+- Retry/recovery hardening: Automatic retries remain intentionally absent, as
+  recommended. Documented replayability, bounded budgets/backoff, `Retry-After`,
+  and ambiguous/partial mutation reconciliation. DELETE/MOVE/COPY now preserve
+  all reported member outcomes in `WebDAVException.ResourceStatuses`, while
+  retaining outer HTTP 207 failure semantics. Recovery parsing shares the
+  asynchronous body cancellation/deadline and exposes malformed XML explicitly.
+
 - Token concurrency hardening: Documented concurrent, per-request invocation,
   exception/cancellation propagation, and deliberate anonymous behavior. Added a
   single-flight cache/refresh recipe with isolated waiter cancellation and no

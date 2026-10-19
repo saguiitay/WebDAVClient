@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using WebDAVClient.Model;
 
 namespace WebDAVClient.Helpers
 {
@@ -18,6 +20,13 @@ namespace WebDAVClient.Helpers
         /// <c>0</c> when not set.
         /// </summary>
         public int ErrorCode { get; }
+
+        /// <summary>
+        /// Resource outcomes reported by a DELETE, MOVE, or COPY HTTP 207 response.
+        /// Includes successful and failed members for reconciliation; empty when
+        /// unavailable. If parsing failed, InnerException describes the error.
+        /// </summary>
+        public IReadOnlyList<ResourceStatus> ResourceStatuses { get; internal set; } = Array.Empty<ResourceStatus>();
 
         /// <summary>
         /// Initialises a new <see cref="WebDAVException"/> with no message.
