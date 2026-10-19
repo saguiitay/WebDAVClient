@@ -404,13 +404,18 @@ await client.RemoveProperty("/dav/report.docx", "author", "https://example.com/n
 
 ### Targeted PROPFIND — `<prop>` and `<propname/>`
 
+Use the configured `client` and cancellation `token` from the usage example:
+
 ```csharp
+using System;
+using WebDAVClient.Model;
+
 // Ask only for the properties you need (saves bandwidth on large directories)
 var props = new[]
 {
-    new PropertyName("getetag",          "DAV:"),
-    new PropertyName("getcontentlength", "DAV:"),
-    new PropertyName("author",           "https://example.com/ns"),
+    new PropertyName("DAV:", "getetag"),
+    new PropertyName("DAV:", "getcontentlength"),
+    new PropertyName("https://example.com/ns", "author"),
 };
 var items = await client.List("/dav/", depth: 1, properties: props, cancellationToken: token);
 
@@ -418,7 +423,9 @@ foreach (var item in items)
 {
     // Standard DAV: live properties light up on Item directly (Etag, ContentLength, …)
     // Custom properties land in FoundProperties / NotFoundProperties.
-    var author = item.FoundProperties?.FirstOrDefault(p => p.Name.LocalName == "author");
+    if (item.FoundProperties != null &&
+        item.FoundProperties.TryGetValue(new PropertyName("https://example.com/ns", "author"), out var author))
+        Console.WriteLine(author);
 }
 
 // Discover what properties a resource exposes

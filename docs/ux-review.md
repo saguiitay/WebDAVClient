@@ -5,6 +5,16 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Outcome and priorities
 
+## Remediation progress
+
+- UX-02: Corrected qualified property construction and namespace-aware dictionary
+  lookup in the targeted PROPFIND example; executable regression retrieves a
+  custom XML-decoded value.
+- UX-08 and UX-09 were already addressed by reliability/correctness remediation:
+  upload ownership is documented/tested and OPTIONS no longer requires PROPFIND.
+
+The original findings below describe the reviewed revision.
+
 Repair onboarding examples and package documentation first, then address
 API consumption and configuration friction. Recommendations are additive unless
 an intentional breaking release is chosen.
