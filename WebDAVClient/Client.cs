@@ -397,28 +397,14 @@ namespace WebDAVClient
                         throw new WebDAVException("Failed deserializing data returned from server.");
                     }
 
-                    var listUrl = listUri.ToString();
+                    var listUrl = listUri.Uri.AbsoluteUri.TrimEnd('/');
 
                     var result = new List<Item>(items.Count);
                     foreach (var item in items)
                     {
-                        // If it's not a collection, add it to the result
-                        if (!item.IsCollection)
-                        {
+                        var fullHref = BuildServerUrl(item.Href, false).Uri.AbsoluteUri.TrimEnd('/');
+                        if (!string.Equals(fullHref, listUrl, StringComparison.OrdinalIgnoreCase))
                             result.Add(item);
-                        }
-                        else
-                        {
-                            // If it's not the requested parent folder, add it to the result.
-                            // m_encodedBasePath was initialized by the GetServerUrl call at the
-                            // top of this method, so the synchronous helper is safe to use here
-                            // and avoids the per-item async state machine allocation.
-                            var fullHref = BuildServerUrl(item.Href, true);
-                            if (!string.Equals(fullHref.ToString(), listUrl, StringComparison.OrdinalIgnoreCase))
-                            {
-                                result.Add(item);
-                            }
-                        }
                     }
                     return result;
                 }

@@ -340,6 +340,14 @@ namespace WebDAVClient.Helpers
                         {
                             if (string.IsNullOrEmpty(itemInfo.Href))
                                 throw new XmlException("A DAV:response must contain a direct DAV:href resource identifier.");
+                            if (mode != PropFindMode.AllProp)
+                            {
+                                var hasTypeValue = itemInfo.FoundProperties != null
+                                    && (itemInfo.FoundProperties.ContainsKey(new PropertyName(c_davNamespace, "resourcetype"))
+                                        || itemInfo.FoundProperties.ContainsKey(new PropertyName(c_davNamespace, "iscollection")));
+                                if (!hasTypeValue && itemInfo.Href.EndsWith("/", StringComparison.Ordinal))
+                                    itemInfo.IsCollection = true;
+                            }
                             // Remove trailing / if the item is not a collection
                             var href = itemInfo.Href.TrimEnd('/');
                             if (!itemInfo.IsCollection)

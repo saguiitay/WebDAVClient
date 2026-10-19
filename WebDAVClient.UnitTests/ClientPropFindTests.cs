@@ -261,6 +261,48 @@ namespace WebDAVClient.UnitTests.ClientTests
             Assert.AreEqual(value, item.FoundProperties[new PropertyName(CustomNs, "author")]);
         }
 
+        [DataTestMethod]
+        [DataRow("names", false)]
+        [DataRow("etag", false)]
+        [DataRow("displayname", false)]
+        [DataRow("names", true)]
+        [DataRow("etag", true)]
+        [DataRow("displayname", true)]
+        public async Task Sparse_listings_preserve_collections_and_exclude_parent_by_identity(string mode, bool absolute)
+        {
+            foreach (var parentSlash in new[] { true, false })
+            {
+                var prefix = absolute ? Server : "";
+                var parent = prefix + (parentSlash ? "/webdav/" : "/webdav");
+                var xml = $@"<D:multistatus xmlns:D=""DAV:"">
+<D:response><D:href>{parent}</D:href><D:propstat><D:prop><D:getetag>root</D:getetag></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>
+<D:response><D:href>{prefix}/webdav/sub/</D:href><D:propstat><D:prop><D:getetag>sub</D:getetag></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>
+<D:response><D:href>{prefix}/webdav/file.txt</D:href><D:propstat><D:prop><D:getetag>file</D:getetag></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>
+</D:multistatus>";
+                using var harness = new ClientHarness(Responder(_ => StubHttpMessageHandler.Multistatus(xml)), Server, BasePath);
+                var items = (mode == "names"
+                    ? await harness.Client.ListPropertyNames("/")
+                    : await harness.Client.List("/", 1, new[] { new PropertyName("DAV:", mode == "etag" ? "getetag" : "displayname") })).ToList();
+
+                Assert.AreEqual(2, items.Count);
+                var folder = items.Single(i => i.Href.EndsWith("/sub/"));
+                Assert.IsTrue(folder.IsCollection);
+                Assert.IsFalse(items.Single(i => i.Href.EndsWith("/file.txt")).IsCollection);
+            }
+        }
+
+        [TestMethod]
+        public async Task Explicit_empty_resource_type_takes_precedence_over_a_trailing_href_slash()
+        {
+            using var harness = new ClientHarness(Responder(_ => StubHttpMessageHandler.Multistatus(
+                WebDAVResponses.PropPatchSuccess(href: "/webdav/file.txt/", propertyXml: "<D:resourcetype/>"))), Server, BasePath);
+
+            var item = await harness.Client.GetFile("file.txt", new[] { new PropertyName("DAV:", "resourcetype") });
+
+            Assert.IsFalse(item.IsCollection);
+            Assert.AreEqual("/webdav/file.txt", item.Href);
+        }
+
         // -------------------- Test fixtures --------------------
 
         private static string SingleFilePropResponse() =>

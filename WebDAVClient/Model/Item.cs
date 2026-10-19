@@ -50,7 +50,9 @@ namespace WebDAVClient.Model
         /// when it is a file. Determined from the resource type
         /// (<c>&lt;D:resourcetype&gt;&lt;D:collection/&gt;</c>) or, as a
         /// fallback, the <c>&lt;D:iscollection&gt;</c> property. Collection
-        /// items also have a trailing <c>/</c> on <see cref="Href"/>.
+        /// items also have a trailing <c>/</c> on <see cref="Href"/>. Property-name
+        /// and targeted responses without a type value use a trailing href slash
+        /// as the collection hint rather than discarding it.
         /// </summary>
         public bool IsCollection { get; set; }
 

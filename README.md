@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security and correctness fixes:
+  - Sparse and property-name listings exclude their parent by resource identity and preserve slash-terminated collection hrefs when type values are unavailable.
   - Path-only and absolute discovery roots now share consistent URL joining: no duplicated boundary separators or base paths, while interior separators remain unchanged.
   - Changing `Server`, `BasePath`, or `Port` invalidates the resolved root; obsolete in-flight discovery results cannot overwrite the new configuration.
   - Targeted PROPFIND text values are XML-decoded (including CDATA) rather than returned escaped; structured properties retain their inner XML.
