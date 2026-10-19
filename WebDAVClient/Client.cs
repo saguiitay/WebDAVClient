@@ -416,14 +416,13 @@ namespace WebDAVClient
 
                 var listUrl = listUri.Uri.AbsoluteUri.TrimEnd('/');
 
-                var result = new List<Item>(items.Count);
-                foreach (var item in items)
+                items.RemoveAll(item =>
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var fullHref = BuildServerUrl(item.Href, false).Uri.AbsoluteUri.TrimEnd('/');
-                    if (!string.Equals(fullHref, listUrl, StringComparison.OrdinalIgnoreCase))
-                        result.Add(item);
-                }
-                return result;
+                    return string.Equals(fullHref, listUrl, StringComparison.OrdinalIgnoreCase);
+                });
+                return items;
             }
             finally
             {

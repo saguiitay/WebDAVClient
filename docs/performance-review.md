@@ -4,6 +4,13 @@ Reviewed 2026-10-19 at revision `ac0ef8a` by a dedicated performance agent.
 
 ## Remediation progress
 
+- PERF-03: Parent filtering compacts the parsed list in place, preserving order
+  without a second item-reference array. Nonempty propname values are skipped
+  asynchronously without string materialization. Single-item parsing retains
+  only the first item, but still validates the entire body for late errors.
+  The existing eager API remains unchanged; an async-enumerable API is future
+  work, not required to fix these allocations.
+
 - PERF-01: Already addressed by correctness/reliability commits `44769de`,
   `370f337`, and `2d1f130`. MOVE/COPY and failed downloads dispose responses;
   successful download streams own response/content lifetime.
@@ -16,6 +23,28 @@ Reviewed 2026-10-19 at revision `ac0ef8a` by a dedicated performance agent.
   the fix and pass afterward, covering success and failure routing.
 
 Original findings below describe the reviewed revision, not current behavior.
+
+## Local allocation measurements
+
+Generated Release workloads on .NET 8, Windows x64, measured before/after PERF-03
+in separate test-host processes. Input generation and discovery warmup are
+excluded from allocated bytes and elapsed time.
+
+| Workload | Allocated bytes, before -> after | Process peak bytes, before -> after | First item ms, before -> after |
+|---|---|---|---|
+| 1,000 entries | 4,808,048 -> 4,800,096 | 70,619,136 -> 70,639,616 | 27.335 -> 33.605 |
+| 10,000 entries | 46,040,040 -> 45,960,088 | 80,826,368 -> 80,171,008 | 141.819 -> 118.540 |
+| 100,000 entries | 453,089,432 -> 451,058,224 | 173,670,400 -> 170,688,512 | 746.296 -> 749.394 |
+| Propname, 2 MiB text | 21,117,096 -> 107,752 | 173,670,400 -> 170,688,512 | 9.109 -> 3.542 |
+| Propname, 2 MiB nested XML | 21,133,440 -> 107,936 | 176,488,448 -> 170,688,512 | 8.487 -> 3.074 |
+
+These are illustrative single-run observations, not production benchmarks or
+throughput guarantees. Process peaks are cumulative within each test host and
+include test infrastructure; they are not isolated per-operation peaks. The
+eager API returns its first item only after complete parsing/validation. Listing
+space remains O(N); only the redundant reference array is removed. Propname
+regressions enforce less than 512 KiB of parsing allocations for a 2 MiB unused
+value, and both fail before the fix.
 
 ## Outcome
 

@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security, correctness, and reliability fixes:
+  - Listings filter their parent in place, property-name responses skip unused values without materializing XML, and single-item lookups retain only the selected item while still validating the complete response.
   - Uploads complete after response headers instead of buffering unused PUT response bodies; success/error responses are still disposed.
   - DELETE/MOVE/COPY still reject partial `207` results, but `WebDAVException.ResourceStatuses` now preserves member-level recovery outcomes instead of discarding them.
   - Disposing a download stream (including `DisposeAsync`) now explicitly disposes its HTTP response and custom content resources exactly once.

@@ -60,7 +60,7 @@ namespace WebDAVClient.Helpers
         /// <returns>The  parsed item.</returns>
         public static Item ParseItem(Stream stream)
         {
-            return ParseItems(stream).FirstOrDefault();
+            return ParseItem(stream, PropFindMode.AllProp);
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace WebDAVClient.Helpers
         /// </summary>
         public static Item ParseItem(Stream stream, PropFindMode mode)
         {
-            return ParseItems(stream, mode).FirstOrDefault();
+            return ParseItemAsync(stream, mode).GetAwaiter().GetResult();
         }
 
         internal static XmlReaderSettings XmlReaderSettings = new XmlReaderSettings
@@ -103,10 +103,15 @@ namespace WebDAVClient.Helpers
 
         public static async Task<Item> ParseItemAsync(Stream stream, PropFindMode mode, CancellationToken cancellationToken = default)
         {
-            return (await ParseItemsAsync(stream, mode, cancellationToken).ConfigureAwait(false)).FirstOrDefault();
+            return (await ParseItemsCoreAsync(stream, mode, firstItemOnly: true, cancellationToken).ConfigureAwait(false)).FirstOrDefault();
         }
 
-        public static async Task<List<Item>> ParseItemsAsync(Stream stream, PropFindMode mode, CancellationToken cancellationToken = default)
+        public static Task<List<Item>> ParseItemsAsync(Stream stream, PropFindMode mode, CancellationToken cancellationToken = default)
+        {
+            return ParseItemsCoreAsync(stream, mode, firstItemOnly: false, cancellationToken);
+        }
+
+        private static async Task<List<Item>> ParseItemsCoreAsync(Stream stream, PropFindMode mode, bool firstItemOnly, CancellationToken cancellationToken)
         {
             var items = new List<Item>();
             using (var reader = XmlReader.Create(stream, XmlReaderSettings))
@@ -265,7 +270,10 @@ namespace WebDAVClient.Helpers
                                 var name = href.Substring(href.LastIndexOf('/') + 1);
                                 itemInfo.DisplayName = WebUtility.UrlDecode(name);
                             }
-                            items.Add(itemInfo);
+                            // Validate the complete body even for a single result so
+                            // later resource failures cannot masquerade as success.
+                            if (!firstItemOnly || items.Count == 0)
+                                items.Add(itemInfo);
                             itemInfo = null;
                             responseDepth = -1;
                         }
@@ -304,7 +312,7 @@ namespace WebDAVClient.Helpers
             else if (mode == PropFindMode.PropName)
             {
                 // Be liberal: some servers emit non-empty elements anyway in propname mode; consume.
-                await reader.ReadInnerXmlAsync().ConfigureAwait(false);
+                await reader.SkipAsync().ConfigureAwait(false);
                 text = string.Empty;
                 advanced = true;
             }
