@@ -65,7 +65,7 @@ Original findings below describe the reviewed revision, not current behavior.
   and reconfiguration while old discovery is still blocked.
 - Validation uses generated data, fake delayed streams, and a local TCP listener.
   No external WebDAV server, production profiling, remote CI, push, or package
-  publication was performed. The upcoming version remains 2.7.1.
+  publication was performed. The upcoming version is 2.8.0.
 
 ## Local allocation measurements
 

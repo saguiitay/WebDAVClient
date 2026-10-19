@@ -8,7 +8,7 @@ out below. It is not the current API reference or a release schedule. Use
 
 - **2.7.0 is already released**, as confirmed by the maintainer. This document does
   not independently verify package-feed publication.
-- **2.7.1 is upcoming in this source tree**, targeting .NET 8 and .NET 10, with
+- **2.8.0 is upcoming in this source tree**, targeting .NET 8 and .NET 10, with
   security/correctness/reliability/performance fixes, XML documentation, explicit
   authentication factories, qualified property statuses and sanitized exception context.
 - Already available: credential/static-bearer/provider constructors,
@@ -334,11 +334,11 @@ public Client(ICredentials credential = null, TimeSpan? uploadTimeout = null,
 **Priority: High**
 **Target: v2.3.0**
 
-The upcoming 2.7.1 source adds read-only request-local context without exposing
+The upcoming 2.8.0 source adds read-only request-local context without exposing
 request credentials, query/fragment values, headers or bodies. Resource paths can
 still be sensitive. Existing constructors, HTTP codes and conflict subtypes remain.
 
-#### Current 2.7.1 Context Surface (excerpt)
+#### Current 2.8.0 Context Surface (excerpt)
 ```csharp
 public class WebDAVException : Exception
 {

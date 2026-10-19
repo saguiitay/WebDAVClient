@@ -6,7 +6,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>WebDAVClient</PackageId>
-    <Version>2.7.1</Version>
+    <Version>2.8.0</Version>
     <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
@@ -14,7 +14,8 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>* Developer experience: Ship XML documentation for both targets, safe configurable examples, early argument validation, qualified property statuses, explicit authentication factories, sanitized exception context, and complete configuration/ownership guidance.
+    <PackageReleaseNotes>Version 2.8.0
+* Developer experience: Ship XML documentation for both targets, safe configurable examples, early argument validation, qualified property statuses, explicit authentication factories, sanitized exception context, and complete configuration/ownership guidance.
 * Configuration: Reject ineffective client TLS callbacks on injected transports and validate owned upload timeouts before transport allocation.
 * Performance: Filter listings in place, skip unused property-name XML, retain only selected single-item results, avoid PUT response buffering, and coordinate concurrent root discovery.
 * Reliability: Cancellable asynchronous metadata parsing with configurable body deadlines; cancellation-aware discovery; consistent 409 exceptions; complete response ownership; member-level mutation recovery diagnostics.
@@ -31,8 +32,8 @@ Historical context (already released in 2.7.0):
 * Feature: PROPFIND request-body variants — &lt;prop&gt; and &lt;propname/&gt; in addition to &lt;allprop/&gt; (RFC 4918 §9.1).
 * Feature: HTTP OPTIONS support — discover DAV compliance classes and allowed methods (RFC 4918 §9.1, RFC 9110 §9.3.7).
 * Feature: Bearer token / OAuth 2.0 authentication via new Client constructor overloads (static token or async refreshable provider).</PackageReleaseNotes>
-    <AssemblyVersion>2.7.1.0</AssemblyVersion>
-    <FileVersion>2.7.1.0</FileVersion>
+    <AssemblyVersion>2.8.0.0</AssemblyVersion>
+    <FileVersion>2.8.0.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>

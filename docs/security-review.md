@@ -5,7 +5,7 @@ by a dedicated security-review agent.
 
 ## Remediation status
 
-**SEC-01 is fixed in the 2.7.1 source changes.** The findings below describe the
+**SEC-01 is fixed in the 2.8.0 source changes.** The findings below describe the
 reviewed revision, not the remediated implementation.
 
 - Absolute resource URLs must match the configured scheme, hostname, and effective

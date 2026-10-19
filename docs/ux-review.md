@@ -8,7 +8,7 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 All 16 remaining findings are addressed. Each new remediation was committed
 separately; upload ownership and independent OPTIONS were already fixed and have
 been verified rather than reimplemented. Published 2.7.0 is not republished;
-the current source/package version remains upcoming 2.7.1.
+the current source/package version is upcoming 2.8.0.
 
 | Finding | Resolution | Commit(s) |
 |---|---|---|
@@ -44,7 +44,7 @@ the current source/package version remains upcoming 2.7.1.
   recipes against the newly generated local package on both frameworks, using an
   isolated package directory. No application/server calls were executed by those
   compile-only consumer examples.
-- Inspected `WebDAVClient.2.7.1.nupkg`: both `lib/net8.0` and `lib/net10.0`
+- Inspected `WebDAVClient.2.8.0.nupkg`: both `lib/net8.0` and `lib/net10.0`
   contain assembly-adjacent XML with parameter and upload-ownership descriptions.
   A permanent regression checks generated XML and inherited download contracts.
 - Runtime/reflection regressions pin delete named/default calls, authentication
@@ -74,7 +74,7 @@ pushed or published.
 ## Remediation progress
 
 - UX-16: Reconciled contributor commands/sample behavior/XML packaging with source,
-  marked 2.7.0 released and 2.7.1 upcoming without claiming feed verification,
+  marked 2.7.0 released and 2.8.0 upcoming without claiming feed verification,
   and labeled roadmap signatures/dependencies/dates as historical proposals.
   Current versus unavailable auth, lock/property, retry and diagnostic APIs are
   explicit; package notes distinguish prior-release features.

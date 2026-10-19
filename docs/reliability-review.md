@@ -96,7 +96,7 @@ The original findings and evidence below describe the reviewed revision.
   unexecuted; workflow gates were validated locally without remote side effects.
 - Contributor guidance now describes the actual test project, shipped bearer
   authentication, cancellation/ownership rules, and intentional no-retry policy.
-- Development/package metadata remains 2.7.1; already-published 2.7.0 is unchanged.
+- Development/package metadata is 2.8.0; already-published 2.7.0 is unchanged.
 
 ## Ranked findings
 

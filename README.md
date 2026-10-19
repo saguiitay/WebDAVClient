@@ -17,7 +17,7 @@ dotnet add package WebDAVClient
 ```
 
 Current source targets **.NET 8 and .NET 10**. Version 2.7.0 is already released;
-2.7.1 additions described here are upcoming, not a claim of feed publication.
+2.8.0 additions described here are upcoming, not a claim of feed publication.
 The install command selects the published package. This read-only anonymous
 example uses the existing injected-transport API:
 
@@ -76,7 +76,7 @@ normalize trailing slashes, while file hrefs do not end in `/`.
 | Static bearer | `new Client(bearerToken: token)` |
 | Refreshable bearer | `new Client(bearerTokenProvider: provider)`; provider receives cancellation and must handle concurrent calls |
 
-Version 2.7.1 also adds unambiguous `CreateWithCredentials`,
+Version 2.8.0 also adds unambiguous `CreateWithCredentials`,
 `CreateWithBearerToken` and `CreateWithBearerTokenProvider` factories. Do not
 remove shipped constructor overloads to resolve null ambiguity. Use HTTPS for
 credentials. See [configuration recipes](#configuration-recipes) for proxy,
@@ -118,7 +118,7 @@ checking for false.
 
 ## Release Notes
 
-+ **2.7.1** _(upcoming)_ Security, correctness, and reliability fixes:
++ **2.8.0** _(upcoming)_ Security, correctness, and reliability fixes:
   - Configuration recipes cover owned/injected authentication, proxy, TLS and distinct deadlines; ineffective TLS callback settings on injected transports now fail explicitly before I/O.
   - Packages include XML API documentation beside both framework assemblies, including parameter, stream-ownership and exception contracts.
   - WebDAV exceptions include request-local operation, method and sanitized resource context without changing existing status codes or conflict specialization.

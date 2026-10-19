@@ -23,7 +23,7 @@ dotnet pack  -c Release -o Release/nuget      # produces .nupkg + .snupkg
 `GenerateDocumentationFile=true` ships XML beside both framework assemblies.
 Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
-Version 2.7.0 is already released (maintainer-confirmed); current 2.7.1 is upcoming.
+Version 2.7.0 is already released (maintainer-confirmed); current 2.8.0 is upcoming.
 
 ## Architecture
 
