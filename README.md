@@ -36,7 +36,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
   - Absolute resource URLs must match the configured origin (scheme, hostname, and effective port, including `Port` overrides). Server-returned metadata can no longer downgrade HTTPS to HTTP or redirect requests to another port on the same host.
   - PROPFIND resource identities are read only from direct `DAV:href` children of `DAV:response` under `DAV:multistatus`. Nested property URLs, response elements, and foreign-namespace lookalikes cannot replace resource identities or typed DAV metadata.
   - Same-origin absolute URLs, case-insensitive hostnames, and explicit default ports remain supported. Cross-origin absolute URLs now throw `InvalidOperationException` before follow-up I/O.
-+ **2.7.0** _(upcoming)_  Security & hardening:
++ **2.7.0** Security & hardening:
   - **WebDAV LOCK / UNLOCK** (RFC 4918 §9.10–9.11): new `LockFile` / `LockFolder` / `UnlockFile` / `UnlockFolder` / `RefreshLock` methods returning a strongly-typed `LockInfo`.
   - **WebDAV PROPPATCH** (RFC 4918 §9.2): new `SetProperty` / `RemoveProperty` methods for managing custom (dead) properties.
   - **Bug fix — `Overwrite` header on COPY / MOVE** (RFC 4918 §9.8.3 / §9.9.3): always sent (default `T`); new optional `overwrite` parameter to opt out. `204 No Content` accepted as success.
