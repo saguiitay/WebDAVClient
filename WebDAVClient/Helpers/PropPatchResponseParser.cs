@@ -78,7 +78,7 @@ namespace WebDAVClient.Helpers
                     break;
                 }
 
-                if (reader.NodeType != XmlNodeType.Element)
+                if (reader.NodeType != XmlNodeType.Element || reader.Depth != depth + 1)
                     continue;
 
                 // Only consume DAV-namespaced status / responsedescription children of <propstat>.

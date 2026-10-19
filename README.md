@@ -119,6 +119,7 @@ checking for false.
 ## Release Notes
 
 + **2.8.0** _(upcoming)_ Security, correctness, and reliability fixes:
+  - PROPPATCH outcomes and descriptions come only from direct `propstat` children; nested property values cannot overwrite success or failure.
   - Sample transfer-integrity failures produce an explicit failure exit and retain run-owned cleanup instead of escaping unhandled.
   - Configuration recipes cover owned/injected authentication, proxy, TLS and distinct deadlines; ineffective TLS callback settings on injected transports now fail explicitly before I/O.
   - Packages include XML API documentation beside both framework assemblies, including parameter, stream-ownership and exception contracts.
