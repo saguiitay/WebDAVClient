@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security and correctness fixes:
+  - PROPFIND surfaces embedded resource errors as status-bearing exceptions (including conflicts), fails mixed listings rather than silently returning partial success, and ignores failed property values in every mode. Legacy allprop responses omitting propstat status remain supported.
   - OPTIONS capability discovery sends OPTIONS directly to the configured resource without requiring PROPFIND, and no longer adds a slash to file targets.
   - Partial downloads require `206` with a matching byte `Content-Range` (including valid EOF clipping). Ignored or mismatched ranges now throw instead of silently returning a complete file.
   - Sparse and property-name listings exclude their parent by resource identity and preserve slash-terminated collection hrefs when type values are unavailable.
