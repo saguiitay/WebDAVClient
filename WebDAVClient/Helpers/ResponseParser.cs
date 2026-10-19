@@ -103,6 +103,9 @@ namespace WebDAVClient.Helpers
             using (var reader = XmlReader.Create(stream, XmlReaderSettings))
             {
                 Item itemInfo = null;
+                int multistatusDepth = -1;
+                int responseDepth = -1;
+                int propStatDepth = -1;
                 // Status of the <D:propstat> currently being parsed; 0 when not inside one
                 // or when no <D:status> has been seen yet.
                 int currentPropStatStatus = 0;
@@ -130,18 +133,46 @@ namespace WebDAVClient.Helpers
                     {
                         var localName = reader.LocalName;
 
-                        // ----- Structural propstat tracking (only used in new modes) -----
+                        bool isDav = string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.Ordinal);
+                        if (reader.Depth == 0 && isDav
+                            && string.Equals(localName, "multistatus", StringComparison.OrdinalIgnoreCase))
+                        {
+                            multistatusDepth = reader.Depth;
+                            continue;
+                        }
+                        if (multistatusDepth >= 0 && reader.Depth == multistatusDepth + 1 && isDav
+                            && string.Equals(localName, "response", StringComparison.OrdinalIgnoreCase))
+                        {
+                            itemInfo = new Item();
+                            responseDepth = reader.Depth;
+                            currentPropStatStatus = 0;
+                            propStatDepth = -1;
+                            propDepth = -1;
+                            propStatBuffer = null;
+                            continue;
+                        }
+                        if (itemInfo == null)
+                            continue;
+
+                        if (reader.Depth == responseDepth + 1 && isDav
+                            && string.Equals(localName, "propstat", StringComparison.OrdinalIgnoreCase))
+                        {
+                            propStatDepth = reader.IsEmptyElement ? -1 : reader.Depth;
+                            currentPropStatStatus = 0;
+                            propStatBuffer = mode == PropFindMode.AllProp || reader.IsEmptyElement
+                                ? null : new List<(PropertyName, string)>();
+                            continue;
+                        }
+                        if (propStatDepth >= 0 && reader.Depth == propStatDepth + 1 && isDav
+                            && string.Equals(localName, "prop", StringComparison.OrdinalIgnoreCase))
+                        {
+                            propDepth = reader.IsEmptyElement ? -1 : reader.Depth;
+                            continue;
+                        }
                         if (mode != PropFindMode.AllProp)
                         {
-                            if (string.Equals(localName, "propstat", StringComparison.OrdinalIgnoreCase)
-                                && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.OrdinalIgnoreCase))
-                            {
-                                currentPropStatStatus = 0;
-                                propStatBuffer = new List<(PropertyName, string)>();
-                                continue;
-                            }
-                            if (string.Equals(localName, "status", StringComparison.OrdinalIgnoreCase)
-                                && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.OrdinalIgnoreCase))
+                            if (propStatDepth >= 0 && reader.Depth == propStatDepth + 1 && isDav
+                                && string.Equals(localName, "status", StringComparison.OrdinalIgnoreCase))
                             {
                                 if (!reader.IsEmptyElement)
                                 {
@@ -150,13 +181,6 @@ namespace WebDAVClient.Helpers
                                 }
                                 continue;
                             }
-                            if (string.Equals(localName, "prop", StringComparison.OrdinalIgnoreCase)
-                                && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.OrdinalIgnoreCase))
-                            {
-                                propDepth = reader.IsEmptyElement ? -1 : reader.Depth;
-                                continue;
-                            }
-
                             // Property element: any child of <D:prop>. Buffer for later
                             // dispatch on </propstat> once the status is known.
                             if (propDepth >= 0 && reader.Depth == propDepth + 1)
@@ -169,14 +193,8 @@ namespace WebDAVClient.Helpers
                             }
                         }
 
-                        if (string.Equals(localName, "response", StringComparison.OrdinalIgnoreCase))
-                        {
-                            itemInfo = new Item();
-                            currentPropStatStatus = 0;
-                            propDepth = -1;
-                            propStatBuffer = null;
-                        }
-                        else if (string.Equals(localName, "href", StringComparison.OrdinalIgnoreCase))
+                        if (reader.Depth == responseDepth + 1 && isDav
+                            && string.Equals(localName, "href", StringComparison.OrdinalIgnoreCase))
                         {
                             if (!reader.IsEmptyElement)
                             {
@@ -185,8 +203,15 @@ namespace WebDAVClient.Helpers
                                 value = value.Replace("#", "%23");
                                 itemInfo.Href = value;
                             }
+                            continue;
                         }
-                        else if (string.Equals(localName, "creationdate", StringComparison.OrdinalIgnoreCase))
+                        // Only direct DAV properties can populate typed fields. Property
+                        // contents must never be interpreted as response structure.
+                        if (mode != PropFindMode.AllProp || !isDav
+                            || propDepth < 0 || reader.Depth != propDepth + 1)
+                            continue;
+
+                        if (string.Equals(localName, "creationdate", StringComparison.OrdinalIgnoreCase))
                         {
                             if (!reader.IsEmptyElement)
                             {
@@ -262,8 +287,11 @@ namespace WebDAVClient.Helpers
                         {
                             if (!reader.IsEmptyElement)
                             {
+                                var resourceTypeDepth = reader.Depth;
                                 reader.Read();
-                                if (string.Equals(reader.LocalName, "collection", StringComparison.OrdinalIgnoreCase))
+                                if (reader.Depth == resourceTypeDepth + 1
+                                    && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.Ordinal)
+                                    && string.Equals(reader.LocalName, "collection", StringComparison.OrdinalIgnoreCase))
                                 {
                                     itemInfo.IsCollection = true;
                                 }
@@ -282,25 +310,33 @@ namespace WebDAVClient.Helpers
                     }
                     else if (reader.NodeType == XmlNodeType.EndElement)
                     {
-                        if (mode != PropFindMode.AllProp
-                            && propDepth >= 0
+                        if (itemInfo == null)
+                            continue;
+
+                        if (propDepth >= 0
                             && reader.Depth == propDepth
                             && string.Equals(reader.LocalName, "prop", StringComparison.OrdinalIgnoreCase)
-                            && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.OrdinalIgnoreCase))
+                            && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.Ordinal))
                         {
                             propDepth = -1;
                         }
-                        else if (mode != PropFindMode.AllProp
-                            && propStatBuffer != null
+                        else if (propStatDepth >= 0 && reader.Depth == propStatDepth
                             && string.Equals(reader.LocalName, "propstat", StringComparison.OrdinalIgnoreCase)
-                            && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.OrdinalIgnoreCase))
+                            && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.Ordinal))
                         {
                             // Status is now known; dispatch the buffered properties.
-                            DispatchPropStat(itemInfo, propStatBuffer, currentPropStatStatus, mode);
+                            if (mode != PropFindMode.AllProp)
+                                DispatchPropStat(itemInfo, propStatBuffer, currentPropStatStatus, mode);
                             propStatBuffer = null;
+                            propStatDepth = -1;
+                            propDepth = -1;
                         }
-                        else if (string.Equals(reader.LocalName, "response", StringComparison.OrdinalIgnoreCase))
+                        else if (reader.Depth == responseDepth
+                            && string.Equals(reader.LocalName, "response", StringComparison.OrdinalIgnoreCase)
+                            && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.Ordinal))
                         {
+                            if (string.IsNullOrEmpty(itemInfo.Href))
+                                throw new XmlException("A DAV:response must contain a direct DAV:href resource identifier.");
                             // Remove trailing / if the item is not a collection
                             var href = itemInfo.Href.TrimEnd('/');
                             if (!itemInfo.IsCollection)
@@ -313,6 +349,8 @@ namespace WebDAVClient.Helpers
                                 itemInfo.DisplayName = WebUtility.UrlDecode(name);
                             }
                             items.Add(itemInfo);
+                            itemInfo = null;
+                            responseDepth = -1;
                         }
                     }
                 }
@@ -441,7 +479,7 @@ namespace WebDAVClient.Helpers
         // the standard live properties.
         private static void ApplyTypedFieldFromBag(Item itemInfo, string ns, string localName, string value)
         {
-            if (!string.Equals(ns, c_davNamespace, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(ns, c_davNamespace, StringComparison.Ordinal))
                 return;
 
             if (string.Equals(localName, "creationdate", StringComparison.OrdinalIgnoreCase))

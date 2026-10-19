@@ -32,6 +32,10 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 ## Release Notes
 
++ **2.7.1** _(upcoming)_ Security fix:
+  - Absolute resource URLs must match the configured origin (scheme, hostname, and effective port, including `Port` overrides). Server-returned metadata can no longer downgrade HTTPS to HTTP or redirect requests to another port on the same host.
+  - PROPFIND resource identities are read only from direct `DAV:href` children of `DAV:response` under `DAV:multistatus`. Nested property URLs, response elements, and foreign-namespace lookalikes cannot replace resource identities or typed DAV metadata.
+  - Same-origin absolute URLs, case-insensitive hostnames, and explicit default ports remain supported. Cross-origin absolute URLs now throw `InvalidOperationException` before follow-up I/O.
 + **2.7.0** _(upcoming)_  Security & hardening:
   - **WebDAV LOCK / UNLOCK** (RFC 4918 §9.10–9.11): new `LockFile` / `LockFolder` / `UnlockFile` / `UnlockFolder` / `RefreshLock` methods returning a strongly-typed `LockInfo`.
   - **WebDAV PROPPATCH** (RFC 4918 §9.2): new `SetProperty` / `RemoveProperty` methods for managing custom (dead) properties.
@@ -118,6 +122,11 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 
 # Usage
+
+Use HTTPS for bearer tokens and other credentials. Absolute resource URLs must
+match `Server`'s scheme, hostname, and effective port (`Port` overrides the server
+URL's port). Explicitly configured HTTP endpoints remain supported for backward
+compatibility; this is not an HTTPS-only policy for the standalone bearer handler.
 
 `Client` implements `IDisposable` — wrap it in a `using` to make sure the underlying `HttpClient`/`HttpClientHandler` are released. Most async methods accept an optional `CancellationToken` so requests can be cancelled cleanly.
 

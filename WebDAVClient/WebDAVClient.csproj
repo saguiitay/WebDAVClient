@@ -5,7 +5,7 @@
     <Configurations>Debug;Release;Release-Unsigned</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>WebDAVClient</PackageId>
-    <Version>2.7.0</Version>
+    <Version>2.7.1</Version>
     <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
@@ -13,7 +13,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>* Feature: WebDAV LOCK / UNLOCK support (RFC 4918 §9.10–9.11).
+    <PackageReleaseNotes>* Security: Reject absolute WebDAV URLs outside the configured origin (scheme, hostname and effective port), preventing metadata-driven HTTPS downgrades and credential disclosure.
+* Security: Scope PROPFIND resource identities and typed properties to their DAV namespace and structural position.
+* Feature: WebDAV LOCK / UNLOCK support (RFC 4918 §9.10–9.11).
 * Feature: WebDAV PROPPATCH support — set / remove custom properties (RFC 4918 §9.2).
 * Bug fix: COPY / MOVE now send the Overwrite header (RFC 4918 §9.8.3 / §9.9.3); 204 No Content accepted as success.
 * Bug fix: DELETE now sends Depth: infinity (RFC 4918 §9.6.1).
@@ -22,8 +24,8 @@
 * Feature: PROPFIND request-body variants — &lt;prop&gt; and &lt;propname/&gt; in addition to &lt;allprop/&gt; (RFC 4918 §9.1).
 * Feature: HTTP OPTIONS support — discover DAV compliance classes and allowed methods (RFC 4918 §9.1, RFC 9110 §9.3.7).
 * Feature: Bearer token / OAuth 2.0 authentication via new Client constructor overloads (static token or async refreshable provider).</PackageReleaseNotes>
-    <AssemblyVersion>2.7.0.0</AssemblyVersion>
-    <FileVersion>2.7.0.0</FileVersion>
+    <AssemblyVersion>2.7.1.0</AssemblyVersion>
+    <FileVersion>2.7.1.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
