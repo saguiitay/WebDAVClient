@@ -75,6 +75,10 @@ namespace WebDAVClient
             get { lock (m_connectionLock) return m_server; }
             set
             {
+                ArgumentNullException.ThrowIfNull(value);
+                if (!Uri.TryCreate(value, UriKind.Absolute, out var server)
+                    || (server.Scheme != Uri.UriSchemeHttp && server.Scheme != Uri.UriSchemeHttps))
+                    throw new ArgumentException("Server must be an absolute HTTP or HTTPS URL.", nameof(value));
                 value = value.TrimEnd('/');
                 lock (m_connectionLock)
                 {
@@ -95,6 +99,9 @@ namespace WebDAVClient
             get { lock (m_connectionLock) return m_basePath; }
             set
             {
+                ArgumentNullException.ThrowIfNull(value);
+                if (value.Length != 0 && string.IsNullOrWhiteSpace(value))
+                    throw new ArgumentException("BasePath must be a path or an empty root path.", nameof(value));
                 value = value.Trim('/');
                 var basePath = string.IsNullOrEmpty(value) ? "/" : "/" + value + "/";
                 lock (m_connectionLock)
@@ -116,6 +123,8 @@ namespace WebDAVClient
             get { lock (m_connectionLock) return m_port; }
             set
             {
+                if (value < -1 || value > 65535)
+                    throw new ArgumentOutOfRangeException(nameof(value));
                 lock (m_connectionLock)
                 {
                     if (m_port == value) return;
@@ -285,12 +294,13 @@ namespace WebDAVClient
 
         public Client(System.Net.Http.HttpClient httpClient)
         {
+            ArgumentNullException.ThrowIfNull(httpClient);
             m_httpClientWrapper = new HttpClientWrapper(httpClient, httpClient);
         }
 
         public Client(IHttpClientWrapper httpClientWrapper)
         {
-            m_httpClientWrapper = httpClientWrapper;
+            m_httpClientWrapper = httpClientWrapper ?? throw new ArgumentNullException(nameof(httpClientWrapper));
         }
 
         #region WebDAV operations
@@ -455,8 +465,8 @@ namespace WebDAVClient
         public async Task<Item> GetFolder(string path, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default)
         {
             if (properties == null) throw new ArgumentNullException(nameof(properties));
-            var listUri = await GetServerUrl(path, true, cancellationToken).ConfigureAwait(false);
             var body = PropFindRequestBuilder.BuildPropBody(properties);
+            var listUri = await GetServerUrl(path, true, cancellationToken).ConfigureAwait(false);
             return await Get(listUri.Uri, body, PropFindMode.NamedProperties, cancellationToken).ConfigureAwait(false);
         }
 
@@ -488,8 +498,8 @@ namespace WebDAVClient
         public async Task<Item> GetFile(string path, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default)
         {
             if (properties == null) throw new ArgumentNullException(nameof(properties));
-            var listUri = await GetServerUrl(path, false, cancellationToken).ConfigureAwait(false);
             var body = PropFindRequestBuilder.BuildPropBody(properties);
+            var listUri = await GetServerUrl(path, false, cancellationToken).ConfigureAwait(false);
             return await Get(listUri.Uri, body, PropFindMode.NamedProperties, cancellationToken).ConfigureAwait(false);
         }
 
@@ -510,6 +520,7 @@ namespace WebDAVClient
         /// <returns>A stream with the content of the downloaded file</returns>
         public Task<Stream> Download(string remoteFilePath, CancellationToken cancellationToken = default)
         {
+            ValidatePath(remoteFilePath, nameof(remoteFilePath));
             var headers = new Dictionary<string, string>(1)
             {
                 { "translate", "f" }
@@ -526,6 +537,7 @@ namespace WebDAVClient
         /// <returns>A stream with the partial content of the downloaded file</returns>
         public Task<Stream> DownloadPartial(string remoteFilePath, long startBytes, long endBytes, CancellationToken cancellationToken = default)
         {
+            ValidatePath(remoteFilePath, nameof(remoteFilePath));
             if (startBytes < 0)
                 throw new ArgumentOutOfRangeException(nameof(startBytes));
             if (endBytes < startBytes)
@@ -549,6 +561,11 @@ namespace WebDAVClient
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. Pass the token returned by <see cref="LockFile"/> / <see cref="LockFolder"/> when the destination resource (or a parent collection) is locked, otherwise the server will reject the request with <c>423 Locked</c>. Bare (<c>opaquelocktoken:...</c>) and angle-bracket-wrapped forms are both accepted.</param>
         public async Task<bool> Upload(string remoteFilePath, Stream content, string name, string lockToken = null, CancellationToken cancellationToken = default)
         {
+            ValidatePath(remoteFilePath, nameof(remoteFilePath));
+            ValidateName(name);
+            ArgumentNullException.ThrowIfNull(content);
+            if (!content.CanRead)
+                throw new ArgumentException("Upload content must be readable.", nameof(content));
             // Should not have a trailing slash.
             var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false, cancellationToken).ConfigureAwait(false);
 
@@ -588,6 +605,8 @@ namespace WebDAVClient
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. See <see cref="Upload"/> for details.</param>
         public async Task<bool> UploadPartial(string remoteFilePath, Stream content, string name, long startBytes, long endBytes, string lockToken = null, CancellationToken cancellationToken = default)
         {
+            ValidatePath(remoteFilePath, nameof(remoteFilePath));
+            ValidateName(name);
             if (content == null)
                 throw new ArgumentNullException(nameof(content));
             if (!content.CanRead || !content.CanSeek)
@@ -635,6 +654,8 @@ namespace WebDAVClient
         /// <returns>True if the folder was created successfully. False otherwise</returns>
         public async Task<bool> CreateDir(string remotePath, string name, CancellationToken cancellationToken = default)
         {
+            ValidatePath(remotePath, nameof(remotePath));
+            ValidateName(name);
             // Should not have a trailing slash.
             var dirUri = await GetServerUrl(remotePath.TrimEnd('/') + "/" + name.TrimStart('/'), false, cancellationToken).ConfigureAwait(false);
 
@@ -665,6 +686,7 @@ namespace WebDAVClient
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the folder being deleted. Required when the folder (or a locked descendant) is locked; otherwise the server returns <c>423 Locked</c>.</param>
         public async Task DeleteFolder(string href, string lockToken = null, CancellationToken cancellationToken = default)
         {
+            ValidatePath(href, nameof(href));
             var listUri = await GetServerUrl(href, true, cancellationToken).ConfigureAwait(false);
             await Delete(listUri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
         }
@@ -675,6 +697,7 @@ namespace WebDAVClient
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the file being deleted. Required when the file (or its parent collection) is locked; otherwise the server returns <c>423 Locked</c>.</param>
         public async Task DeleteFile(string href, string lockToken = null, CancellationToken cancellationToken = default)
         {
+            ValidatePath(href, nameof(href));
             var listUri = await GetServerUrl(href, false, cancellationToken).ConfigureAwait(false);
             await Delete(listUri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
         }
@@ -690,6 +713,8 @@ namespace WebDAVClient
         /// <returns>True if the folder was moved successfully. False otherwise</returns>
         public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
+            ValidatePath(srcFolderPath, nameof(srcFolderPath));
+            ValidatePath(dstFolderPath, nameof(dstFolderPath));
             // Should have a trailing slash.
             var srcUri = await GetServerUrl(srcFolderPath, true, cancellationToken).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFolderPath, true, cancellationToken).ConfigureAwait(false);
@@ -708,6 +733,8 @@ namespace WebDAVClient
         /// <returns>True if the file was moved successfully. False otherwise</returns>
         public async Task<bool> MoveFile(string srcFilePath, string dstFilePath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
+            ValidatePath(srcFilePath, nameof(srcFilePath));
+            ValidatePath(dstFilePath, nameof(dstFilePath));
             // Should not have a trailing slash.
             var srcUri = await GetServerUrl(srcFilePath, false, cancellationToken).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFilePath, false, cancellationToken).ConfigureAwait(false);
@@ -725,6 +752,8 @@ namespace WebDAVClient
         /// <returns>True if the folder was copied successfully. False otherwise</returns>
         public async Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
+            ValidatePath(srcFolderPath, nameof(srcFolderPath));
+            ValidatePath(dstFolderPath, nameof(dstFolderPath));
             // Should have a trailing slash.
             var srcUri = await GetServerUrl(srcFolderPath, true, cancellationToken).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFolderPath, true, cancellationToken).ConfigureAwait(false);
@@ -742,6 +771,8 @@ namespace WebDAVClient
         /// <returns>True if the file was copied successfully. False otherwise</returns>
         public async Task<bool> CopyFile(string srcFilePath, string dstFilePath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
+            ValidatePath(srcFilePath, nameof(srcFilePath));
+            ValidatePath(dstFilePath, nameof(dstFilePath));
             // Should not have a trailing slash.
             var srcUri = await GetServerUrl(srcFilePath, false, cancellationToken).ConfigureAwait(false);
             var dstUri = await GetServerUrl(dstFilePath, false, cancellationToken).ConfigureAwait(false);
@@ -754,6 +785,9 @@ namespace WebDAVClient
         /// </summary>
         public async Task<LockInfo> LockFile(string filePath, int timeoutSeconds = 600, string owner = null, CancellationToken cancellationToken = default)
         {
+            ValidatePath(filePath, nameof(filePath));
+            if (timeoutSeconds <= 0)
+                throw new ArgumentOutOfRangeException(nameof(timeoutSeconds));
             var uri = await GetServerUrl(filePath, false, cancellationToken).ConfigureAwait(false);
             return await Lock(uri.Uri, depth: "0", timeoutSeconds, owner, cancellationToken).ConfigureAwait(false);
         }
@@ -763,6 +797,9 @@ namespace WebDAVClient
         /// </summary>
         public async Task<LockInfo> LockFolder(string folderPath, int timeoutSeconds = 600, string owner = null, CancellationToken cancellationToken = default)
         {
+            ValidatePath(folderPath, nameof(folderPath));
+            if (timeoutSeconds <= 0)
+                throw new ArgumentOutOfRangeException(nameof(timeoutSeconds));
             var uri = await GetServerUrl(folderPath, true, cancellationToken).ConfigureAwait(false);
             return await Lock(uri.Uri, depth: "infinity", timeoutSeconds, owner, cancellationToken).ConfigureAwait(false);
         }
@@ -772,6 +809,8 @@ namespace WebDAVClient
         /// </summary>
         public async Task UnlockFile(string filePath, string lockToken, CancellationToken cancellationToken = default)
         {
+            ValidatePath(filePath, nameof(filePath));
+            LockTokenHeaderHelper.NormalizeLockToken(lockToken);
             var uri = await GetServerUrl(filePath, false, cancellationToken).ConfigureAwait(false);
             await Unlock(uri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
         }
@@ -781,6 +820,8 @@ namespace WebDAVClient
         /// </summary>
         public async Task UnlockFolder(string folderPath, string lockToken, CancellationToken cancellationToken = default)
         {
+            ValidatePath(folderPath, nameof(folderPath));
+            LockTokenHeaderHelper.NormalizeLockToken(lockToken);
             var uri = await GetServerUrl(folderPath, true, cancellationToken).ConfigureAwait(false);
             await Unlock(uri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
         }
@@ -791,6 +832,7 @@ namespace WebDAVClient
         /// </summary>
         public async Task<LockInfo> RefreshLock(string path, string lockToken, int timeoutSeconds = 600, CancellationToken cancellationToken = default)
         {
+            ValidatePath(path, nameof(path));
             if (timeoutSeconds <= 0)
                 throw new ArgumentOutOfRangeException(nameof(timeoutSeconds), "Lock timeout must be greater than zero seconds.");
 
@@ -1054,6 +1096,7 @@ namespace WebDAVClient
         // (isRemove = true).
         private async Task<bool> PropPatch(string path, string propertyName, string propertyNamespace, string value, bool isRemove, CancellationToken cancellationToken)
         {
+            ValidatePath(path, nameof(path));
             PropPatchRequestBuilder.ValidatePropertyName(propertyName);
             PropPatchRequestBuilder.ValidatePropertyNamespace(propertyNamespace);
 
@@ -1306,12 +1349,16 @@ namespace WebDAVClient
 
         private async Task<UriBuilder> GetServerUrl(string path, bool appendTrailingSlash, CancellationToken cancellationToken)
         {
+            if (path != null)
+                ValidatePath(path, nameof(path));
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 SemaphoreSlim gate;
                 lock (m_connectionLock)
                 {
+                    if (m_server == null)
+                        throw new InvalidOperationException("Set Server before performing WebDAV operations.");
                     if (m_encodedBasePath != null)
                         return BuildServerUrl(path, appendTrailingSlash);
                     gate = m_discoveryGate;
@@ -1372,6 +1419,21 @@ namespace WebDAVClient
                     $"the configured Server origin '{serverUri.GetComponents(UriComponents.SchemeAndServer, UriFormat.UriEscaped)}'. " +
                     "Refusing to issue a cross-origin request (possible SSRF / malicious WebDAV response).");
             }
+
+        }
+
+        private static void ValidatePath(string path, string parameterName)
+        {
+            ArgumentNullException.ThrowIfNull(path, parameterName);
+            if (path.Length != 0 && string.IsNullOrWhiteSpace(path))
+                throw new ArgumentException("Path must not be whitespace.", parameterName);
+        }
+
+        private static void ValidateName(string name)
+        {
+            ArgumentNullException.ThrowIfNull(name);
+            if (string.IsNullOrWhiteSpace(name.Trim('/')))
+                throw new ArgumentException("Name must identify a resource, not an empty path.", nameof(name));
         }
 
         // Synchronous core of GetServerUrl. Callers must ensure m_encodedBasePath
@@ -1411,8 +1473,12 @@ namespace WebDAVClient
 
         private UriBuilder BuildOptionsUrl(string path)
         {
+            if (path != null)
+                ValidatePath(path, nameof(path));
             lock (m_connectionLock)
             {
+                if (m_server == null)
+                    throw new InvalidOperationException("Set Server before performing WebDAV operations.");
                 if (TryCreateAbsolute(path, out var absoluteUri))
                 {
                     EnsureSameOrigin(absoluteUri, "OPTIONS path argument");

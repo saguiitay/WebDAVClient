@@ -7,6 +7,13 @@ using WebDAVClient.Model;
 
 namespace WebDAVClient
 {
+    /// <summary>Asynchronous WebDAV operations over a configured server and base path.</summary>
+    /// <remarks>
+    /// Read-only metadata paths accept null, empty, or "/" to select the configured root.
+    /// Mutation and download paths must not be null; use "/" explicitly for the root.
+    /// Null or invalid required arguments throw ArgumentException (including its subclasses)
+    /// with a parameter name before network discovery. Upload names must not be empty.
+    /// </remarks>
     public interface IClient : IDisposable
     {
         /// <summary>

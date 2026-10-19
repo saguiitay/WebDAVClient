@@ -152,10 +152,9 @@ namespace WebDAVClient.UnitTests.ClientTests
             using var harness = new ClientHarness(Responder(_ =>
                 StubHttpMessageHandler.Multistatus(WebDAVResponses.FolderListing())), Server, BasePath);
 
-            // Forces the first PROPFIND (base-path resolve) to actually fire, then the
-            // empty properties list trips PropFindRequestBuilder.
             await Assert.ThrowsExceptionAsync<ArgumentException>(() =>
                 harness.Client.GetFile("file.txt", new PropertyName[0]));
+            Assert.AreEqual(0, harness.Handler.Requests.Count);
         }
 
         // -------------------- <propname/> --------------------

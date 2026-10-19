@@ -7,6 +7,12 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-07: Added named argument guards for null transports/configuration,
+  malformed server/port values, upload inputs, required paths and empty names.
+  Named-property bodies validate before discovery. Null/empty metadata paths
+  still address the root. Focused cases assert zero requests and retained
+  caller ownership on invalid upload input.
+
 - UX-05: Replaced source-edited/destructive onboarding with anonymous read-only
   defaults, argument/environment configuration and offline validation. Explicit
   mutations use a unique owned directory, known content, scoped streams and

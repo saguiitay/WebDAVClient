@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security, correctness, and reliability fixes:
+  - Invalid transports, configuration, required paths, upload inputs and named-property lists fail with parameter-specific argument errors before discovery; null/empty metadata paths retain root behavior.
   - Manual examples are runnable, read-only by default, configurable without source edits, and isolate opt-in mutations with scoped streams and bounded cleanup.
   - Concurrent cold operations coordinate one root discovery per connection configuration. Cancelling a waiter does not cancel discovery; cancelled or failed owners let another caller retry, and reconfiguration is not blocked by obsolete discovery.
   - Listings filter their parent in place, property-name responses skip unused values without materializing XML, and single-item lookups retain only the selected item while still validating the complete response.

@@ -25,7 +25,7 @@ namespace WebDAVClient.HttpClient
         /// <param name="uploadHttpClient">Optional secondary <see cref="System.Net.Http.HttpClient"/> used for upload requests. When <c>null</c>, <paramref name="httpClient"/> is used for uploads as well.</param>
         public HttpClientWrapper(System.Net.Http.HttpClient httpClient, System.Net.Http.HttpClient uploadHttpClient = null)
         {
-            m_httpClient = httpClient;
+            m_httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             m_uploadHttpClient = uploadHttpClient ?? httpClient;
         }
 
