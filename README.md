@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security, correctness, and reliability fixes:
+  - Concurrent cold operations coordinate one root discovery per connection configuration. Cancelling a waiter does not cancel discovery; cancelled or failed owners let another caller retry, and reconfiguration is not blocked by obsolete discovery.
   - Listings filter their parent in place, property-name responses skip unused values without materializing XML, and single-item lookups retain only the selected item while still validating the complete response.
   - Uploads complete after response headers instead of buffering unused PUT response bodies; success/error responses are still disposed.
   - DELETE/MOVE/COPY still reject partial `207` results, but `WebDAVException.ResourceStatuses` now preserves member-level recovery outcomes instead of discarding them.
@@ -260,6 +261,18 @@ Keep the input in a caller-side `using` scope too, because validation or discove
 can fail before a request takes ownership. Do not reuse that stream for another
 attempt; reopen it, and for partial uploads set the correct source position and
 range again.
+
+## Concurrent root discovery
+
+Concurrent first operations share a resolved root through an asynchronous gate
+and a second cache check, rather than sending duplicate discovery requests.
+Each caller can cancel its own wait. The caller performing discovery owns its
+request token; if it fails, times out, or is cancelled, another waiter can retry
+discovery with its own token. There are no automatic retries within the failed
+call itself. Changing `Server`, `BasePath`, or `Port` starts a new configuration
+generation: new callers can discover it without waiting for obsolete discovery,
+and stale results cannot repopulate the cache. Normal resource requests are not
+serialized by this gate.
 
 ## Metadata deadlines and cancellation
 

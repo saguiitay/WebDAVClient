@@ -4,6 +4,15 @@ Reviewed 2026-10-19 at revision `ac0ef8a` by a dedicated performance agent.
 
 ## Remediation progress
 
+- PERF-05: A configuration-scoped asynchronous gate with a second cache check
+  limits successful cold-start discovery to one request. Waiters cancel
+  independently; owner failure/cancellation/deadline releases the gate for a
+  caller-owned retry. Configuration changes get a new gate without waiting on
+  obsolete discovery, and stale roots cannot publish. Normal operations remain
+  concurrent. A 24-call burst now sends 1 discovery + 24 resource requests,
+  rather than 24 discovery requests; cancellation and failure regressions cover
+  the defined ownership semantics.
+
 - PERF-03: Parent filtering compacts the parsed list in place, preserving order
   without a second item-reference array. Nonempty propname values are skipped
   asynchronously without string materialization. Single-item parsing retains

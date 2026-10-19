@@ -57,6 +57,9 @@ namespace WebDAVClient
         private string m_basePath = "/";
         private string m_encodedBasePath;
         private readonly object m_connectionLock = new object();
+        // Configuration-scoped gates let new settings resolve independently.
+        // Old gates remain usable until their async owners/waiters finish.
+        private SemaphoreSlim m_discoveryGate = new SemaphoreSlim(1, 1);
         private long m_connectionVersion;
         private int? m_port;
         private bool m_disposedValue;
@@ -78,6 +81,7 @@ namespace WebDAVClient
                     if (m_server == value) return;
                     m_server = value;
                     m_encodedBasePath = null;
+                    m_discoveryGate = new SemaphoreSlim(1, 1);
                     m_connectionVersion++;
                 }
             }
@@ -98,6 +102,7 @@ namespace WebDAVClient
                     if (m_basePath == basePath) return;
                     m_basePath = basePath;
                     m_encodedBasePath = null;
+                    m_discoveryGate = new SemaphoreSlim(1, 1);
                     m_connectionVersion++;
                 }
             }
@@ -116,6 +121,7 @@ namespace WebDAVClient
                     if (m_port == value) return;
                     m_port = value;
                     m_encodedBasePath = null;
+                    m_discoveryGate = new SemaphoreSlim(1, 1);
                     m_connectionVersion++;
                 }
             }
@@ -1303,30 +1309,48 @@ namespace WebDAVClient
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                Uri discoveryUri;
-                long version;
+                SemaphoreSlim gate;
                 lock (m_connectionLock)
                 {
                     if (m_encodedBasePath != null)
                         return BuildServerUrl(path, appendTrailingSlash);
-                    var baseUri = new UriBuilder(m_server) { Path = m_basePath };
-                    if (m_port.HasValue)
-                        baseUri.Port = m_port.Value;
-                    discoveryUri = baseUri.Uri;
-                    version = m_connectionVersion;
+                    gate = m_discoveryGate;
                 }
-                var root = await Get(discoveryUri, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp, cancellationToken).ConfigureAwait(false);
-                cancellationToken.ThrowIfCancellationRequested();
-                lock (m_connectionLock)
+                await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
                 {
-                    // A discovery started before reconfiguration must not repopulate
-                    // the new connection's cache with the previous root.
-                    if (version != m_connectionVersion)
-                        continue;
-                    if (TryCreateAbsolute(root.Href, out var absoluteRootUri))
-                        EnsureSameOrigin(absoluteRootUri, "server-resolved base path");
-                    m_encodedBasePath = root.Href;
-                    return BuildServerUrl(path, appendTrailingSlash);
+                    Uri discoveryUri;
+                    long version;
+                    lock (m_connectionLock)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (m_encodedBasePath != null)
+                            return BuildServerUrl(path, appendTrailingSlash);
+                        if (!ReferenceEquals(gate, m_discoveryGate))
+                            continue;
+                        var baseUri = new UriBuilder(m_server) { Path = m_basePath };
+                        if (m_port.HasValue)
+                            baseUri.Port = m_port.Value;
+                        discoveryUri = baseUri.Uri;
+                        version = m_connectionVersion;
+                    }
+                    var root = await Get(discoveryUri, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp, cancellationToken).ConfigureAwait(false);
+                    lock (m_connectionLock)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        // A discovery started before reconfiguration must not repopulate
+                        // the new connection's cache with the previous root.
+                        if (version != m_connectionVersion)
+                            continue;
+                        if (TryCreateAbsolute(root.Href, out var absoluteRootUri))
+                            EnsureSameOrigin(absoluteRootUri, "server-resolved base path");
+                        m_encodedBasePath = root.Href;
+                        return BuildServerUrl(path, appendTrailingSlash);
+                    }
+                }
+                finally
+                {
+                    gate.Release();
                 }
             }
         }
