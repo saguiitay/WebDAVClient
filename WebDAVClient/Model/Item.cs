@@ -7,8 +7,9 @@ namespace WebDAVClient.Model
     /// Represents a single WebDAV resource (file or collection) returned by a
     /// <c>PROPFIND</c> response. Instances are produced by
     /// <see cref="WebDAVClient.Helpers.ResponseParser"/> and returned from
-    /// <see cref="IClient.List"/>, <see cref="IClient.GetFolder"/>, and
-    /// <see cref="IClient.GetFile"/>.
+    /// <see cref="IClient.List(string, int?, System.Threading.CancellationToken)"/>,
+    /// <see cref="IClient.GetFolder(string, System.Threading.CancellationToken)"/>, and
+    /// <see cref="IClient.GetFile(string, System.Threading.CancellationToken)"/>.
     /// </summary>
     public class Item
     {

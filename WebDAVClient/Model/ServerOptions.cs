@@ -44,6 +44,11 @@ namespace WebDAVClient.Model
         /// </summary>
         public string RawAllowHeader { get; }
 
+        /// <summary>Creates a snapshot of the server's advertised capabilities.</summary>
+        /// <param name="davComplianceClasses">Parsed DAV tokens; null becomes an empty list.</param>
+        /// <param name="allowedMethods">Parsed Allow methods; null becomes an empty list.</param>
+        /// <param name="rawDavHeader">Original DAV header, or null when absent.</param>
+        /// <param name="rawAllowHeader">Original Allow header, or null when absent.</param>
         public ServerOptions(
             IReadOnlyList<string> davComplianceClasses,
             IReadOnlyList<string> allowedMethods,

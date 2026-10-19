@@ -117,6 +117,7 @@ checking for false.
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security, correctness, and reliability fixes:
+  - Packages include XML API documentation beside both framework assemblies, including parameter, stream-ownership and exception contracts.
   - WebDAV exceptions include request-local operation, method and sanitized resource context without changing existing status codes or conflict specialization.
   - Targeted/property-name results expose qualified `PropertyStatuses`, distinguishing absent (404), denied (403), dependency failure (424), and omitted statuses without changing legacy bags.
   - Invalid transports, configuration, required paths, upload inputs and named-property lists fail with parameter-specific argument errors before discovery; null/empty metadata paths retain root behavior.

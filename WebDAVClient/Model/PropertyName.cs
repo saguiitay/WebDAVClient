@@ -90,12 +90,14 @@ namespace WebDAVClient.Model
         /// </summary>
         public override string ToString() => "{" + Namespace + "}" + LocalName;
 
+        /// <summary>Compares qualified names by ordinal namespace and local name, including null values.</summary>
         public static bool operator ==(PropertyName left, PropertyName right)
         {
             if (ReferenceEquals(left, null)) return ReferenceEquals(right, null);
             return left.Equals(right);
         }
 
+        /// <summary>Returns whether qualified names differ, including null values.</summary>
         public static bool operator !=(PropertyName left, PropertyName right) => !(left == right);
     }
 }

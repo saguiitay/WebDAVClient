@@ -15,6 +15,7 @@ using WebDAVClient.Authentication;
 
 namespace WebDAVClient
 {
+    /// <summary>Asynchronous WebDAV client. Credential/bearer constructors own their transport; injected transports remain caller-owned.</summary>
     public class Client : IClient
     {
         private static readonly HttpMethod m_propFindMethod = new HttpMethod("PROPFIND");
@@ -188,6 +189,10 @@ namespace WebDAVClient
         /// </summary>
         internal HttpClientHandler OwnedHandler => m_handler;
 
+        /// <summary>Creates an owned HTTP transport with explicit or Windows-default credentials.</summary>
+        /// <param name="credential">Credentials, or null to use Windows-default credentials. This is not anonymous mode.</param>
+        /// <param name="uploadTimeout">Optional HTTP timeout for uploads; metadata bodies have a separate ResponseBodyTimeout.</param>
+        /// <param name="proxy">Optional proxy applied to the owned handler.</param>
         public Client(ICredentials credential = null, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
         {
             InitializeOwnedHttpClients(credential, authHandler: null, uploadTimeout, proxy);
@@ -316,12 +321,18 @@ namespace WebDAVClient
             m_shouldDispose = true;
         }
 
+        /// <summary>Uses a caller-owned HttpClient for both ordinary requests and uploads. Configure its handler and timeouts before injection.</summary>
+        /// <param name="httpClient">Non-null HTTP client. Disposing this Client does not dispose it.</param>
+        /// <exception cref="ArgumentNullException">The injected HTTP client is null.</exception>
         public Client(System.Net.Http.HttpClient httpClient)
         {
             ArgumentNullException.ThrowIfNull(httpClient);
             m_httpClientWrapper = new HttpClientWrapper(httpClient, httpClient);
         }
 
+        /// <summary>Uses a caller-owned transport wrapper. Configure authentication, proxy, TLS and HTTP timeouts on that transport.</summary>
+        /// <param name="httpClientWrapper">Non-null wrapper retained by its caller; not disposed by this Client.</param>
+        /// <exception cref="ArgumentNullException">The injected wrapper is null.</exception>
         public Client(IHttpClientWrapper httpClientWrapper)
         {
             m_httpClientWrapper = httpClientWrapper ?? throw new ArgumentNullException(nameof(httpClientWrapper));
@@ -389,6 +400,7 @@ namespace WebDAVClient
         /// <param name="path">List only files in this path</param>
         /// <param name="depth">Recursion depth</param>
         /// <returns>A list of files (entries without a trailing slash) and directories (entries with a trailing slash)</returns>
+        /// <param name="cancellationToken">Cancels discovery, HTTP and metadata-body processing.</param>
         public async Task<IEnumerable<Item>> List(string path = "/", int? depth = 1, CancellationToken cancellationToken = default)
         {
             return await ListCore(path, depth, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp, cancellationToken).ConfigureAwait(false);
@@ -537,11 +549,7 @@ namespace WebDAVClient
             return await Get(listUri.Uri, PropFindRequestBuilder.BuildPropNameBody(), PropFindMode.PropName, cancellationToken).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Download a file from the server
-        /// </summary>
-        /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
-        /// <returns>A stream with the content of the downloaded file</returns>
+        /// <inheritdoc/>
         public Task<Stream> Download(string remoteFilePath, CancellationToken cancellationToken = default)
         {
             ValidatePath(remoteFilePath, nameof(remoteFilePath));
@@ -552,13 +560,7 @@ namespace WebDAVClient
             return DownloadFile(remoteFilePath, headers, cancellationToken: cancellationToken);
         }
 
-        /// <summary>
-        /// Download a part of file from the server
-        /// </summary>
-        /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
-        /// <param name="startBytes">Inclusive starting byte offset.</param>
-        /// <param name="endBytes">Inclusive ending byte offset, clipped at EOF when the server reports a shorter resource.</param>
-        /// <returns>A stream with the partial content of the downloaded file</returns>
+        /// <inheritdoc/>
         public Task<Stream> DownloadPartial(string remoteFilePath, long startBytes, long endBytes, CancellationToken cancellationToken = default)
         {
             ValidatePath(remoteFilePath, nameof(remoteFilePath));
@@ -583,6 +585,7 @@ namespace WebDAVClient
         /// <param name="name"></param>
         /// <returns>True on confirmed upload success; HTTP rejection throws WebDAVException.</returns>
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. Pass the token returned by <see cref="LockFile"/> / <see cref="LockFolder"/> when the destination resource (or a parent collection) is locked, otherwise the server will reject the request with <c>423 Locked</c>. Bare (<c>opaquelocktoken:...</c>) and angle-bracket-wrapped forms are both accepted.</param>
+        /// <param name="cancellationToken">Cancels discovery and HTTP processing.</param>
         public async Task<bool> Upload(string remoteFilePath, Stream content, string name, string lockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(remoteFilePath, nameof(remoteFilePath));
@@ -627,6 +630,7 @@ namespace WebDAVClient
         /// <param name="endBytes">Exclusive end offset. Must equal <paramref name="startBytes"/> plus the remaining content length.</param>
         /// <returns>True on confirmed partial-upload success; HTTP rejection throws WebDAVException.</returns>
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. See <see cref="Upload"/> for details.</param>
+        /// <param name="cancellationToken">Cancels discovery and HTTP processing.</param>
         public async Task<bool> UploadPartial(string remoteFilePath, Stream content, string name, long startBytes, long endBytes, string lockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(remoteFilePath, nameof(remoteFilePath));
@@ -676,6 +680,7 @@ namespace WebDAVClient
         /// <param name="remotePath">Destination path of the directory on the server</param>
         /// <param name="name">The name of the folder to create</param>
         /// <returns>True on confirmed creation; HTTP rejection throws WebDAVException.</returns>
+        /// <param name="cancellationToken">Cancels discovery and HTTP processing.</param>
         public async Task<bool> CreateDir(string remotePath, string name, CancellationToken cancellationToken = default)
         {
             ValidatePath(remotePath, nameof(remotePath));
@@ -708,6 +713,8 @@ namespace WebDAVClient
         /// Deletes a folder from the server.
         /// </summary>
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the folder being deleted. Required when the folder (or a locked descendant) is locked; otherwise the server returns <c>423 Locked</c>.</param>
+        /// <param name="href">Required folder path. Unlike the IClient surface, this shipped parameter is named href and has no root default.</param>
+        /// <param name="cancellationToken">Cancels discovery and HTTP processing.</param>
         public async Task DeleteFolder(string href, string lockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(href, nameof(href));
@@ -719,6 +726,8 @@ namespace WebDAVClient
         /// Deletes a file from the server.
         /// </summary>
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the file being deleted. Required when the file (or its parent collection) is locked; otherwise the server returns <c>423 Locked</c>.</param>
+        /// <param name="href">Required file path. Unlike the IClient surface, this shipped parameter is named href and has no root default.</param>
+        /// <param name="cancellationToken">Cancels discovery and HTTP processing.</param>
         public async Task DeleteFile(string href, string lockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(href, nameof(href));
@@ -735,6 +744,7 @@ namespace WebDAVClient
         /// <param name="sourceLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the source folder. Required when the source is locked, since MOVE removes the source.</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination folder (or its locked parent collection).</param>
         /// <returns>True on confirmed move success; HTTP rejection throws WebDAVException.</returns>
+        /// <param name="cancellationToken">Cancels discovery, HTTP and metadata-body processing.</param>
         public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(srcFolderPath, nameof(srcFolderPath));
@@ -755,6 +765,7 @@ namespace WebDAVClient
         /// <param name="sourceLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the source file. Required when the source is locked, since MOVE removes the source.</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination file (or its locked parent collection).</param>
         /// <returns>True on confirmed move success; HTTP rejection throws WebDAVException.</returns>
+        /// <param name="cancellationToken">Cancels discovery, HTTP and metadata-body processing.</param>
         public async Task<bool> MoveFile(string srcFilePath, string dstFilePath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(srcFilePath, nameof(srcFilePath));
@@ -774,6 +785,7 @@ namespace WebDAVClient
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination folder (or its locked parent collection). For COPY only the destination needs a lock token because the source is not modified (RFC 4918 §7.5.1).</param>
         /// <returns>True on confirmed copy success; HTTP rejection throws WebDAVException.</returns>
+        /// <param name="cancellationToken">Cancels discovery, HTTP and metadata-body processing.</param>
         public async Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(srcFolderPath, nameof(srcFolderPath));
@@ -793,6 +805,7 @@ namespace WebDAVClient
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination file (or its locked parent collection). For COPY only the destination needs a lock token because the source is not modified (RFC 4918 §7.5.1).</param>
         /// <returns>True on confirmed copy success; HTTP rejection throws WebDAVException.</returns>
+        /// <param name="cancellationToken">Cancels discovery, HTTP and metadata-body processing.</param>
         public async Task<bool> CopyFile(string srcFilePath, string dstFilePath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(srcFilePath, nameof(srcFilePath));
@@ -1257,13 +1270,6 @@ namespace WebDAVClient
         
         #region Server communication
 
-        /// <summary>
-        /// Perform the WebDAV call and fire the callback when finished.
-        /// </summary>
-        /// <param name="uri"></param>
-        /// <param name="method"></param>
-        /// <param name="headers"></param>
-        /// <param name="content"></param>
         // Defends against HTTP header injection (CRLF injection) when callers populate
         // CustomHeaders from untrusted input. Modern .NET's HttpHeaders.Add already
         // throws FormatException for CR/LF in values, but the protection is runtime-
@@ -1324,15 +1330,6 @@ namespace WebDAVClient
             }
         }
 
-        /// <summary>
-        /// Perform the WebDAV call and fire the callback when finished.
-        /// </summary>
-        /// <param name="uri"></param>
-        /// <param name="method"></param>
-        /// <param name="content"></param>
-        /// <param name="headers"></param>
-        /// <param name="startBytes"></param>
-        /// <param name="endBytes"></param>
         private async Task<HttpResponseMessage> HttpUploadRequest(Uri uri, HttpMethod method, Stream content, IDictionary<string, string> headers = null, long? startBytes = null, long? endBytes = null, CancellationToken cancellationToken = default, string operation = null)
         {
             using (var request = new HttpRequestMessage(method, uri))
@@ -1559,6 +1556,12 @@ namespace WebDAVClient
 
         #region WebDAV Connection Helpers
 
+        /// <summary>Invokes the configured callback, returning false when no callback exists. Owned HTTP transports separately use platform validation by default.</summary>
+        /// <param name="sender">Callback sender.</param>
+        /// <param name="certification">Server certificate.</param>
+        /// <param name="chain">Certificate chain.</param>
+        /// <param name="sslPolicyErrors">Platform certificate errors.</param>
+        /// <returns>The configured callback's trust decision, or false if absent.</returns>
         public bool ServerCertificateValidation(object sender, System.Security.Cryptography.X509Certificates.X509Certificate certification, System.Security.Cryptography.X509Certificates.X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             if (ServerCertificateValidationCallback != null)
@@ -1570,6 +1573,8 @@ namespace WebDAVClient
         #endregion
 
         #region IDisposable methods
+        /// <summary>Disposes transport resources created by this client, never caller-injected transports.</summary>
+        /// <param name="disposing">True to release managed resources.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (!m_disposedValue)
@@ -1590,6 +1595,7 @@ namespace WebDAVClient
             }
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method

@@ -7,6 +7,11 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-06: Enabled XML generation/packing for both frameworks and resolved the
+  documentation warnings rather than suppressing them. Concrete downloads
+  inherit the interface ownership contract; constructor/parameter/disposal
+  documentation is explicit. A regression checks XML beside each target assembly.
+
 - UX-14: Added installation/read-only quickstart before release history, current
   target frameworks and release status, path examples, authentication matrix and
   ownership table. Fake transport regressions pin relative/rooted/absolute path

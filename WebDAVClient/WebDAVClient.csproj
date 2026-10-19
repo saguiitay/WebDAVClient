@@ -4,6 +4,7 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <Configurations>Debug;Release;Release-Unsigned</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>WebDAVClient</PackageId>
     <Version>2.7.1</Version>
     <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
