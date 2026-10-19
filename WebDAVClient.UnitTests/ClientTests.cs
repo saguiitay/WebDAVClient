@@ -753,14 +753,6 @@ namespace WebDAVClient.UnitTests.ClientTests
             Assert.AreEqual("abc123", listingRequest.Headers["X-Token"][0]);
         }
 
-        // -------------------- Cancellation --------------------
-
-        // Note: cancellation behaviour can't be cleanly asserted at this level because the
-        // initial base-path resolution call (Get(baseUri) inside GetServerUrl) does not
-        // propagate the caller's CancellationToken — that's a latent issue tracked separately.
-        // The token is faithfully forwarded by HttpRequest/HttpUploadRequest, which is verified
-        // implicitly by every other test passing through HttpClientWrapper.
-
         // -------------------- ServerCertificateValidation --------------------
 
         [TestMethod]

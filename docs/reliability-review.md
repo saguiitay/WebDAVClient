@@ -7,6 +7,11 @@ workflows, and documentation. No critical-severity defect was established.
 
 ## Remediation progress
 
+- REL-04: Every URL-resolution call forwards its operation token into discovery,
+  checks cancellation before I/O and before cache publication, and allows a new
+  caller to retry cancelled discovery. Header cancellation and zero-send tests
+  are covered; body cancellation is completed with REL-01.
+
 - Test infrastructure: Added a separate asynchronous, token-aware handler with
   concurrent immutable request snapshots and no eager body buffering, plus a
   prefix-then-stall stream that rejects synchronous network reads. The legacy

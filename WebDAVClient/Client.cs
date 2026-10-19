@@ -364,7 +364,7 @@ namespace WebDAVClient
 
         private async Task<IEnumerable<Item>> ListCore(string path, int? depth, byte[] body, PropFindMode mode, CancellationToken cancellationToken)
         {
-            var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
+            var listUri = await GetServerUrl(path, true, cancellationToken).ConfigureAwait(false);
 
             // Depth header: http://webdav.org/specs/rfc4918.html#rfc.section.9.1.4
             IDictionary<string, string> headers = null;
@@ -421,7 +421,7 @@ namespace WebDAVClient
         /// <returns>An item representing the retrieved folder</returns>
         public async Task<Item> GetFolder(string path = "/", CancellationToken cancellationToken = default)
         {
-            var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
+            var listUri = await GetServerUrl(path, true, cancellationToken).ConfigureAwait(false);
             return await Get(listUri.Uri, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp, cancellationToken).ConfigureAwait(false);
         }
 
@@ -434,7 +434,7 @@ namespace WebDAVClient
         public async Task<Item> GetFolder(string path, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default)
         {
             if (properties == null) throw new ArgumentNullException(nameof(properties));
-            var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
+            var listUri = await GetServerUrl(path, true, cancellationToken).ConfigureAwait(false);
             var body = PropFindRequestBuilder.BuildPropBody(properties);
             return await Get(listUri.Uri, body, PropFindMode.NamedProperties, cancellationToken).ConfigureAwait(false);
         }
@@ -446,7 +446,7 @@ namespace WebDAVClient
         /// </summary>
         public async Task<Item> GetFolderPropertyNames(string path = "/", CancellationToken cancellationToken = default)
         {
-            var listUri = await GetServerUrl(path, true).ConfigureAwait(false);
+            var listUri = await GetServerUrl(path, true, cancellationToken).ConfigureAwait(false);
             return await Get(listUri.Uri, PropFindRequestBuilder.BuildPropNameBody(), PropFindMode.PropName, cancellationToken).ConfigureAwait(false);
         }
 
@@ -456,7 +456,7 @@ namespace WebDAVClient
         /// <returns>An item representing the retrieved file</returns>
         public async Task<Item> GetFile(string path = "/", CancellationToken cancellationToken = default)
         {
-            var listUri = await GetServerUrl(path, false).ConfigureAwait(false);
+            var listUri = await GetServerUrl(path, false, cancellationToken).ConfigureAwait(false);
             return await Get(listUri.Uri, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp, cancellationToken).ConfigureAwait(false);
         }
 
@@ -467,7 +467,7 @@ namespace WebDAVClient
         public async Task<Item> GetFile(string path, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default)
         {
             if (properties == null) throw new ArgumentNullException(nameof(properties));
-            var listUri = await GetServerUrl(path, false).ConfigureAwait(false);
+            var listUri = await GetServerUrl(path, false, cancellationToken).ConfigureAwait(false);
             var body = PropFindRequestBuilder.BuildPropBody(properties);
             return await Get(listUri.Uri, body, PropFindMode.NamedProperties, cancellationToken).ConfigureAwait(false);
         }
@@ -478,7 +478,7 @@ namespace WebDAVClient
         /// </summary>
         public async Task<Item> GetFilePropertyNames(string path = "/", CancellationToken cancellationToken = default)
         {
-            var listUri = await GetServerUrl(path, false).ConfigureAwait(false);
+            var listUri = await GetServerUrl(path, false, cancellationToken).ConfigureAwait(false);
             return await Get(listUri.Uri, PropFindRequestBuilder.BuildPropNameBody(), PropFindMode.PropName, cancellationToken).ConfigureAwait(false);
         }
 
@@ -528,7 +528,7 @@ namespace WebDAVClient
         public async Task<bool> Upload(string remoteFilePath, Stream content, string name, string lockToken = null, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
-            var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
+            var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false, cancellationToken).ConfigureAwait(false);
 
             var headers = LockTokenHeaderHelper.BuildLockTokenHeaders(uploadUri.Uri, lockToken);
 
@@ -579,7 +579,7 @@ namespace WebDAVClient
             }
 
             // Should not have a trailing slash.
-            var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
+            var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false, cancellationToken).ConfigureAwait(false);
 
             var headers = LockTokenHeaderHelper.BuildLockTokenHeaders(uploadUri.Uri, lockToken);
 
@@ -613,7 +613,7 @@ namespace WebDAVClient
         public async Task<bool> CreateDir(string remotePath, string name, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
-            var dirUri = await GetServerUrl(remotePath.TrimEnd('/') + "/" + name.TrimStart('/'), false).ConfigureAwait(false);
+            var dirUri = await GetServerUrl(remotePath.TrimEnd('/') + "/" + name.TrimStart('/'), false, cancellationToken).ConfigureAwait(false);
 
             HttpResponseMessage response = null;
 
@@ -642,7 +642,7 @@ namespace WebDAVClient
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the folder being deleted. Required when the folder (or a locked descendant) is locked; otherwise the server returns <c>423 Locked</c>.</param>
         public async Task DeleteFolder(string href, string lockToken = null, CancellationToken cancellationToken = default)
         {
-            var listUri = await GetServerUrl(href, true).ConfigureAwait(false);
+            var listUri = await GetServerUrl(href, true, cancellationToken).ConfigureAwait(false);
             await Delete(listUri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
         }
 
@@ -652,7 +652,7 @@ namespace WebDAVClient
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the file being deleted. Required when the file (or its parent collection) is locked; otherwise the server returns <c>423 Locked</c>.</param>
         public async Task DeleteFile(string href, string lockToken = null, CancellationToken cancellationToken = default)
         {
-            var listUri = await GetServerUrl(href, false).ConfigureAwait(false);
+            var listUri = await GetServerUrl(href, false, cancellationToken).ConfigureAwait(false);
             await Delete(listUri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
         }
 
@@ -668,8 +668,8 @@ namespace WebDAVClient
         public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             // Should have a trailing slash.
-            var srcUri = await GetServerUrl(srcFolderPath, true).ConfigureAwait(false);
-            var dstUri = await GetServerUrl(dstFolderPath, true).ConfigureAwait(false);
+            var srcUri = await GetServerUrl(srcFolderPath, true, cancellationToken).ConfigureAwait(false);
+            var dstUri = await GetServerUrl(dstFolderPath, true, cancellationToken).ConfigureAwait(false);
 
             return await Move(srcUri.Uri, dstUri.Uri, overwrite, sourceLockToken, destinationLockToken, cancellationToken).ConfigureAwait(false);
         }
@@ -686,8 +686,8 @@ namespace WebDAVClient
         public async Task<bool> MoveFile(string srcFilePath, string dstFilePath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
-            var srcUri = await GetServerUrl(srcFilePath, false).ConfigureAwait(false);
-            var dstUri = await GetServerUrl(dstFilePath, false).ConfigureAwait(false);
+            var srcUri = await GetServerUrl(srcFilePath, false, cancellationToken).ConfigureAwait(false);
+            var dstUri = await GetServerUrl(dstFilePath, false, cancellationToken).ConfigureAwait(false);
 
             return await Move(srcUri.Uri, dstUri.Uri, overwrite, sourceLockToken, destinationLockToken, cancellationToken).ConfigureAwait(false);
         }
@@ -703,8 +703,8 @@ namespace WebDAVClient
         public async Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             // Should have a trailing slash.
-            var srcUri = await GetServerUrl(srcFolderPath, true).ConfigureAwait(false);
-            var dstUri = await GetServerUrl(dstFolderPath, true).ConfigureAwait(false);
+            var srcUri = await GetServerUrl(srcFolderPath, true, cancellationToken).ConfigureAwait(false);
+            var dstUri = await GetServerUrl(dstFolderPath, true, cancellationToken).ConfigureAwait(false);
 
             return await Copy(srcUri.Uri, dstUri.Uri, overwrite, destinationLockToken, cancellationToken).ConfigureAwait(false);
         }
@@ -720,8 +720,8 @@ namespace WebDAVClient
         public async Task<bool> CopyFile(string srcFilePath, string dstFilePath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
-            var srcUri = await GetServerUrl(srcFilePath, false).ConfigureAwait(false);
-            var dstUri = await GetServerUrl(dstFilePath, false).ConfigureAwait(false);
+            var srcUri = await GetServerUrl(srcFilePath, false, cancellationToken).ConfigureAwait(false);
+            var dstUri = await GetServerUrl(dstFilePath, false, cancellationToken).ConfigureAwait(false);
 
             return await Copy(srcUri.Uri, dstUri.Uri, overwrite, destinationLockToken, cancellationToken).ConfigureAwait(false);
         }
@@ -731,7 +731,7 @@ namespace WebDAVClient
         /// </summary>
         public async Task<LockInfo> LockFile(string filePath, int timeoutSeconds = 600, string owner = null, CancellationToken cancellationToken = default)
         {
-            var uri = await GetServerUrl(filePath, false).ConfigureAwait(false);
+            var uri = await GetServerUrl(filePath, false, cancellationToken).ConfigureAwait(false);
             return await Lock(uri.Uri, depth: "0", timeoutSeconds, owner, cancellationToken).ConfigureAwait(false);
         }
 
@@ -740,7 +740,7 @@ namespace WebDAVClient
         /// </summary>
         public async Task<LockInfo> LockFolder(string folderPath, int timeoutSeconds = 600, string owner = null, CancellationToken cancellationToken = default)
         {
-            var uri = await GetServerUrl(folderPath, true).ConfigureAwait(false);
+            var uri = await GetServerUrl(folderPath, true, cancellationToken).ConfigureAwait(false);
             return await Lock(uri.Uri, depth: "infinity", timeoutSeconds, owner, cancellationToken).ConfigureAwait(false);
         }
 
@@ -749,7 +749,7 @@ namespace WebDAVClient
         /// </summary>
         public async Task UnlockFile(string filePath, string lockToken, CancellationToken cancellationToken = default)
         {
-            var uri = await GetServerUrl(filePath, false).ConfigureAwait(false);
+            var uri = await GetServerUrl(filePath, false, cancellationToken).ConfigureAwait(false);
             await Unlock(uri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
         }
 
@@ -758,7 +758,7 @@ namespace WebDAVClient
         /// </summary>
         public async Task UnlockFolder(string folderPath, string lockToken, CancellationToken cancellationToken = default)
         {
-            var uri = await GetServerUrl(folderPath, true).ConfigureAwait(false);
+            var uri = await GetServerUrl(folderPath, true, cancellationToken).ConfigureAwait(false);
             await Unlock(uri.Uri, lockToken, cancellationToken).ConfigureAwait(false);
         }
 
@@ -777,7 +777,7 @@ namespace WebDAVClient
             // trailing slash, and we want to refresh the same href the caller originally locked.
             // GetServerUrl with appendTrailingSlash=false leaves the caller's path as-is (it only
             // adds a slash when asked to), which matches how the original Lock URL was built.
-            var uri = await GetServerUrl(path, false).ConfigureAwait(false);
+            var uri = await GetServerUrl(path, false, cancellationToken).ConfigureAwait(false);
 
             IDictionary<string, string> headers = new Dictionary<string, string>(2)
             {
@@ -1044,7 +1044,7 @@ namespace WebDAVClient
             PropPatchRequestBuilder.ValidatePropertyName(propertyName);
             PropPatchRequestBuilder.ValidatePropertyNamespace(propertyNamespace);
 
-            var uri = await GetServerUrl(path, false).ConfigureAwait(false);
+            var uri = await GetServerUrl(path, false, cancellationToken).ConfigureAwait(false);
             var body = PropPatchRequestBuilder.BuildPropPatchBody(propertyName, propertyNamespace, value, isRemove);
 
             using (var response = await HttpRequest(uri.Uri, s_propPatchMethod, headers: null, body, cancellationToken: cancellationToken).ConfigureAwait(false))
@@ -1108,7 +1108,7 @@ namespace WebDAVClient
         private async Task<Stream> DownloadFile(string remoteFilePath, Dictionary<string, string> header, long? rangeStart = null, long? rangeEnd = null, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
-            var downloadUri = await GetServerUrl(remoteFilePath, false).ConfigureAwait(false);
+            var downloadUri = await GetServerUrl(remoteFilePath, false, cancellationToken).ConfigureAwait(false);
             var response = await HttpRequest(downloadUri.Uri, HttpMethod.Get, header, cancellationToken: cancellationToken).ConfigureAwait(false);
             try
             {
@@ -1266,10 +1266,11 @@ namespace WebDAVClient
             return Uri.TryCreate(uriString, UriKind.Absolute, out uriResult) && uriResult.Scheme != Uri.UriSchemeFile;
         }
 
-        private async Task<UriBuilder> GetServerUrl(string path, bool appendTrailingSlash)
+        private async Task<UriBuilder> GetServerUrl(string path, bool appendTrailingSlash, CancellationToken cancellationToken)
         {
             while (true)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 Uri discoveryUri;
                 long version;
                 lock (m_connectionLock)
@@ -1282,7 +1283,8 @@ namespace WebDAVClient
                     discoveryUri = baseUri.Uri;
                     version = m_connectionVersion;
                 }
-                var root = await Get(discoveryUri, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp).ConfigureAwait(false);
+                var root = await Get(discoveryUri, PropFindRequestBuilder.BuildAllPropBody(), PropFindMode.AllProp, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
                 lock (m_connectionLock)
                 {
                     // A discovery started before reconfiguration must not repopulate
