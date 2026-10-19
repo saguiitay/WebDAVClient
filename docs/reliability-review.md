@@ -7,6 +7,11 @@ workflows, and documentation. No critical-severity defect was established.
 
 ## Remediation progress
 
+- Test infrastructure: Added a separate asynchronous, token-aware handler with
+  concurrent immutable request snapshots and no eager body buffering, plus a
+  prefix-then-stall stream that rejects synchronous network reads. The legacy
+  synchronous fixture remains unchanged.
+
 - REL-05: All operation-level HTTP failures now use the existing conflict-aware
   exception factory. A public-operation matrix covers 409 and non-conflict
   failures, including discovery.
