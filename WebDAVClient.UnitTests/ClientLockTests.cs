@@ -230,12 +230,12 @@ namespace WebDAVClient.UnitTests.ClientTests
         }
 
         [TestMethod]
-        public async Task UnlockFile_throws_WebDAVException_on_non_204()
+        public async Task UnlockFile_maps_409_to_WebDAVConflictException()
         {
             using var harness = new ClientHarness(Responder(_ =>
                 StubHttpMessageHandler.StatusOnly(HttpStatusCode.Conflict)), Server, BasePath);
 
-            var ex = await Assert.ThrowsExceptionAsync<WebDAVException>(
+            var ex = await Assert.ThrowsExceptionAsync<WebDAVConflictException>(
                 () => harness.Client.UnlockFile("file.txt", "opaquelocktoken:t"));
             Assert.AreEqual(409, ex.GetHttpCode());
         }
