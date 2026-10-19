@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security and correctness fixes:
+  - OPTIONS capability discovery sends OPTIONS directly to the configured resource without requiring PROPFIND, and no longer adds a slash to file targets.
   - Partial downloads require `206` with a matching byte `Content-Range` (including valid EOF clipping). Ignored or mismatched ranges now throw instead of silently returning a complete file.
   - Sparse and property-name listings exclude their parent by resource identity and preserve slash-terminated collection hrefs when type values are unavailable.
   - Path-only and absolute discovery roots now share consistent URL joining: no duplicated boundary separators or base paths, while interior separators remain unchanged.

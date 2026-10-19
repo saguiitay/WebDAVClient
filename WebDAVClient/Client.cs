@@ -279,7 +279,7 @@ namespace WebDAVClient
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
         public async Task<ServerOptions> GetServerOptions(string path = "/", CancellationToken cancellationToken = default)
         {
-            var uri = await GetServerUrl(path, true).ConfigureAwait(false);
+            var uri = BuildOptionsUrl(path);
 
             HttpResponseMessage response = null;
             try
@@ -1351,6 +1351,27 @@ namespace WebDAVClient
                 if (m_port.HasValue)
                     baseUri.Port = m_port.Value;
             }
+            return JoinServerPath(baseUri, path, appendTrailingSlash);
+        }
+
+        private UriBuilder BuildOptionsUrl(string path)
+        {
+            lock (m_connectionLock)
+            {
+                if (TryCreateAbsolute(path, out var absoluteUri))
+                {
+                    EnsureSameOrigin(absoluteUri, "OPTIONS path argument");
+                    return new UriBuilder(absoluteUri);
+                }
+                var baseUri = new UriBuilder(m_server) { Path = m_basePath };
+                if (m_port.HasValue)
+                    baseUri.Port = m_port.Value;
+                return JoinServerPath(baseUri, path, false);
+            }
+        }
+
+        private static UriBuilder JoinServerPath(UriBuilder baseUri, string path, bool appendTrailingSlash)
+        {
             if (string.IsNullOrEmpty(path))
                 return baseUri;
 

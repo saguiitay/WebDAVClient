@@ -23,18 +23,11 @@ namespace WebDAVClient.UnitTests.ClientTests
         private const string Server = "http://example.com";
         private const string BasePath = "/webdav/";
 
-        // The first request out of a fresh Client is the base-path PROPFIND used to
-        // resolve m_encodedBasePath. Intercept it so individual tests only reason
-        // about the second (test-specific) call.
         private static Func<HttpRequestMessage, HttpResponseMessage> Responder(Func<HttpRequestMessage, HttpResponseMessage> handler)
         {
-            int seen = 0;
             return request =>
             {
-                if (Interlocked.Increment(ref seen) == 1)
-                {
-                    return StubHttpMessageHandler.Multistatus(WebDAVResponses.Root(BasePath));
-                }
+                Assert.AreEqual(HttpMethod.Options, request.Method, "Capability discovery must not require PROPFIND.");
                 return handler(request);
             };
         }
@@ -57,13 +50,14 @@ namespace WebDAVClient.UnitTests.ClientTests
         }
 
         [TestMethod]
-        public async Task GetServerOptions_sends_OPTIONS_to_resolved_path()
+        public async Task GetServerOptions_sends_OPTIONS_to_configured_path()
         {
             using var harness = new ClientHarness(Responder(_ => OptionsResponse("1, 2", "OPTIONS, GET, PROPFIND")), Server, BasePath);
 
             await harness.Client.GetServerOptions();
 
             var req = harness.Handler.Requests.Last();
+            Assert.AreEqual(1, harness.Handler.Requests.Count);
             Assert.AreEqual("OPTIONS", req.Method.Method);
             StringAssert.StartsWith(req.RequestUri.AbsoluteUri, Server + BasePath);
             Assert.IsNull(req.Body, "OPTIONS must not carry a body");
@@ -148,6 +142,53 @@ namespace WebDAVClient.UnitTests.ClientTests
             {
                 Assert.AreEqual(404, ex.GetHttpCode());
             }
+        }
+
+        [DataTestMethod]
+        [DataRow(null, "/webdav/")]
+        [DataRow("/", "/webdav/")]
+        [DataRow("file.txt", "/webdav/file.txt")]
+        [DataRow("/webdav/file.txt", "/webdav/file.txt")]
+        [DataRow("sub/", "/webdav/sub/")]
+        [DataRow("http://EXAMPLE.com:80/webdav/file.txt", "/webdav/file.txt")]
+        public async Task GetServerOptions_preserves_exact_resource_shape_without_discovery(string path, string expected)
+        {
+            using var harness = new ClientHarness(request => request.Method.Method == "PROPFIND"
+                ? StubHttpMessageHandler.StatusOnly(HttpStatusCode.MethodNotAllowed)
+                : OptionsResponse("1", "OPTIONS"), Server, BasePath);
+
+            var options = await harness.Client.GetServerOptions(path);
+
+            Assert.IsTrue(options.IsClass1);
+            Assert.AreEqual(1, harness.Handler.Requests.Count);
+            Assert.AreEqual(HttpMethod.Options, harness.Handler.Requests[0].Method);
+            Assert.AreEqual(expected, harness.Handler.Requests[0].RequestUri.AbsolutePath);
+        }
+
+        [DataTestMethod]
+        [DataRow("http://example.com/webdav/")]
+        [DataRow("https://example.com/webdav/")]
+        [DataRow("https://other.example:8443/webdav/")]
+        public async Task GetServerOptions_rejects_cross_origin_targets_before_IO(string path)
+        {
+            using var harness = new ClientHarness(_ => throw new AssertFailedException("Must not send cross-origin OPTIONS"),
+                "https://example.com", BasePath);
+            harness.Client.Port = 8443;
+
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => harness.Client.GetServerOptions(path));
+
+            Assert.AreEqual(0, harness.Handler.Requests.Count);
+        }
+
+        [TestMethod]
+        public async Task GetServerOptions_honors_port_override()
+        {
+            using var harness = new ClientHarness(Responder(_ => OptionsResponse(null, "OPTIONS")), "https://example.com:9443", BasePath);
+            harness.Client.Port = 8443;
+
+            await harness.Client.GetServerOptions("file.txt");
+
+            Assert.AreEqual("https://example.com:8443/webdav/file.txt", harness.Handler.Requests.Single().RequestUri.AbsoluteUri);
         }
 
         [TestMethod]
