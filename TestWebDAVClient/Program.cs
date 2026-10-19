@@ -14,7 +14,7 @@ namespace TestWebDAVClient
 {
     internal static class Program
     {
-        private static async Task<int> Main(string[] args)
+        internal static async Task<int> Main(string[] args)
         {
             if (args.Contains("--help") || (args.Length == 0 && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WEBDAV_SERVER"))))
             {
@@ -141,7 +141,7 @@ namespace TestWebDAVClient
                 error.WriteLine("Operation cancelled. Attempting independent cleanup of confirmed run-owned resources.");
                 exitCode = 130;
             }
-            catch (Exception ex) when (ex is WebDAVException || ex is HttpRequestException || ex is IOException || ex is OperationCanceledException)
+            catch (Exception ex) when (ex is WebDAVException || ex is HttpRequestException || ex is IOException || ex is InvalidDataException || ex is OperationCanceledException)
             {
                 error.WriteLine(ex is WebDAVException web && web.GetHttpCode() == 404
                     ? "Requested target was not found. Choose an existing --target or omit it."

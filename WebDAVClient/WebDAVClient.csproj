@@ -17,6 +17,7 @@
     <PackageReleaseNotes>Version 2.8.0
 * Developer experience: Ship XML documentation for both targets, safe configurable examples, early argument validation, qualified property statuses, explicit authentication factories, sanitized exception context, and complete configuration/ownership guidance.
 * Configuration: Reject ineffective client TLS callbacks on injected transports and validate owned upload timeouts before transport allocation.
+* Sample correctness: Report transfer-integrity failures with a nonzero exit while retaining run-owned cleanup.
 * Performance: Filter listings in place, skip unused property-name XML, retain only selected single-item results, avoid PUT response buffering, and coordinate concurrent root discovery.
 * Reliability: Cancellable asynchronous metadata parsing with configurable body deadlines; cancellation-aware discovery; consistent 409 exceptions; complete response ownership; member-level mutation recovery diagnostics.
 * Bug fixes: Correct partial transfer ranges, connection reconfiguration, URL joining, sparse listings, targeted XML values, PROPFIND failure statuses, OPTIONS discovery, empty-namespace properties and hidden values.
