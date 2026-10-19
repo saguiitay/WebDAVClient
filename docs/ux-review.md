@@ -57,6 +57,8 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
   Named-property bodies validate before discovery. Null/empty metadata paths
   still address the root. Focused cases assert zero requests and retained
   caller ownership on invalid upload input.
+  Follow-up coverage preserves legacy hostname server configuration
+  through UriBuilder rather than imposing a new absolute-URL-only requirement.
 
 - UX-05: Replaced source-edited/destructive onboarding with anonymous read-only
   defaults, argument/environment configuration and offline validation. Explicit

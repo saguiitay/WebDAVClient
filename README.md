@@ -48,7 +48,9 @@ if (count == 0)
 
 `Server` is the HTTP(S) server URL without a trailing slash; `BasePath` is the
 directory used as root and normalizes to `/.../` (empty means `/`). Prefer
-origin-only `Server` and put directory components in `BasePath`. Resource paths
+origin-only `Server` and put directory components in `BasePath`. Legacy
+hostname server values retain `UriBuilder`'s HTTP default; prefer an
+explicit HTTPS server URL for credentials. Resource paths
 are resolved against the server-discovered root, which may differ after server
 canonicalization. Assuming that root is `/dav/`:
 

@@ -22,7 +22,7 @@ namespace WebDAVClient.UnitTests
             using var harness = new ClientHarness(_ => throw new AssertFailedException("Unexpected network request."));
             Assert.AreEqual("value", Assert.ThrowsException<ArgumentNullException>(() => harness.Client.Server = null).ParamName);
             Assert.AreEqual("value", Assert.ThrowsException<ArgumentNullException>(() => harness.Client.BasePath = null).ParamName);
-            foreach (var server in new[] { "", " ", "relative", "ftp://example.com" })
+            foreach (var server in new[] { "", " ", "http://", "not a valid host", "ftp://example.com" })
                 Assert.AreEqual("value", Assert.ThrowsException<ArgumentException>(() => harness.Client.Server = server).ParamName);
             Assert.AreEqual("value", Assert.ThrowsException<ArgumentException>(() => harness.Client.BasePath = " ").ParamName);
             Assert.AreEqual("value", Assert.ThrowsException<ArgumentOutOfRangeException>(() => harness.Client.Port = 65536).ParamName);
@@ -91,6 +91,18 @@ namespace WebDAVClient.UnitTests
                 await harness.Client.GetFile(path);
                 Assert.AreEqual(4, harness.Handler.Requests.Count);
             }
+
+        }
+
+        [DataTestMethod]
+        [DataRow("example.com", "http://example.com/webdav/")]
+        [DataRow("localhost", "http://localhost/webdav/")]
+        public async Task Legacy_hostnames_retain_uri_builder_http_defaults(string server, string expected)
+        {
+            using var harness = new ClientHarness(_ => new HttpResponseMessage(System.Net.HttpStatusCode.OK));
+            harness.Client.Server = server;
+            await harness.Client.GetServerOptions();
+            Assert.AreEqual(expected, harness.Handler.Requests[0].RequestUri.AbsoluteUri);
         }
     }
 }

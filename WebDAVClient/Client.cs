@@ -77,9 +77,19 @@ namespace WebDAVClient
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
-                if (!Uri.TryCreate(value, UriKind.Absolute, out var server)
-                    || (server.Scheme != Uri.UriSchemeHttp && server.Scheme != Uri.UriSchemeHttps))
-                    throw new ArgumentException("Server must be an absolute HTTP or HTTPS URL.", nameof(value));
+                if (string.IsNullOrWhiteSpace(value))
+                    throw new ArgumentException("Server must identify an HTTP or HTTPS server.", nameof(value));
+                Uri server;
+                try
+                {
+                    server = new UriBuilder(value).Uri;
+                }
+                catch (UriFormatException exception)
+                {
+                    throw new ArgumentException("Server must identify an HTTP or HTTPS server.", nameof(value), exception);
+                }
+                if (server.Scheme != Uri.UriSchemeHttp && server.Scheme != Uri.UriSchemeHttps)
+                    throw new ArgumentException("Server must identify an HTTP or HTTPS server.", nameof(value));
                 value = value.TrimEnd('/');
                 lock (m_connectionLock)
                 {
