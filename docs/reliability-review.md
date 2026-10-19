@@ -7,6 +7,10 @@ workflows, and documentation. No critical-severity defect was established.
 
 ## Remediation progress
 
+- REL-05: All operation-level HTTP failures now use the existing conflict-aware
+  exception factory. A public-operation matrix covers 409 and non-conflict
+  failures, including discovery.
+
 - REL-02: MOVE/COPY now dispose responses and nonempty content on success and
   failure. Failed download/stream-acquisition cleanup was already fixed in
   `44769de`; existing download regressions retain that coverage.

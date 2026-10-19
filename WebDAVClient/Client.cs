@@ -292,7 +292,7 @@ namespace WebDAVClient
                 if (response.StatusCode != HttpStatusCode.OK
                     && response.StatusCode != HttpStatusCode.NoContent)
                 {
-                    throw new WebDAVException((int)response.StatusCode, "Failed retrieving server OPTIONS.");
+                    throw CreateWebDAVException((int)response.StatusCode, "Failed retrieving server OPTIONS.");
                 }
 
                 string rawDav = null;
@@ -385,7 +385,7 @@ namespace WebDAVClient
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != c_httpStatusCode_MultiStatus)
                 {
-                    throw new WebDAVException((int) response.StatusCode, "Failed retrieving items in folder.");
+                    throw CreateWebDAVException((int)response.StatusCode, "Failed retrieving items in folder.");
                 }
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
@@ -542,7 +542,7 @@ namespace WebDAVClient
                     response.StatusCode != HttpStatusCode.NoContent &&
                     response.StatusCode != HttpStatusCode.Created)
                 {
-                    throw new WebDAVException((int) response.StatusCode, "Failed uploading file.");
+                    throw CreateWebDAVException((int)response.StatusCode, "Failed uploading file.");
                 }
 
                 return response.IsSuccessStatusCode;
@@ -593,7 +593,7 @@ namespace WebDAVClient
                     response.StatusCode != HttpStatusCode.NoContent &&
                     response.StatusCode != HttpStatusCode.Created)
                 {
-                    throw new WebDAVException((int)response.StatusCode, "Failed uploading file.");
+                    throw CreateWebDAVException((int)response.StatusCode, "Failed uploading file.");
                 }
 
                 return response.IsSuccessStatusCode;
@@ -621,14 +621,11 @@ namespace WebDAVClient
             {
                 response = await HttpRequest(dirUri.Uri, m_mkColMethod, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                if (response.StatusCode == HttpStatusCode.Conflict)
-                    throw new WebDAVConflictException((int) response.StatusCode, "Failed creating folder.");
-
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent &&
                     response.StatusCode != HttpStatusCode.Created)
                 {
-                    throw new WebDAVException((int)response.StatusCode, "Failed creating folder.");
+                    throw CreateWebDAVException((int)response.StatusCode, "Failed creating folder.");
                 }
 
                 return response.IsSuccessStatusCode;
@@ -795,7 +792,7 @@ namespace WebDAVClient
 
                 if (response.StatusCode != HttpStatusCode.OK)
                 {
-                    throw new WebDAVException((int)response.StatusCode, "Failed refreshing lock.");
+                    throw CreateWebDAVException((int)response.StatusCode, "Failed refreshing lock.");
                 }
 
                 LockInfo info = null;
@@ -865,7 +862,7 @@ namespace WebDAVClient
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent)
                 {
-                    throw new WebDAVException((int)response.StatusCode, "Failed deleting item.");
+                    throw CreateWebDAVException((int)response.StatusCode, "Failed deleting item.");
                 }
             }
             finally
@@ -891,7 +888,7 @@ namespace WebDAVClient
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != c_httpStatusCode_MultiStatus)
                 {
-                    throw new WebDAVException((int)response.StatusCode, string.Format("Failed retrieving item/folder (Status Code: {0})", response.StatusCode));
+                    throw CreateWebDAVException((int)response.StatusCode, string.Format("Failed retrieving item/folder (Status Code: {0})", response.StatusCode));
                 }
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
@@ -927,7 +924,7 @@ namespace WebDAVClient
                 response.StatusCode != HttpStatusCode.Created &&
                 response.StatusCode != HttpStatusCode.NoContent)
             {
-                throw new WebDAVException((int)response.StatusCode, "Failed moving file.");
+                throw CreateWebDAVException((int)response.StatusCode, "Failed moving file.");
             }
 
             return response.IsSuccessStatusCode;
@@ -949,7 +946,7 @@ namespace WebDAVClient
                 response.StatusCode != HttpStatusCode.Created &&
                 response.StatusCode != HttpStatusCode.NoContent)
             {
-                throw new WebDAVException((int)response.StatusCode, "Failed copying file.");
+                throw CreateWebDAVException((int)response.StatusCode, "Failed copying file.");
             }
 
             return response.IsSuccessStatusCode;
@@ -980,7 +977,7 @@ namespace WebDAVClient
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.Created)
                 {
-                    throw new WebDAVException((int)response.StatusCode, "Failed acquiring lock.");
+                    throw CreateWebDAVException((int)response.StatusCode, "Failed acquiring lock.");
                 }
 
                 LockInfo info = null;
@@ -1033,7 +1030,7 @@ namespace WebDAVClient
             {
                 if (response.StatusCode != HttpStatusCode.NoContent)
                 {
-                    throw new WebDAVException((int)response.StatusCode, "Failed releasing lock.");
+                    throw CreateWebDAVException((int)response.StatusCode, "Failed releasing lock.");
                 }
             }
         }
@@ -1116,7 +1113,7 @@ namespace WebDAVClient
             try
             {
                 if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.PartialContent)
-                    throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
+                    throw CreateWebDAVException((int)response.StatusCode, "Failed retrieving file.");
                 if (rangeStart.HasValue)
                 {
                     var range = response.Content.Headers.ContentRange;
