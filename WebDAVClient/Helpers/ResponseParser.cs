@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Xml;
 using WebDAVClient.Model;
 
@@ -439,20 +440,35 @@ namespace WebDAVClient.Helpers
             }
         }
 
-        // Strips simple wrapping markup so <D:resourcetype><D:collection/></D:resourcetype>
-        // surfaces as the inner XML rather than throwing in callers that just want text.
-        // For pure-text elements, the input is already the value.
         private static string ExtractElementText(string innerXml)
         {
             if (string.IsNullOrEmpty(innerXml))
                 return string.Empty;
-            // Fast path: no markup.
-            if (innerXml.IndexOf('<') < 0)
+            if (innerXml.IndexOf('<') < 0 && innerXml.IndexOf('&') < 0)
                 return innerXml;
-            // For elements with structured content (e.g. resourcetype), keep the inner
-            // XML as-is — callers that need it can re-parse. We don't try to strip tags
-            // because that would be lossy for legitimate values containing '<'.
-            return innerXml;
+
+            using (var reader = CreatePropertyReader(innerXml))
+            {
+                var text = new StringBuilder();
+                while (reader.Read())
+                {
+                    if (reader.NodeType == XmlNodeType.Element)
+                        return innerXml;
+                    if (reader.NodeType == XmlNodeType.Text || reader.NodeType == XmlNodeType.CDATA
+                        || reader.NodeType == XmlNodeType.Whitespace || reader.NodeType == XmlNodeType.SignificantWhitespace)
+                        text.Append(reader.Value);
+                }
+                return text.ToString();
+            }
+        }
+
+        private static XmlReader CreatePropertyReader(string innerXml)
+        {
+            var settings = XmlReaderSettings.Clone();
+            settings.ConformanceLevel = ConformanceLevel.Fragment;
+            settings.IgnoreWhitespace = false;
+            settings.CloseInput = true;
+            return XmlReader.Create(new StringReader(innerXml), settings);
         }
 
         private static void AppendFoundProperty(Item itemInfo, PropertyName name, string value)
@@ -520,12 +536,15 @@ namespace WebDAVClient.Helpers
             }
             else if (string.Equals(localName, "resourcetype", StringComparison.OrdinalIgnoreCase))
             {
-                // <resourcetype> may contain an empty <D:collection/> child; detect via the
-                // captured inner XML.
-                if (!string.IsNullOrEmpty(value)
-                    && value.IndexOf("collection", StringComparison.OrdinalIgnoreCase) >= 0)
+                using (var reader = CreatePropertyReader(value))
                 {
-                    itemInfo.IsCollection = true;
+                    while (reader.Read())
+                    {
+                        if (reader.NodeType == XmlNodeType.Element && reader.Depth == 0
+                            && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.Ordinal)
+                            && string.Equals(reader.LocalName, "collection", StringComparison.OrdinalIgnoreCase))
+                            itemInfo.IsCollection = true;
+                    }
                 }
             }
             else if (string.Equals(localName, "hidden", StringComparison.OrdinalIgnoreCase)

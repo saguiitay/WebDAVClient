@@ -88,9 +88,9 @@ namespace WebDAVClient.Model
         /// <summary>
         /// Properties the server returned with a <c>200 OK</c> status inside
         /// <c>&lt;D:propstat&gt;</c>, keyed by their qualified
-        /// <see cref="PropertyName"/>. Values are the raw inner-text of the
-        /// property element (no XML markup); empty-element properties produce an
-        /// empty string. Populated only when the resource was retrieved through
+        /// <see cref="PropertyName"/>. Text-only values are XML-decoded, including
+        /// CDATA; structured values retain their inner XML. Empty-element properties
+        /// produce an empty string. Populated only when the resource was retrieved through
         /// a targeted <c>PROPFIND &lt;prop&gt;</c> request (e.g.
         /// <see cref="IClient.List(string, int?, System.Collections.Generic.IEnumerable{PropertyName}, System.Threading.CancellationToken)"/>);
         /// <c>null</c> for the default <c>&lt;allprop/&gt;</c> path so existing

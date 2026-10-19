@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WebDAVClient.Helpers;
 using WebDAVClient.Model;
@@ -199,6 +200,65 @@ namespace WebDAVClient.UnitTests.ClientTests
 
             var body = harness.Handler.Requests.Last().BodyAsString();
             StringAssert.Contains(body, "<propname");
+        }
+
+        [DataTestMethod]
+        [DataRow("A &amp; B", "A & B")]
+        [DataRow("x &lt; y", "x < y")]
+        [DataRow("<![CDATA[x < y & z]]>", "x < y & z")]
+        [DataRow("&#937; &#x263A;", "\u03A9 \u263A")]
+        [DataRow("", "")]
+        [DataRow("  a &amp; b  ", "  a & b  ")]
+        public async Task Targeted_properties_decode_text_and_populate_typed_fields(string xmlValue, string expected)
+        {
+            using var harness = new ClientHarness(Responder(_ => StubHttpMessageHandler.Multistatus(
+                WebDAVResponses.PropPatchSuccess(propertyXml: $"<D:displayname>{xmlValue}</D:displayname>"))), Server, BasePath);
+
+            var item = await harness.Client.GetFile("file.txt", new[] { new PropertyName("DAV:", "displayname") });
+
+            Assert.AreEqual(expected, item.FoundProperties[new PropertyName("DAV:", "displayname")]);
+            Assert.AreEqual(expected.Length == 0 ? "file.txt" : expected, item.DisplayName);
+        }
+
+        [TestMethod]
+        public async Task Targeted_structured_properties_preserve_XML_and_collection_namespace()
+        {
+            using var harness = new ClientHarness(Responder(_ => StubHttpMessageHandler.Multistatus(
+                WebDAVResponses.PropPatchSuccess(propertyXml:
+                    @"<X:payload xmlns:X=""urn:custom""><X:child>A &amp; B</X:child></X:payload>
+<D:resourcetype><X:collection xmlns:X=""urn:custom""/></D:resourcetype>"))), Server, BasePath);
+
+            var item = await harness.Client.GetFile("file.txt",
+                new[] { new PropertyName("urn:custom", "payload"), new PropertyName("DAV:", "resourcetype") });
+
+            var child = XElement.Parse(item.FoundProperties[new PropertyName("urn:custom", "payload")]);
+            Assert.AreEqual(XName.Get("child", "urn:custom"), child.Name);
+            Assert.AreEqual("A & B", child.Value);
+            Assert.IsFalse(item.IsCollection);
+        }
+
+        [TestMethod]
+        public async Task SetProperty_and_targeted_GetFile_round_trip_text()
+        {
+            string stored = null;
+            using var harness = new ClientHarness(Responder(request =>
+            {
+                if (request.Method.Method == "PROPPATCH")
+                {
+                    stored = XDocument.Parse(request.Content.ReadAsStringAsync().GetAwaiter().GetResult())
+                        .Descendants(XName.Get("author", CustomNs)).Single().Value;
+                    return StubHttpMessageHandler.Multistatus(WebDAVResponses.PropPatchSuccess());
+                }
+                var property = new XElement(XName.Get("author", CustomNs), stored).ToString(SaveOptions.DisableFormatting);
+                return StubHttpMessageHandler.Multistatus(WebDAVResponses.PropPatchSuccess(propertyXml: property));
+            }), Server, BasePath);
+            const string value = "A & B < C \u03A9";
+
+            await harness.Client.SetProperty("file.txt", "author", CustomNs, value);
+            var item = await harness.Client.GetFile("file.txt", new[] { new PropertyName(CustomNs, "author") });
+
+            Assert.AreEqual(value, stored);
+            Assert.AreEqual(value, item.FoundProperties[new PropertyName(CustomNs, "author")]);
         }
 
         // -------------------- Test fixtures --------------------
