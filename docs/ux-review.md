@@ -3,7 +3,73 @@
 Reviewed 2026-10-19 by a dedicated UX agent. For this library, UX means API
 consumption, upgrades, documentation, configuration, errors, and sample usability.
 
-## Outcome and priorities
+## Outcome
+
+All 16 remaining findings are addressed. Each new remediation was committed
+separately; upload ownership and independent OPTIONS were already fixed and have
+been verified rather than reimplemented. Published 2.7.0 is not republished;
+the current source/package version remains upcoming 2.7.1.
+
+| Finding | Resolution | Commit(s) |
+|---|---|---|
+| UX-02 | Correct qualified-property example and executable regression | `2d539b6` |
+| UX-03 | Executable, nonpackable sample with explicit target/offline help | `842f6ec` |
+| UX-04 | Correct partial-transfer range contract and scoped streams | `3c65c9a` |
+| UX-05 | Configurable read-only onboarding; isolated opt-in writes and cleanup | `705de39` |
+| UX-06 | Warning-free XML documentation packaged for both frameworks | `d61623b` |
+| UX-07 | Named fail-fast argument errors; preserve root/legacy hostname semantics | `dcdb19a`, `4bf5158` |
+| UX-08 | Upload ownership documentation and disposal regressions, previously fixed | `4ec69f6` |
+| UX-09 | First-contact OPTIONS without PROPFIND, previously fixed | `e239cd8` |
+| UX-10 | Qualified nullable property status results without changing legacy bags | `5ab7475`, `55f7925` |
+| UX-11 | Explicit authentication factories and named-null legacy construction | `199970b` |
+| UX-12 | Document and pin shipped delete names/defaults and future normalization | `9fe2684` |
+| UX-13 | Sanitized, concurrent request-local exception context | `03fc807` |
+| UX-14 | Package quickstart, path/authentication/ownership guide | `47c5bcf` |
+| UX-15 | True-on-success/exception-on-rejection documentation | `27ae3ce` |
+| UX-16 | Consistent current API/release guidance and archival roadmap labels | `fce2530` |
+| UX-17 | Complete configuration recipes and explicit unsupported-setting errors | `9700763` |
+
+## Verification
+
+- `dotnet build -c Release --no-restore --verbosity quiet`: succeeded with zero
+  warnings/errors, including XML documentation generation for both targets.
+- `dotnet test -c Release --no-build --verbosity quiet`: **466/466 passed on
+  net8.0 and 466/466 on net10.0**, up from the 432-per-target pre-UX baseline.
+- The corrected library-only `Release-Unsigned` command also builds without
+  warnings/errors.
+- Offline sample help, valid configuration and invalid-configuration exit code 2
+  were exercised on both frameworks. Fake transport scenarios cover empty/missing
+  content, upload/lock/cleanup failures, cancellation and confirmed-creation cleanup.
+- A clean consumer compiled the quickstart and the exact three configuration
+  recipes against the newly generated local package on both frameworks, using an
+  isolated package directory. No application/server calls were executed by those
+  compile-only consumer examples.
+- Inspected `WebDAVClient.2.7.1.nupkg`: both `lib/net8.0` and `lib/net10.0`
+  contain assembly-adjacent XML with parameter and upload-ownership descriptions.
+  A permanent regression checks generated XML and inherited download contracts.
+- Runtime/reflection regressions pin delete named/default calls, authentication
+  factories/legacy named-null calls, property status distinctions, request-context
+  sanitization/concurrency, documented path forms and zero-I/O invalid inputs.
+
+## Compatibility decisions and limits
+
+No shipped signature was removed/renamed and no required `IClient` member was
+added. Bare overloaded-null constructor calls remain ambiguous; use named
+`credential: null` or the explicit factories. Concrete delete `href` and interface
+optional `path` deliberately remain intact, with explicit positional paths
+recommended; required `path` on both surfaces is a next-major proposal only.
+Legacy failed-property collections remain unchanged alongside the new status bag.
+
+Invalid input now produces intentional argument errors, and an ineffective
+concrete-client TLS callback with injected transport now fails before I/O instead
+of being ignored. Configure TLS on the injected handler. There is still no
+leave-open upload option, automatic retry layer, or fluent builder.
+
+No live remote WebDAV/TLS interoperability run, interactive IDE IntelliSense
+rendering, published-feed verification or compiled old-binary compatibility
+fixture was performed. Package inspection, clean consumer compilation and
+source/API reflection regressions provide the recorded evidence. Nothing was
+pushed or published.
 
 ## Remediation progress
 
@@ -316,7 +382,7 @@ break downstream implementations.
 **Acceptance:** Recipes cover credentials, bearer refresh, injected transport,
 proxy, certificate callbacks, and distinct timeouts with explicit ownership.
 
-## Implementation order and limitations
+## Original review implementation order and scope (historical)
 
 Fix/compile examples, make sample mutations safe,
 ship API docs, clarify ownership/errors, and add guards/status/config improvements.
