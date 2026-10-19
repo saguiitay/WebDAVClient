@@ -106,6 +106,11 @@ namespace WebDAVClient.Helpers
                     {
                         if (nsToPrefix.ContainsKey(prop.Namespace))
                             continue;
+                        if (prop.Namespace.Length == 0)
+                        {
+                            nsToPrefix[prop.Namespace] = string.Empty;
+                            continue;
+                        }
                         var prefix = "n" + (nsToPrefix.Count - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
                         nsToPrefix[prop.Namespace] = prefix;
                         writer.WriteAttributeString("xmlns", prefix, null, prop.Namespace);

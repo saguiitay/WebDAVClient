@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security and correctness fixes:
+  - Targeted PROPFIND requests now support properties without an XML namespace, including mixed-namespace requests.
   - Versioning properties no longer cause the parser to skip metadata immediately following their XML subtrees.
   - Partial uploads preserve their exclusive-end API contract but now send the correct inclusive HTTP endpoint and validate the bytes remaining from the stream's current position.
   - Absolute resource URLs must match the configured origin (scheme, hostname, and effective port, including `Port` overrides). Server-returned metadata can no longer downgrade HTTPS to HTTP or redirect requests to another port on the same host.

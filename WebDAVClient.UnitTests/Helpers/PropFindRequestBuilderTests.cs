@@ -142,6 +142,26 @@ namespace WebDAVClient.UnitTests.Helpers
             Assert.AreEqual(1, occurrences, "Custom namespace URI should appear exactly once as an xmlns binding.");
         }
 
+        [DataTestMethod]
+        [DataRow(false)]
+        [DataRow(true)]
+        public void BuildPropBody_supports_unqualified_properties_alone_and_with_namespaces(bool mixed)
+        {
+            var properties = new List<PropertyName> { new PropertyName("", "author") };
+            if (mixed)
+            {
+                properties.Add(new PropertyName("DAV:", "getetag"));
+                properties.Add(new PropertyName("urn:custom", "tag"));
+                properties.Add(new PropertyName("", "title"));
+            }
+
+            var document = XDocument.Parse(Encoding.UTF8.GetString(PropFindRequestBuilder.BuildPropBody(properties)));
+            var elements = document.Root.Element(XName.Get("prop", "DAV:")).Elements().ToList();
+
+            CollectionAssert.AreEqual(properties.Select(p => XName.Get(p.LocalName, p.Namespace)).ToArray(),
+                elements.Select(e => e.Name).ToArray());
+        }
+
         [TestMethod]
         public void BuildPropBody_produces_well_formed_utf8_xml_without_BOM()
         {
