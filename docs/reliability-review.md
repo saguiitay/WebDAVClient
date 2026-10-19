@@ -3,9 +3,24 @@
 Reviewed 2026-10-19 by a dedicated reliability agent using local source, tests,
 workflows, and documentation. No critical-severity defect was established.
 
-## Ranked findings
-
 ## Remediation progress
+
+All six confirmed findings are remediated (REL-03 was already fixed before
+this task). The additional hardening recommendations are implemented or, for
+automatic retries, documented as an intentional safety policy.
+
+| Finding | Remediation commit |
+|---|---|
+| REL-01 | `0510260` |
+| REL-02 | `370f337` (failed-download cleanup previously `44769de`) |
+| REL-03 | `5cf9206` (previous BUG-08 fix) |
+| REL-04 | `47b156e` |
+| REL-05 | `fa6ee74`, legacy assertion follow-up `ed0c088` |
+| REL-06 | `16cba4b` |
+
+Additional hardening commits: async transport `85f11ab`, download lifetime
+`2d1f130`, upload ownership `4ec69f6`, token concurrency `d6bbe9b`, and partial
+mutation recovery `2e8c527`.
 
 - Retry/recovery hardening: Automatic retries remain intentionally absent, as
   recommended. Documented replayability, bounded budgets/backoff, `Retry-After`,
@@ -70,6 +85,20 @@ workflows, and documentation. No critical-severity defect was established.
   mixed listings, and failed propstat regression coverage.
 
 The original findings and evidence below describe the reviewed revision.
+
+## Remediation validation
+
+- Release solution build succeeds with zero warnings/errors.
+- Full Release unit suite: 406/406 pass for net8.0 and 406/406 for net10.0.
+- The consolidated publishing workflow passes actionlint.
+- No live WebDAV server, remote CI run, or package publication was performed.
+  In particular, the report's disposable-branch failing-test exercise remains
+  unexecuted; workflow gates were validated locally without remote side effects.
+- Contributor guidance now describes the actual test project, shipped bearer
+  authentication, cancellation/ownership rules, and intentional no-retry policy.
+- Development/package metadata remains 2.7.1; already-published 2.7.0 is unchanged.
+
+## Ranked findings
 
 | ID | Severity | Finding | Primary evidence | Confidence |
 |---|---|---|---|---|
@@ -212,9 +241,9 @@ failing-test scenario in a disposable CI branch without publishing.
   and distinguish skipped duplicate publication from a new release.
   `.github\copilot-instructions.md:17-19` incorrectly describes tests as absent.
 
-## Validation and limitations
+## Original review validation and limitations
 
-The parent restored a missing test dependency and ran the Release test project:
+At original review time, the parent restored a missing test dependency and ran the Release test project:
 238/238 passed for net8.0 and 238/238 for net10.0. Existing tests do not exercise
 the stalled-body and resource-lifetime scenarios above. No live server, remote
 workflow history, branch protection, package history, or runtime resource
