@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using WebDAVClient.Model;
 
 namespace WebDAVClient.Helpers
@@ -14,6 +15,36 @@ namespace WebDAVClient.Helpers
     public class WebDAVException : Exception
     {
         private readonly int m_httpCode;
+        internal static readonly HttpRequestOptionsKey<string> s_operationKey = new HttpRequestOptionsKey<string>("WebDAVClient.Operation");
+
+        /// <summary>Operation that failed, or null for an exception constructed without request context.</summary>
+        public string Operation { get; private set; }
+
+        /// <summary>HTTP method of the failed request, or null when unavailable.</summary>
+        public string Method { get; private set; }
+
+        /// <summary>Failed request URI without user information, query or fragment; null when unavailable. Paths may still contain application-sensitive names.</summary>
+        public Uri ResourceUri { get; private set; }
+
+        internal WebDAVException WithRequestContext(HttpRequestMessage request)
+        {
+            if (request == null)
+                return this;
+            Operation = request.Options.TryGetValue(s_operationKey, out var operation) ? operation : request.Method.Method;
+            Method = request.Method.Method;
+            if (request.RequestUri?.IsAbsoluteUri == true)
+            {
+                var uri = new UriBuilder(request.RequestUri)
+                {
+                    UserName = string.Empty,
+                    Password = string.Empty,
+                    Query = string.Empty,
+                    Fragment = string.Empty
+                };
+                ResourceUri = uri.Uri;
+            }
+            return this;
+        }
 
         /// <summary>
         /// Optional implementation-defined error code (HRESULT-style).
@@ -126,6 +157,8 @@ namespace WebDAVClient.Helpers
             var s = string.Format("HttpStatusCode: {0}", GetHttpCode());
             s += Environment.NewLine + string.Format("ErrorCode: {0}", ErrorCode);
             s += Environment.NewLine + string.Format("Message: {0}", Message);
+            if (Operation != null)
+                s += Environment.NewLine + $"Request: {Operation} ({Method}) {ResourceUri}";
             s += Environment.NewLine + base.ToString();
 
             return s;

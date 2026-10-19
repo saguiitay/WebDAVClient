@@ -60,6 +60,9 @@ namespace WebDAVClient.UnitTests
                 {
                     Assert.AreEqual(status, ex.GetHttpCode());
                     Assert.AreEqual(status == 409, ex is WebDAVConflictException);
+                    Assert.IsFalse(string.IsNullOrEmpty(ex.Operation));
+                    Assert.AreEqual(harness.Handler.Requests.Last().Method.Method, ex.Method);
+                    Assert.AreEqual(harness.Handler.Requests.Last().RequestUri, ex.ResourceUri);
                 }
             }
         }

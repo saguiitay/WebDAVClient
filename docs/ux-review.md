@@ -7,6 +7,11 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-13: Added read-only operation/method/sanitized resource context to status and
+  parsed-resource exceptions, retaining constructors, subtypes, HTTP codes and
+  inner exceptions. Concurrent failure tests verify request isolation and strip
+  user information/query/fragment without copying headers or bodies.
+
 - UX-15: Corrected all seven boolean mutation return descriptions on both public
   surfaces and added HTTP/conflict/cancellation guidance. No return types or
   exception behavior changed; the sample handles rejected operations explicitly.

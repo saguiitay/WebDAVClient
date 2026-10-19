@@ -343,7 +343,7 @@ namespace WebDAVClient
             HttpResponseMessage response = null;
             try
             {
-                response = await HttpRequest(uri.Uri, s_optionsMethod, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(uri.Uri, s_optionsMethod, cancellationToken: cancellationToken, operation: nameof(GetServerOptions)).ConfigureAwait(false);
 
                 // OPTIONS is expected to succeed with 200 OK or 204 No Content.
                 // Some servers return 200 even when the resource is missing; the
@@ -351,7 +351,7 @@ namespace WebDAVClient
                 if (response.StatusCode != HttpStatusCode.OK
                     && response.StatusCode != HttpStatusCode.NoContent)
                 {
-                    throw CreateWebDAVException((int)response.StatusCode, "Failed retrieving server OPTIONS.");
+                    throw CreateWebDAVException(response, "Failed retrieving server OPTIONS.");
                 }
 
                 string rawDav = null;
@@ -439,19 +439,19 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(listUri.Uri, m_propFindMethod, headers, body, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(listUri.Uri, m_propFindMethod, headers, body, cancellationToken: cancellationToken, operation: nameof(List)).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != c_httpStatusCode_MultiStatus)
                 {
-                    throw CreateWebDAVException((int)response.StatusCode, "Failed retrieving items in folder.");
+                    throw CreateWebDAVException(response, "Failed retrieving items in folder.");
                 }
 
                 var items = await ReadMetadataResponse(response,
                     (stream, token) => ResponseParser.ParseItemsAsync(stream, mode, token), cancellationToken).ConfigureAwait(false);
                 if (items == null)
                 {
-                    throw new WebDAVException("Failed deserializing data returned from server.");
+                    throw CreateWebDAVException(response, "Failed deserializing data returned from server.", httpCode: 0);
                 }
 
                 var listUrl = listUri.Uri.AbsoluteUri.TrimEnd('/');
@@ -599,13 +599,13 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, headers, cancellationToken: cancellationToken, operation: nameof(Upload)).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent &&
                     response.StatusCode != HttpStatusCode.Created)
                 {
-                    throw CreateWebDAVException((int)response.StatusCode, "Failed uploading file.");
+                    throw CreateWebDAVException(response, "Failed uploading file.");
                 }
 
                 return response.IsSuccessStatusCode;
@@ -653,13 +653,13 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, headers, startBytes, endBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpUploadRequest(uploadUri.Uri, HttpMethod.Put, content, headers, startBytes, endBytes, cancellationToken: cancellationToken, operation: nameof(UploadPartial)).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent &&
                     response.StatusCode != HttpStatusCode.Created)
                 {
-                    throw CreateWebDAVException((int)response.StatusCode, "Failed uploading file.");
+                    throw CreateWebDAVException(response, "Failed uploading file.");
                 }
 
                 return response.IsSuccessStatusCode;
@@ -687,13 +687,13 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(dirUri.Uri, m_mkColMethod, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(dirUri.Uri, m_mkColMethod, cancellationToken: cancellationToken, operation: nameof(CreateDir)).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent &&
                     response.StatusCode != HttpStatusCode.Created)
                 {
-                    throw CreateWebDAVException((int)response.StatusCode, "Failed creating folder.");
+                    throw CreateWebDAVException(response, "Failed creating folder.");
                 }
 
                 return response.IsSuccessStatusCode;
@@ -877,11 +877,11 @@ namespace WebDAVClient
             HttpResponseMessage response = null;
             try
             {
-                response = await HttpRequest(uri.Uri, s_lockMethod, headers, content: null, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(uri.Uri, s_lockMethod, headers, content: null, cancellationToken: cancellationToken, operation: nameof(RefreshLock)).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK)
                 {
-                    throw CreateWebDAVException((int)response.StatusCode, "Failed refreshing lock.");
+                    throw CreateWebDAVException(response, "Failed refreshing lock.");
                 }
 
                 LockInfo info = null;
@@ -943,7 +943,7 @@ namespace WebDAVClient
             HttpResponseMessage response = null;
             try
             {
-                response = await HttpRequest(listUri, HttpMethod.Delete, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(listUri, HttpMethod.Delete, headers, cancellationToken: cancellationToken, operation: nameof(Delete)).ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.NoContent)
@@ -969,19 +969,19 @@ namespace WebDAVClient
 
             try
             {
-                response = await HttpRequest(listUri, m_propFindMethod, headers, body, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(listUri, m_propFindMethod, headers, body, cancellationToken: cancellationToken, operation: "GetMetadata").ConfigureAwait(false);
 
                 if (response.StatusCode != HttpStatusCode.OK &&
                     (int) response.StatusCode != c_httpStatusCode_MultiStatus)
                 {
-                    throw CreateWebDAVException((int)response.StatusCode, string.Format("Failed retrieving item/folder (Status Code: {0})", response.StatusCode));
+                    throw CreateWebDAVException(response, string.Format("Failed retrieving item/folder (Status Code: {0})", response.StatusCode));
                 }
 
                 var result = await ReadMetadataResponse(response,
                     (stream, token) => ResponseParser.ParseItemAsync(stream, mode, token), cancellationToken).ConfigureAwait(false);
                 if (result == null)
                 {
-                    throw new WebDAVException("Failed deserializing data returned from server.");
+                    throw CreateWebDAVException(response, "Failed deserializing data returned from server.", httpCode: 0);
                 }
                 return result;
             }
@@ -1000,7 +1000,7 @@ namespace WebDAVClient
             };
             LockTokenHeaderHelper.AddIfHeader(headers, srcUri, sourceLockToken, dstUri, destinationLockToken);
 
-            using var response = await HttpRequest(srcUri, m_moveMethod, headers, s_moveRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+            using var response = await HttpRequest(srcUri, m_moveMethod, headers, s_moveRequestContentBytes, cancellationToken: cancellationToken, operation: nameof(Move)).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.Created &&
@@ -1022,7 +1022,7 @@ namespace WebDAVClient
             // RFC 4918 §7.5.1: source is not modified by COPY, so source lock token is not required.
             LockTokenHeaderHelper.AddIfHeader(headers, srcUri, sourceLockToken: null, destinationUri: dstUri, destinationLockToken: destinationLockToken);
 
-            using var response = await HttpRequest(srcUri, m_copyMethod, headers, s_copyRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+            using var response = await HttpRequest(srcUri, m_copyMethod, headers, s_copyRequestContentBytes, cancellationToken: cancellationToken, operation: nameof(Copy)).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.Created &&
@@ -1051,7 +1051,7 @@ namespace WebDAVClient
             HttpResponseMessage response = null;
             try
             {
-                response = await HttpRequest(uri, s_lockMethod, headers, body, cancellationToken: cancellationToken).ConfigureAwait(false);
+                response = await HttpRequest(uri, s_lockMethod, headers, body, cancellationToken: cancellationToken, operation: nameof(Lock)).ConfigureAwait(false);
 
                 // RFC 4918 §9.10.6: 207 Multi-Status from a depth-infinity LOCK indicates that
                 // at least one member could not be locked — the lock as requested was NOT granted
@@ -1059,7 +1059,7 @@ namespace WebDAVClient
                 if (response.StatusCode != HttpStatusCode.OK &&
                     response.StatusCode != HttpStatusCode.Created)
                 {
-                    throw CreateWebDAVException((int)response.StatusCode, "Failed acquiring lock.");
+                    throw CreateWebDAVException(response, "Failed acquiring lock.");
                 }
 
                 LockInfo info = null;
@@ -1084,7 +1084,7 @@ namespace WebDAVClient
 
                 if (string.IsNullOrEmpty(info.Token))
                 {
-                    throw new WebDAVException((int)response.StatusCode,
+                    throw CreateWebDAVException(response,
                         "Lock response did not contain a lock token in either the Lock-Token header or the response body.");
                 }
 
@@ -1105,11 +1105,11 @@ namespace WebDAVClient
                 { "Lock-Token", "<" + bareToken + ">" }
             };
 
-            using (var response = await HttpRequest(uri, s_unlockMethod, headers, content: null, cancellationToken: cancellationToken).ConfigureAwait(false))
+            using (var response = await HttpRequest(uri, s_unlockMethod, headers, content: null, cancellationToken: cancellationToken, operation: nameof(Unlock)).ConfigureAwait(false))
             {
                 if (response.StatusCode != HttpStatusCode.NoContent)
                 {
-                    throw CreateWebDAVException((int)response.StatusCode, "Failed releasing lock.");
+                    throw CreateWebDAVException(response, "Failed releasing lock.");
                 }
             }
         }
@@ -1127,17 +1127,18 @@ namespace WebDAVClient
             var uri = await GetServerUrl(path, false, cancellationToken).ConfigureAwait(false);
             var body = PropPatchRequestBuilder.BuildPropPatchBody(propertyName, propertyNamespace, value, isRemove);
 
-            using (var response = await HttpRequest(uri.Uri, s_propPatchMethod, headers: null, body, cancellationToken: cancellationToken).ConfigureAwait(false))
+            using (var response = await HttpRequest(uri.Uri, s_propPatchMethod, headers: null, body, cancellationToken: cancellationToken,
+                operation: isRemove ? nameof(RemoveProperty) : nameof(SetProperty)).ConfigureAwait(false))
             {
                 if ((int)response.StatusCode != c_httpStatusCode_MultiStatus)
                 {
-                    throw CreateWebDAVException((int)response.StatusCode, "PROPPATCH failed.");
+                    throw CreateWebDAVException(response, "PROPPATCH failed.");
                 }
 
                 IList<PropPatchResponseParser.PropStatResult> results;
                 if (response.Content == null)
                 {
-                    throw new WebDAVException((int)response.StatusCode, "PROPPATCH response had no body to confirm property status.");
+                    throw CreateWebDAVException(response, "PROPPATCH response had no body to confirm property status.");
                 }
 
                 try
@@ -1146,14 +1147,14 @@ namespace WebDAVClient
                 }
                 catch (System.Xml.XmlException ex)
                 {
-                    throw new WebDAVException((int)response.StatusCode, "PROPPATCH response body could not be parsed.", ex);
+                    throw CreateWebDAVException(response, "PROPPATCH response body could not be parsed.", innerException: ex);
                 }
 
                 // No propstat at all = ambiguous response. RFC 4918 §9.2 requires the server to
                 // report per-property outcomes; treat absence as failure rather than vacuous success.
                 if (results.Count == 0)
                 {
-                    throw new WebDAVException((int)response.StatusCode,
+                    throw CreateWebDAVException(response,
                         "PROPPATCH response did not contain any propstat status — cannot confirm the property change.");
                 }
 
@@ -1166,7 +1167,7 @@ namespace WebDAVClient
                             msg += " — " + r.ResponseDescription;
                         // r.StatusCode may be 0 for a malformed status line; surface 0 verbatim
                         // rather than synthesizing a fake code.
-                        throw CreateWebDAVException(r.StatusCode, msg);
+                        throw CreateWebDAVException(response, msg, httpCode: r.StatusCode);
                     }
                 }
 
@@ -1177,15 +1178,17 @@ namespace WebDAVClient
         private async Task<WebDAVException> CreateMutationException(HttpResponseMessage response, string message, CancellationToken cancellationToken)
         {
             if ((int)response.StatusCode != c_httpStatusCode_MultiStatus)
-                return CreateWebDAVException((int)response.StatusCode, message);
+                return CreateWebDAVException(response, message);
             try
             {
                 var statuses = await ReadMetadataResponse(response, MultiStatusResponseParser.ParseAsync, cancellationToken).ConfigureAwait(false);
-                return new WebDAVException(c_httpStatusCode_MultiStatus, message) { ResourceStatuses = statuses };
+                var exception = CreateWebDAVException(response, message);
+                exception.ResourceStatuses = statuses;
+                return exception;
             }
             catch (System.Xml.XmlException ex)
             {
-                return new WebDAVException(c_httpStatusCode_MultiStatus, message + " Multi-status recovery details could not be parsed.", ex);
+                return CreateWebDAVException(response, message + " Multi-status recovery details could not be parsed.", innerException: ex);
             }
         }
 
@@ -1196,28 +1199,40 @@ namespace WebDAVClient
             deadline.CancelAfter(ResponseBodyTimeout);
             using var stream = await response.Content.ReadAsStreamAsync(deadline.Token).WaitAsync(deadline.Token).ConfigureAwait(false);
             using var cancellableStream = new CancellationReadStream(stream, deadline.Token);
-            var result = await parse(cancellableStream, deadline.Token).ConfigureAwait(false);
+            T result;
+            try
+            {
+                result = await parse(cancellableStream, deadline.Token).ConfigureAwait(false);
+            }
+            catch (WebDAVException exception)
+            {
+                exception.WithRequestContext(response.RequestMessage);
+                throw;
+            }
             deadline.Token.ThrowIfCancellationRequested();
             return result;
         }
 
         // Centralised so 409 keeps mapping to WebDAVConflictException everywhere.
-        private static WebDAVException CreateWebDAVException(int httpCode, string message)
+        private static WebDAVException CreateWebDAVException(HttpResponseMessage response, string message, int? httpCode = null, Exception innerException = null)
         {
-            if (httpCode == (int)HttpStatusCode.Conflict)
-                return new WebDAVConflictException(httpCode, message);
-            return new WebDAVException(httpCode, message);
+            var code = httpCode ?? (int)response.StatusCode;
+            WebDAVException exception = code == (int)HttpStatusCode.Conflict
+                ? new WebDAVConflictException(code, message, innerException)
+                : new WebDAVException(code, message, innerException);
+            return exception.WithRequestContext(response.RequestMessage);
         }
 
         private async Task<Stream> DownloadFile(string remoteFilePath, Dictionary<string, string> header, long? rangeStart = null, long? rangeEnd = null, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var downloadUri = await GetServerUrl(remoteFilePath, false, cancellationToken).ConfigureAwait(false);
-            var response = await HttpRequest(downloadUri.Uri, HttpMethod.Get, header, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var response = await HttpRequest(downloadUri.Uri, HttpMethod.Get, header, cancellationToken: cancellationToken,
+                operation: rangeStart.HasValue ? nameof(DownloadPartial) : nameof(Download)).ConfigureAwait(false);
             try
             {
                 if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.PartialContent)
-                    throw CreateWebDAVException((int)response.StatusCode, "Failed retrieving file.");
+                    throw CreateWebDAVException(response, "Failed retrieving file.");
                 if (rangeStart.HasValue)
                 {
                     var range = response.Content.Headers.ContentRange;
@@ -1228,7 +1243,7 @@ namespace WebDAVClient
                         || range.From != rangeStart || range.To != expectedEnd
                         || (response.Content.Headers.ContentLength.HasValue
                             && response.Content.Headers.ContentLength.Value != range.To.Value - range.From.Value + 1))
-                        throw new WebDAVException((int)response.StatusCode, "The server did not return the requested byte range.");
+                        throw CreateWebDAVException(response, "The server did not return the requested byte range.");
                 }
                 var stream = await response.Content.ReadAsStreamAsync(cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false);
                 return new ResponseOwnedStream(stream, response);
@@ -1268,10 +1283,11 @@ namespace WebDAVClient
             }
         }
 
-        private async Task<HttpResponseMessage> HttpRequest(Uri uri, HttpMethod method, IDictionary<string, string> headers = null, byte[] content = null, CancellationToken cancellationToken = default)
+        private async Task<HttpResponseMessage> HttpRequest(Uri uri, HttpMethod method, IDictionary<string, string> headers = null, byte[] content = null, CancellationToken cancellationToken = default, string operation = null)
         {
             using (var request = new HttpRequestMessage(method, uri))
             {
+                request.Options.Set(WebDAVException.s_operationKey, operation ?? method.Method);
                 request.Headers.Connection.Add("Keep-Alive");
                 if (!string.IsNullOrWhiteSpace(UserAgent))
                     request.Headers.UserAgent.Add(new ProductInfoHeaderValue(UserAgent, UserAgentVersion));
@@ -1302,7 +1318,9 @@ namespace WebDAVClient
                     request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/xml");
                 }
 
-                return await m_httpClientWrapper.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                var response = await m_httpClientWrapper.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                response.RequestMessage ??= request;
+                return response;
             }
         }
 
@@ -1315,10 +1333,11 @@ namespace WebDAVClient
         /// <param name="headers"></param>
         /// <param name="startBytes"></param>
         /// <param name="endBytes"></param>
-        private async Task<HttpResponseMessage> HttpUploadRequest(Uri uri, HttpMethod method, Stream content, IDictionary<string, string> headers = null, long? startBytes = null, long? endBytes = null, CancellationToken cancellationToken = default)
+        private async Task<HttpResponseMessage> HttpUploadRequest(Uri uri, HttpMethod method, Stream content, IDictionary<string, string> headers = null, long? startBytes = null, long? endBytes = null, CancellationToken cancellationToken = default, string operation = null)
         {
             using (var request = new HttpRequestMessage(method, uri))
             {
+                request.Options.Set(WebDAVException.s_operationKey, operation ?? method.Method);
                 request.Headers.Connection.Add("Keep-Alive");
                 if (!string.IsNullOrWhiteSpace(UserAgent))
                     request.Headers.UserAgent.Add(new ProductInfoHeaderValue(UserAgent, UserAgentVersion));
@@ -1353,7 +1372,9 @@ namespace WebDAVClient
                     }
                 }
 
-                return await m_httpClientWrapper.SendUploadAsync(request, cancellationToken).ConfigureAwait(false);
+                var response = await m_httpClientWrapper.SendUploadAsync(request, cancellationToken).ConfigureAwait(false);
+                response.RequestMessage ??= request;
+                return response;
             }
         }
 

@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security, correctness, and reliability fixes:
+  - WebDAV exceptions include request-local operation, method and sanitized resource context without changing existing status codes or conflict specialization.
   - Targeted/property-name results expose qualified `PropertyStatuses`, distinguishing absent (404), denied (403), dependency failure (424), and omitted statuses without changing legacy bags.
   - Invalid transports, configuration, required paths, upload inputs and named-property lists fail with parameter-specific argument errors before discovery; null/empty metadata paths retain root behavior.
   - Manual examples are runnable, read-only by default, configurable without source edits, and isolate opt-in mutations with scoped streams and bounded cleanup.
@@ -174,6 +175,12 @@ Boolean mutations return `true` on confirmed success; they do **not** return
 HTTP 409 is the derived `WebDAVConflictException`. Caller cancellation throws
 `OperationCanceledException`; transport/XML failures can retain their original
 exception types. Existing return types are unchanged.
+
+Client-generated `WebDAVException` failures expose read-only `Operation`, `Method`
+and `ResourceUri` context. The URI omits user information, query and fragment;
+headers and bodies are not added to this context. Resource paths can still contain
+sensitive application names, so apply your logging policy. Manually constructed
+exceptions can have null context. No shared "last request" state is used.
 
 ``` csharp
 using System;
