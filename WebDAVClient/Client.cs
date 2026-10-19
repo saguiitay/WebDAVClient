@@ -921,7 +921,7 @@ namespace WebDAVClient
             };
             LockTokenHeaderHelper.AddIfHeader(headers, srcUri, sourceLockToken, dstUri, destinationLockToken);
 
-            var response = await HttpRequest(srcUri, m_moveMethod, headers, s_moveRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+            using var response = await HttpRequest(srcUri, m_moveMethod, headers, s_moveRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.Created &&
@@ -943,7 +943,7 @@ namespace WebDAVClient
             // RFC 4918 §7.5.1: source is not modified by COPY, so source lock token is not required.
             LockTokenHeaderHelper.AddIfHeader(headers, srcUri, sourceLockToken: null, destinationUri: dstUri, destinationLockToken: destinationLockToken);
 
-            var response = await HttpRequest(srcUri, m_copyMethod, headers, s_copyRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+            using var response = await HttpRequest(srcUri, m_copyMethod, headers, s_copyRequestContentBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.Created &&
