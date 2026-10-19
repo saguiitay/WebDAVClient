@@ -7,6 +7,11 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-14: Added installation/read-only quickstart before release history, current
+  target frameworks and release status, path examples, authentication matrix and
+  ownership table. Fake transport regressions pin relative/rooted/absolute path
+  recipes; existing ownership regressions cover injected clients and streams.
+
 - UX-13: Added read-only operation/method/sanitized resource context to status and
   parsed-resource exceptions, retaining constructors, subtypes, HTTP codes and
   inner exceptions. Concurrent failure tests verify request isolation and strip

@@ -10,6 +10,90 @@ WebDAVClient is based originally on <https://github.com/kvdb/WebDAVClient>. I've
 
 WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/WebDAVClient/)
 
+## Quickstart
+
+```pwsh
+dotnet add package WebDAVClient
+```
+
+Current source targets **.NET 8 and .NET 10**. Version 2.7.0 is already released;
+2.7.1 additions described here are upcoming, not a claim of feed publication.
+The install command selects the published package. This read-only anonymous
+example uses the existing injected-transport API:
+
+```csharp
+using System;
+using System.Net.Http;
+using System.Threading;
+using WebDAVClient;
+
+using var http = new HttpClient(new HttpClientHandler { UseDefaultCredentials = false });
+using IClient client = new Client(http)
+{
+    Server = "https://dav.example.com",
+    BasePath = "/dav/"
+};
+using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+var count = 0;
+foreach (var item in await client.List(cancellationToken: cancellation.Token))
+{
+    Console.WriteLine($"{(item.IsCollection ? "Folder" : "File")}: {item.DisplayName}");
+    count++;
+}
+if (count == 0)
+    Console.WriteLine("This directory is empty.");
+```
+
+### Paths
+
+`Server` is the HTTP(S) server URL without a trailing slash; `BasePath` is the
+directory used as root and normalizes to `/.../` (empty means `/`). Prefer
+origin-only `Server` and put directory components in `BasePath`. Resource paths
+are resolved against the server-discovered root, which may differ after server
+canonicalization. Assuming that root is `/dav/`:
+
+| Input | Requested resource |
+|---|---|
+| `"reports/file.txt"` or `"/reports/file.txt"` | `/dav/reports/file.txt` |
+| `"/dav/reports/file.txt"` (already rooted) | `/dav/reports/file.txt`, not `/dav/dav/...` |
+| A returned `Item.Href` | Reusable directly; collections retain their trailing `/` |
+| `"https://dav.example.com/other/file.txt"` | Same-origin absolute URL, unchanged; BasePath is not an access-control boundary |
+| `null`, `""`, or `"/"` for metadata reads | Configured root |
+
+Absolute URLs must match scheme, hostname and effective port. Required mutation
+and download paths reject null; use an explicit resource path. Folder operations
+normalize trailing slashes, while file hrefs do not end in `/`.
+
+### Authentication
+
+| Mode | Construction and behavior |
+|---|---|
+| Anonymous | Inject `HttpClient` with `UseDefaultCredentials = false` and no credentials/auth handler, as above |
+| Windows-default credentials | `new Client()` or `new Client(credential: null)`; null is not anonymous |
+| Basic/Digest/Windows explicit credentials | `new Client(new System.Net.NetworkCredential(user, password))`; HTTPS and server challenge policy apply |
+| Static bearer | `new Client(bearerToken: token)` |
+| Refreshable bearer | `new Client(bearerTokenProvider: provider)`; provider receives cancellation and must handle concurrent calls |
+
+Version 2.7.1 also adds unambiguous `CreateWithCredentials`,
+`CreateWithBearerToken` and `CreateWithBearerTokenProvider` factories. Do not
+remove shipped constructor overloads to resolve null ambiguity. Use HTTPS for
+credentials. See [configuration recipes](#configuration-recipes) for proxy,
+certificate validation, provider integration and distinct timeout budgets.
+
+### Ownership
+
+| Resource | Who disposes it? |
+|---|---|
+| Client-created HTTP clients/handler | `Client.Dispose()`; scope the client |
+| Injected `HttpClient` | Caller; disposing Client leaves it usable |
+| Injected `IHttpClientWrapper` | Caller, according to its policy; disposing concrete `HttpClientWrapper` disposes the HTTP clients supplied to that wrapper |
+| Upload input stream | Request owns it once created, including failure/cancellation; retain a caller `using` for pre-request failures and reopen for retry |
+| Download result stream | Caller; disposing it also disposes its HTTP response/content |
+
+No automatic mutation retries are performed. Boolean operations return true on
+confirmed success and throw on rejection; handle `WebDAVException` rather than
+checking for false.
+
 ## Features
 
 * Available as a NuGet package

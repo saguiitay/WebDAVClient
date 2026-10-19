@@ -13,6 +13,22 @@ namespace WebDAVClient.UnitTests
     [TestClass]
     public class DocumentationExamplesTests
     {
+        [DataTestMethod]
+        [DataRow("reports/file.txt")]
+        [DataRow("/reports/file.txt")]
+        [DataRow("/dav/reports/file.txt")]
+        [DataRow("http://example.com/dav/reports/file.txt")]
+        public async Task Quickstart_path_forms_match_the_consumption_guide(string path)
+        {
+            int calls = 0;
+            using var harness = new ClientHarness(_ => StubHttpMessageHandler.Multistatus(
+                ++calls == 1 ? WebDAVResponses.Root("/dav/") : WebDAVResponses.SingleFile("/dav/reports/file.txt")),
+                basePath: "/dav/");
+            IClient client = harness.Client;
+            await client.GetFile(path);
+            Assert.AreEqual("/dav/reports/file.txt", harness.Handler.Requests.Last().RequestUri.AbsolutePath);
+        }
+
         [TestMethod]
         public async Task Partial_transfer_example_matches_exclusive_upload_and_inclusive_download_ends()
         {
