@@ -146,6 +146,14 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 # Usage
 
+**Delete call compatibility:** `Client.DeleteFile(href: "...")` and
+`Client.DeleteFolder(href: "...")` require `href`; through `IClient` the shipped
+parameter is `path`, with default `"/"`. Prefer explicit positional resource paths
+with either type. Omitting the interface argument targets the configured root;
+never omit it unless root deletion is intended. This version preserves both
+surfaces. The proposed next-major normalization is a required `path` on both
+types, not a silent parameter rename or overload change in a patch release.
+
 For new code, use `Client.CreateWithCredentials`,
 `Client.CreateWithBearerToken`, or `Client.CreateWithBearerTokenProvider` to
 select authentication without overloaded-null ambiguity. All shipped constructors

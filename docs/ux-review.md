@@ -7,6 +7,11 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-12: Documented the shipped concrete `href` versus interface optional `path`
+  discrepancy, explicit positional-call guidance and the risk of root defaults.
+  Selected required `path` as a proposed next-major normalization only.
+  Compilation/runtime and reflection regressions pin both existing surfaces.
+
 - UX-11: Added explicit credential/static-bearer/provider factories and documented
   named `credential: null` for legacy null/timeout/proxy construction. Kept every
   shipped constructor; source regressions compile the supported legacy calls and
