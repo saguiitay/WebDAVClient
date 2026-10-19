@@ -79,8 +79,10 @@ namespace WebDAVClient
         /// PROPFIND with a caller-supplied list of properties (RFC 4918 §9.1
         /// <c>&lt;prop&gt;</c>) — bandwidth-efficient targeted retrieval. Each
         /// returned <see cref="Item"/> has its <see cref="Item.FoundProperties"/>
-        /// (status 200) and <see cref="Item.NotFoundProperties"/> (status 404)
-        /// populated from the per-property propstat. Standard DAV: live
+        /// (successful status) and <see cref="Item.NotFoundProperties"/> (all other
+        /// statuses, including omitted status) populated from the per-property propstat.
+        /// <see cref="Item.PropertyStatuses"/> distinguishes 404, 403, 424 and omission.
+        /// Standard DAV: live
         /// properties (e.g. <c>getetag</c>, <c>displayname</c>, <c>getcontentlength</c>)
         /// also continue to populate the corresponding typed fields on
         /// <see cref="Item"/>.

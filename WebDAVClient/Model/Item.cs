@@ -101,13 +101,22 @@ namespace WebDAVClient.Model
         public IDictionary<PropertyName, string> FoundProperties { get; set; }
 
         /// <summary>
-        /// Properties the server reported as missing with a <c>404 Not Found</c>
-        /// status inside <c>&lt;D:propstat&gt;</c>. Lets callers distinguish a
-        /// genuinely-missing property from one whose value is the empty string.
+        /// Legacy bag of properties without a successful propstat status, including
+        /// 404 (missing), 403 (denied), 424 (failed dependency) and omitted status.
+        /// Use <see cref="PropertyStatuses"/> to distinguish these outcomes.
         /// Populated only on targeted <c>PROPFIND &lt;prop&gt;</c> responses;
         /// <c>null</c> otherwise.
         /// </summary>
         public IList<PropertyName> NotFoundProperties { get; set; }
+
+        /// <summary>
+        /// Last reported propstat HTTP status per qualified property, populated for
+        /// targeted and property-name requests; null for default allprop requests.
+        /// A null entry value means the server omitted the status, not a 404.
+        /// Malformed explicit statuses fail parsing rather than appearing here.
+        /// Combine with <see cref="FoundProperties"/> for successful values.
+        /// </summary>
+        public IDictionary<PropertyName, int?> PropertyStatuses { get; set; }
 
         /// <summary>
         /// Property names the server reported as available on this resource in

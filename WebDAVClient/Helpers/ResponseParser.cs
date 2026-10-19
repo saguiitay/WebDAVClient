@@ -333,6 +333,13 @@ namespace WebDAVClient.Helpers
             if (itemInfo == null || buffer == null || buffer.Count == 0)
                 return;
 
+            if (mode != PropFindMode.AllProp)
+            {
+                itemInfo.PropertyStatuses ??= new Dictionary<PropertyName, int?>();
+                foreach (var entry in buffer)
+                    itemInfo.PropertyStatuses[entry.Name] = statusCode == 0 ? null : statusCode;
+            }
+
             if (mode == PropFindMode.PropName)
             {
                 if (statusCode == 0 || (statusCode >= 200 && statusCode < 300))

@@ -7,6 +7,11 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-10: Added qualified `Item.PropertyStatuses` for targeted/property-name
+  responses, with nullable status values for omission. Explicit malformed
+  statuses still fail parsing. Legacy failed-property bags and allprop null
+  bags remain unchanged; regressions cover 200/403/404/424 and namespace collisions.
+
 - UX-07: Added named argument guards for null transports/configuration,
   malformed server/port values, upload inputs, required paths and empty names.
   Named-property bodies validate before discovery. Null/empty metadata paths
