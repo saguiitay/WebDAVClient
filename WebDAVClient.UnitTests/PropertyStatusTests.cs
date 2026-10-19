@@ -64,8 +64,10 @@ namespace WebDAVClient.UnitTests
             var item = await harness.Client.GetFile("file");
             Assert.IsNull(item.PropertyStatuses);
             Assert.IsNull(item.FoundProperties);
+            int malformedCalls = 0;
             using var malformed = new ClientHarness(_ => StubHttpMessageHandler.Multistatus(
-                c_response.Replace("HTTP/1.1 403 Forbidden", "invalid status")));
+                ++malformedCalls == 1 ? WebDAVResponses.Root("/webdav/")
+                    : c_response.Replace("HTTP/1.1 403 Forbidden", "invalid status")));
             await Assert.ThrowsExceptionAsync<XmlException>(() =>
                 malformed.Client.GetFile("file", new[] { new PropertyName("urn:a", "author") }));
         }
