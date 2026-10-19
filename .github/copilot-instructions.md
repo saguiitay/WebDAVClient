@@ -10,13 +10,16 @@ Targets `net8.0` and `net10.0` (multi-targeted, both LTS). The CI workflow (`.gi
 dotnet restore
 dotnet build -c Release --no-restore          # builds both TFMs
 dotnet test -c Release --no-build             # runs both test TFMs after building
+dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -p:CollectCoverage=true
 dotnet build WebDAVClient\WebDAVClient.csproj -c Release-Unsigned # library-only configuration
 dotnet pack  -c Release -o Release/nuget      # produces .nupkg + .snupkg
 ```
 
 `WebDAVClient.UnitTests` is an MSTest project included in `WebDAVClient.sln`. Solution-level `dotnet test` runs its tests for both target frameworks. For focused regressions use `dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release --no-restore --filter "FullyQualifiedName~TestClassName"`.
 
-`TestWebDAVClient/Program.cs` is a nonpackable manual smoke-test executable, not an automated test. Select a target explicitly: `dotnet run --project TestWebDAVClient -f net10.0 -- --help`. Help and `--validate` are offline. Configure server/base path via arguments or environment; reads are the default and only `--mutate` enables run-owned changes with bounded cleanup. Authentication is anonymous unless explicitly configured.
+Coverage uses private `coverlet.msbuild` tooling. `CollectCoverage=true` enforces at least 98% line and 95% branch coverage separately for each production module (library and sample), on each framework. Reports go to `WebDAVClient.UnitTests\TestResults\coverage\<framework>\`; CI uploads them even after test/threshold failures. Do not add production-code exclusions to satisfy the gate. Release builds use portable PDBs for cross-platform instrumentation.
+
+`TestWebDAVClient/Program.cs` is a nonpackable smoke-test executable; its offline CLI paths and bounded loopback workflows also have automated coverage. Select a target explicitly: `dotnet run --project TestWebDAVClient -f net10.0 -- --help`. Help and `--validate` are offline. Configure server/base path via arguments or environment; reads are the default and only `--mutate` enables run-owned changes with bounded cleanup. Authentication is anonymous unless explicitly configured.
 
 `GeneratePackageOnBuild=true` is set on the library, so every Release build produces a `.nupkg` in `WebDAVClient/bin/Release`. Don't add a separate pack step in local workflows unless you need a custom output path.
 

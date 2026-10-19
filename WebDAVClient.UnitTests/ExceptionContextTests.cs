@@ -75,6 +75,23 @@ namespace WebDAVClient.UnitTests
             Assert.IsNull(exception.ResourceUri);
         }
 
+        [TestMethod]
+        public void Missing_or_relative_request_context_does_not_invent_a_resource_uri()
+        {
+            var error = new WebDAVException(403, "rejected");
+            Assert.AreSame(error, error.WithRequestContext(null));
+            Assert.IsNull(error.Operation);
+            using var relative = new HttpRequestMessage(HttpMethod.Get, new Uri("file?token=example", UriKind.Relative));
+            Assert.AreSame(error, error.WithRequestContext(relative));
+            Assert.AreEqual("GET", error.Operation);
+            Assert.AreEqual("GET", error.Method);
+            Assert.IsNull(error.ResourceUri);
+            using var missing = new HttpRequestMessage { Method = HttpMethod.Delete };
+            error.WithRequestContext(missing);
+            Assert.AreEqual("DELETE", error.Operation);
+            Assert.IsNull(error.ResourceUri);
+        }
+
         private static async Task<WebDAVException> Capture(Func<Task> operation)
         {
             try

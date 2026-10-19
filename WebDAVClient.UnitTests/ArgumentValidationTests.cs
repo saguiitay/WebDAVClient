@@ -35,6 +35,7 @@ namespace WebDAVClient.UnitTests
             using var content = new MemoryStream(new byte[] { 1 });
             using var unreadable = new MemoryStream();
             unreadable.Dispose();
+            using var nonSeekable = new NonSeekableStream();
             var cases = new (string Parameter, Func<Client, Task> Operation)[]
             {
                 ("remoteFilePath", c => c.Download(null)),
@@ -42,6 +43,9 @@ namespace WebDAVClient.UnitTests
                 ("remoteFilePath", c => c.Upload(null, content, "file")),
                 ("content", c => c.Upload("/", null, "file")),
                 ("content", c => c.Upload("/", unreadable, "file")),
+                ("content", c => c.UploadPartial("/", null, "file", 0, 1)),
+                ("content", c => c.UploadPartial("/", unreadable, "file", 0, 1)),
+                ("content", c => c.UploadPartial("/", nonSeekable, "file", 0, 1)),
                 ("name", c => c.Upload("/", content, null)),
                 ("name", c => c.Upload("/", content, "")),
                 ("name", c => c.UploadPartial("/", content, "/", 0, 1)),
@@ -56,10 +60,14 @@ namespace WebDAVClient.UnitTests
                 ("filePath", c => c.LockFile(null)),
                 ("folderPath", c => c.UnlockFolder(null, "opaquelocktoken:test")),
                 ("timeoutSeconds", c => c.LockFile("file", 0)),
+                ("timeoutSeconds", c => c.LockFolder("folder", 0)),
+                ("timeoutSeconds", c => c.RefreshLock("file", "opaquelocktoken:test", 0)),
                 ("path", c => c.RefreshLock(null, "opaquelocktoken:test")),
                 ("path", c => c.SetProperty(null, "author", "urn:test", "value")),
                 ("path", c => c.List(" ")),
                 ("properties", c => c.GetFile("/", Array.Empty<PropertyName>())),
+                ("properties", c => c.GetFile("/", properties: null)),
+                ("properties", c => c.GetFolder("/", properties: null)),
                 ("properties", c => c.GetFolder("/", new PropertyName[] { null })),
                 ("properties", c => c.List("/", 1, Array.Empty<PropertyName>()))
             };
@@ -103,6 +111,23 @@ namespace WebDAVClient.UnitTests
             harness.Client.Server = server;
             await harness.Client.GetServerOptions();
             Assert.AreEqual(expected, harness.Handler.Requests[0].RequestUri.AbsoluteUri);
+        }
+
+        [TestMethod]
+        public async Task Unconfigured_server_has_an_actionable_error_without_network_access()
+        {
+            using var harness = new ClientHarness(_ => throw new AssertFailedException("Unexpected request."));
+            using var client = new Client(harness.HttpClient);
+            var metadataError = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => client.List());
+            var optionsError = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => client.GetServerOptions());
+            StringAssert.Contains(metadataError.Message, "Set Server");
+            StringAssert.Contains(optionsError.Message, "Set Server");
+            Assert.AreEqual(0, harness.Handler.Requests.Count);
+        }
+
+        private sealed class NonSeekableStream : MemoryStream
+        {
+            public override bool CanSeek => false;
         }
     }
 }

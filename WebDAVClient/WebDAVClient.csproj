@@ -46,7 +46,7 @@ Historical context (already released in 2.7.0):
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <DebugType>pdbonly</DebugType>
+    <DebugType>portable</DebugType>
     <Optimize>True</Optimize>
   </PropertyGroup>
     

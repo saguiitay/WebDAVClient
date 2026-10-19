@@ -8,10 +8,20 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(CollectCoverage)' == 'true'">
+    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <CoverletOutput>$(MSBuildProjectDirectory)/TestResults/coverage/$(TargetFramework)/</CoverletOutput>
+    <Include>[WebDAVClient]*,[TestWebDAVClient]*</Include>
+    <Threshold>98,95</Threshold>
+    <ThresholdType>line,branch</ThresholdType>
+    <ThresholdStat>minimum</ThresholdStat>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.6.4" />
     <PackageReference Include="MSTest.TestFramework" Version="3.6.4" />
+    <PackageReference Include="coverlet.msbuild" Version="6.0.4" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

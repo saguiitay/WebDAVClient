@@ -116,6 +116,31 @@ checking for false.
   * Discovering server capabilities via OPTIONS (DAV compliance classes + allowed methods)
   * Submitting WebDAV lock tokens through the `If` header on PUT / DELETE / MOVE / COPY
 
+## Tests and coverage
+
+The MSTest suite runs on both .NET 8 and .NET 10 without an external WebDAV
+server. It covers protocol outcomes, XML structure, cancellation and deadlines,
+stream ownership, authentication, configuration changes, and sample CLI behavior.
+Bounded loopback tests also exercise actual HTTP transport and authentication.
+
+```pwsh
+dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -p:CollectCoverage=true
+```
+
+Coverage collection enforces **98% line and 95% branch coverage in each production
+module**, independently for each framework, including the sample executable.
+Cobertura reports are written under
+`WebDAVClient.UnitTests\TestResults\coverage\<framework>\`.
+CI runs both frameworks and uploads these reports even when a test or coverage
+gate fails; a failed gate prevents publication. No production-code exclusions
+are added to reach the thresholds.
+
+Measured on both frameworks: **533 passing cases per framework**, with library
+coverage of **99.53% lines / 97.18% branches** and sample coverage of
+**100% lines / 98.78% branches**. Both modules have **100% method coverage**.
+Coverage is a regression signal, not proof of correctness; unexecuted defensive
+branches are not forced through reflection just to reach 100%.
+
 ## Release Notes
 
 + **2.8.0** _(upcoming)_ Security, correctness, and reliability fixes:
