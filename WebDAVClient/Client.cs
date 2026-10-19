@@ -1141,7 +1141,8 @@ namespace WebDAVClient
                             && response.Content.Headers.ContentLength.Value != range.To.Value - range.From.Value + 1))
                         throw new WebDAVException((int)response.StatusCode, "The server did not return the requested byte range.");
                 }
-                return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var stream = await response.Content.ReadAsStreamAsync(cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false);
+                return new ResponseOwnedStream(stream, response);
             }
             catch
             {

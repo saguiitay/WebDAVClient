@@ -1,6 +1,8 @@
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WebDAVClient.Helpers;
@@ -11,6 +13,39 @@ namespace WebDAVClient.UnitTests
     [TestClass]
     public class ResponseOwnershipTests
     {
+        [DataTestMethod]
+        [DataRow(false, false)]
+        [DataRow(false, true)]
+        [DataRow(true, false)]
+        [DataRow(true, true)]
+        public async Task Download_stream_owns_response_until_sync_or_async_disposal(bool partial, bool asyncDisposal)
+        {
+            var content = new TrackingContent();
+            var response = new TrackingResponse(partial ? HttpStatusCode.PartialContent : HttpStatusCode.OK) { Content = content };
+            if (partial)
+                content.Headers.ContentRange = new ContentRangeHeaderValue(0, 22, 23);
+            using var harness = new ClientHarness(request =>
+                request.Method.Method == "PROPFIND"
+                    ? StubHttpMessageHandler.Multistatus(WebDAVResponses.Root("/webdav/")) : response);
+
+            var stream = partial ? await harness.Client.DownloadPartial("file", 0, 22) : await harness.Client.Download("file");
+            Assert.AreEqual(0, response.DisposeCount);
+            Assert.AreEqual(0, content.DisposeCount);
+            using (var reader = new StreamReader(stream, leaveOpen: true))
+                Assert.AreEqual("unread response content", await reader.ReadToEndAsync());
+            Assert.AreEqual(0, response.DisposeCount);
+            if (asyncDisposal)
+                await stream.DisposeAsync();
+            else
+                stream.Dispose();
+            stream.Dispose();
+            await stream.DisposeAsync();
+            Assert.AreEqual(1, response.DisposeCount);
+            Assert.AreEqual(1, content.DisposeCount);
+            Assert.IsFalse(stream.CanRead);
+            Assert.ThrowsException<ObjectDisposedException>(() => stream.ReadByte());
+        }
+
         [DataTestMethod]
         [DataRow("MOVE", 200)]
         [DataRow("MOVE", 201)]

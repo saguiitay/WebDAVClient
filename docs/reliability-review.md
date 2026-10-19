@@ -7,6 +7,11 @@ workflows, and documentation. No critical-severity defect was established.
 
 ## Remediation progress
 
+- Download lifetime hardening: Successful full/partial downloads return a
+  delegating stream that retains the response. Synchronous or asynchronous
+  stream disposal releases the response/content exactly once without closing
+  them early. Stream acquisition also receives caller cancellation.
+
 - REL-06 / CI hardening: Removed the duplicate manual publisher. Push and manual
   publication share one concurrency group and explicitly run both target
   frameworks before packing only the library. Pull requests run the same build

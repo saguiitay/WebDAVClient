@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security, correctness, and reliability fixes:
+  - Disposing a download stream (including `DisposeAsync`) now explicitly disposes its HTTP response and custom content resources exactly once.
   - Metadata (PROPFIND, LOCK/refresh, PROPPATCH) is parsed asynchronously with caller cancellation and an independent, configurable `Client.ResponseBodyTimeout` (100 seconds by default). Stalled bodies cancel and release responses rather than blocking indefinitely.
   - Initial root discovery observes caller cancellation, sends nothing for an already-cancelled operation, and does not cache cancelled discovery.
   - Every operation consistently maps HTTP 409 to `WebDAVConflictException`; other failure codes remain available through `WebDAVException.GetHttpCode()`.
