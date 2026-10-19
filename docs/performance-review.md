@@ -29,6 +29,9 @@ Reviewed 2026-10-19 at revision `ac0ef8a` by a dedicated performance agent.
 - PERF-02: Already addressed by `0510260`. Metadata parsing uses asynchronous
   XML throughout, with token-bound reads and body deadlines. Existing
   prefix-then-stall regressions reject synchronous network reads.
+  A bounded 32-operation workload now records available workers and unrelated
+  task latency while every response is waiting mid-XML, then verifies all
+  responses release their streams on cancellation.
 - PERF-04: `SendUploadAsync` uses `ResponseHeadersRead` for either primary or
   separate upload clients. Status-only full/partial uploads never buffer PUT
   response bodies and still dispose them. Eight new scenarios failed before
