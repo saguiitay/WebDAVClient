@@ -226,6 +226,30 @@ namespace WebDAVClient
             InitializeOwnedHttpClients(credential: null, new BearerTokenAuthenticationHandler(bearerTokenProvider), uploadTimeout, proxy);
         }
 
+        /// <summary>Creates an owned transport with explicit credentials; null selects Windows-default credentials, not anonymous access.</summary>
+        /// <param name="credential">Credentials, or null for Windows-default credentials.</param>
+        /// <param name="uploadTimeout">Optional upload HTTP timeout.</param>
+        /// <param name="proxy">Optional transport proxy.</param>
+        /// <returns>A client owning its HTTP transport.</returns>
+        public static Client CreateWithCredentials(ICredentials credential, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
+            => new Client(credential, uploadTimeout, proxy);
+
+        /// <summary>Creates an owned transport using an explicit static bearer token, without constructor overload ambiguity.</summary>
+        /// <param name="bearerToken">Nonempty bearer token.</param>
+        /// <param name="uploadTimeout">Optional upload HTTP timeout.</param>
+        /// <param name="proxy">Optional transport proxy.</param>
+        /// <returns>A client owning its HTTP transport.</returns>
+        public static Client CreateWithBearerToken(string bearerToken, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
+            => new Client(bearerToken, uploadTimeout, proxy);
+
+        /// <summary>Creates an owned transport using a per-request async bearer provider, without constructor overload ambiguity.</summary>
+        /// <param name="bearerTokenProvider">Provider invoked for each request; must be safe for concurrent calls.</param>
+        /// <param name="uploadTimeout">Optional upload HTTP timeout.</param>
+        /// <param name="proxy">Optional transport proxy.</param>
+        /// <returns>A client owning its HTTP transport.</returns>
+        public static Client CreateWithBearerTokenProvider(Func<CancellationToken, Task<string>> bearerTokenProvider, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
+            => new Client(bearerTokenProvider, uploadTimeout, proxy);
+
         private void InitializeOwnedHttpClients(ICredentials credential, DelegatingHandler authHandler, TimeSpan? uploadTimeout, IWebProxy proxy)
         {
             var handler = new HttpClientHandler();

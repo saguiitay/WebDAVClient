@@ -7,6 +7,11 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-11: Added explicit credential/static-bearer/provider factories and documented
+  named `credential: null` for legacy null/timeout/proxy construction. Kept every
+  shipped constructor; source regressions compile the supported legacy calls and
+  factory alternatives and pin default-credential versus bearer behavior.
+
 - UX-10: Added qualified `Item.PropertyStatuses` for targeted/property-name
   responses, with nullable status values for omission. Explicit malformed
   statuses still fail parsing. Legacy failed-property bags and allprop null

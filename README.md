@@ -146,6 +146,14 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 # Usage
 
+For new code, use `Client.CreateWithCredentials`,
+`Client.CreateWithBearerToken`, or `Client.CreateWithBearerTokenProvider` to
+select authentication without overloaded-null ambiguity. All shipped constructors
+remain available. Legacy calls with a null credential should name that argument:
+`new Client(credential: null, uploadTimeout: timeout, proxy: proxy)`.
+Unqualified `new Client(null, uploadTimeout: timeout)` is ambiguous; null credentials
+mean Windows-default credentials, **not anonymous** authentication.
+
 Use HTTPS for bearer tokens and other credentials. Absolute resource URLs must
 match `Server`'s scheme, hostname, and effective port (`Port` overrides the server
 URL's port). Explicitly configured HTTP endpoints remain supported for backward
