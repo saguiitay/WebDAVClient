@@ -176,8 +176,9 @@ namespace WebDAVClient
         /// the <see cref="Client(ICredentials, TimeSpan?, IWebProxy)"/> constructor). The
         /// callback is invoked lazily on every TLS handshake, so it may be assigned or
         /// reassigned after construction. When constructed with a caller-supplied
-        /// HttpClient/IHttpClientWrapper, this property has no effect — configure the
-        /// callback on your own handler instead.
+        /// HttpClient/IHttpClientWrapper, a non-null callback is unsupported and
+        /// operations reject that configuration before I/O. Configure the callback
+        /// on your own handler instead.
         /// </summary>
         public RemoteCertificateValidationCallback ServerCertificateValidationCallback { get; set; }
         #endregion
@@ -257,6 +258,9 @@ namespace WebDAVClient
 
         private void InitializeOwnedHttpClients(ICredentials credential, DelegatingHandler authHandler, TimeSpan? uploadTimeout, IWebProxy proxy)
         {
+            if (uploadTimeout.HasValue && uploadTimeout.Value != Timeout.InfiniteTimeSpan
+                && (uploadTimeout.Value <= TimeSpan.Zero || uploadTimeout.Value > TimeSpan.FromMilliseconds(int.MaxValue)))
+                throw new ArgumentOutOfRangeException(nameof(uploadTimeout), "Upload timeout must be positive, at most Int32.MaxValue milliseconds, or infinite.");
             var handler = new HttpClientHandler();
             if (proxy != null && handler.SupportsProxy)
             {
@@ -1291,6 +1295,7 @@ namespace WebDAVClient
 
         private async Task<HttpResponseMessage> HttpRequest(Uri uri, HttpMethod method, IDictionary<string, string> headers = null, byte[] content = null, CancellationToken cancellationToken = default, string operation = null)
         {
+            ValidateTransportConfiguration();
             using (var request = new HttpRequestMessage(method, uri))
             {
                 request.Options.Set(WebDAVException.s_operationKey, operation ?? method.Method);
@@ -1332,6 +1337,7 @@ namespace WebDAVClient
 
         private async Task<HttpResponseMessage> HttpUploadRequest(Uri uri, HttpMethod method, Stream content, IDictionary<string, string> headers = null, long? startBytes = null, long? endBytes = null, CancellationToken cancellationToken = default, string operation = null)
         {
+            ValidateTransportConfiguration();
             using (var request = new HttpRequestMessage(method, uri))
             {
                 request.Options.Set(WebDAVException.s_operationKey, operation ?? method.Method);
@@ -1387,6 +1393,12 @@ namespace WebDAVClient
         private static bool TryCreateAbsolute(string uriString, out Uri uriResult)
         {
             return Uri.TryCreate(uriString, UriKind.Absolute, out uriResult) && uriResult.Scheme != Uri.UriSchemeFile;
+        }
+
+        private void ValidateTransportConfiguration()
+        {
+            if (m_handler == null && ServerCertificateValidationCallback != null)
+                throw new InvalidOperationException("ServerCertificateValidationCallback cannot configure an injected transport. Set certificate validation on the injected HTTP handler instead.");
         }
 
         private async Task<UriBuilder> GetServerUrl(string path, bool appendTrailingSlash, CancellationToken cancellationToken)

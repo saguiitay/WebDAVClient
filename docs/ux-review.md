@@ -7,6 +7,11 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-17: Added complete owned/injected configuration recipes covering credentials,
+  per-request bearer rotation, proxy, TLS, disposal and five distinct timeout
+  scopes. Invalid upload timeouts and ineffective injected-transport TLS callbacks
+  now fail explicitly before requests. No required IClient members were added.
+
 - UX-06: Enabled XML generation/packing for both frameworks and resolved the
   documentation warnings rather than suppressing them. Concrete downloads
   inherit the interface ownership contract; constructor/parameter/disposal

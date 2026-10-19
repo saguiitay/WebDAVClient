@@ -117,6 +117,7 @@ checking for false.
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security, correctness, and reliability fixes:
+  - Configuration recipes cover owned/injected authentication, proxy, TLS and distinct deadlines; ineffective TLS callback settings on injected transports now fail explicitly before I/O.
   - Packages include XML API documentation beside both framework assemblies, including parameter, stream-ownership and exception contracts.
   - WebDAV exceptions include request-local operation, method and sanitized resource context without changing existing status codes or conflict specialization.
   - Targeted/property-name results expose qualified `PropertyStatuses`, distinguishing absent (404), denied (403), dependency failure (424), and omitted statuses without changing legacy bags.
@@ -332,6 +333,153 @@ a unique run-owned directory. The sample scopes streams, unlocks before deletion
 never deletes a directory whose creation was not confirmed, and reports cleanup
 failures. Ctrl+C uses a separate five-second budget for each cleanup operation;
 server/network failures can still require manual cleanup of the printed directory.
+
+## Configuration recipes
+
+Configure the concrete `Client` before exposing it as `IClient`; no new required
+interface members or builder are needed. Replace example endpoints with your
+server/proxy and keep credentials out of source. Reuse transports rather than
+creating one per request.
+
+### Owned transport: credentials, proxy and TLS
+
+```csharp
+using System;
+using System.Net;
+using System.Net.Security;
+using System.Threading;
+using WebDAVClient;
+
+var user = Environment.GetEnvironmentVariable("WEBDAV_USERNAME")
+    ?? throw new InvalidOperationException("Set WEBDAV_USERNAME.");
+var password = Environment.GetEnvironmentVariable("WEBDAV_PASSWORD")
+    ?? throw new InvalidOperationException("Set WEBDAV_PASSWORD.");
+using var client = Client.CreateWithCredentials(
+    new NetworkCredential(user, password),
+    uploadTimeout: TimeSpan.FromMinutes(10),
+    proxy: new WebProxy("http://proxy.example.com:8080"));
+client.Server = "https://dav.example.com";
+client.BasePath = "/dav/";
+client.ResponseBodyTimeout = TimeSpan.FromSeconds(30);
+client.ServerCertificateValidationCallback = (_, _, _, errors) => errors == SslPolicyErrors.None;
+IClient api = client;
+using var budget = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+Console.WriteLine((await api.GetServerOptions(cancellationToken: budget.Token)).IsWebDavServer);
+```
+
+The TLS callback above retains platform validation. Extend it with your approved
+trust/pinning policy if necessary; never accept every certificate unconditionally.
+Owned credential **and bearer** transports wire this concrete-client callback
+lazily; without one, platform trust is used. Disposal releases the owned transport.
+Use `CreateWithCredentials(null, ...)` only for Windows-default authentication.
+
+### Owned transport: per-request bearer rotation
+
+```csharp
+using System;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
+using WebDAVClient;
+
+Task<string> CurrentToken(CancellationToken cancellationToken)
+{
+    cancellationToken.ThrowIfCancellationRequested();
+    var value = Environment.GetEnvironmentVariable("WEBDAV_BEARER_TOKEN");
+    if (string.IsNullOrWhiteSpace(value))
+        throw new InvalidOperationException("Set WEBDAV_BEARER_TOKEN.");
+    return Task.FromResult(value);
+}
+
+using var client = Client.CreateWithBearerTokenProvider(
+    CurrentToken,
+    uploadTimeout: TimeSpan.FromMinutes(10),
+    proxy: new WebProxy("http://proxy.example.com:8080"));
+client.Server = "https://dav.example.com";
+client.BasePath = "/dav/";
+client.ResponseBodyTimeout = TimeSpan.FromSeconds(30);
+using var budget = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+Console.WriteLine((await client.GetServerOptions(cancellationToken: budget.Token)).IsWebDavServer);
+```
+
+This runnable provider reads the current process environment on every request;
+your application can rotate that value. For actual OAuth refresh, replace its
+body with your identity SDK's cancellation-aware token retrieval. The library
+does not perform refresh or caching for you. Providers may run concurrently;
+use the single-flight/caching recipe below if refresh must be coordinated.
+For a fixed token, use `CreateWithBearerToken(token, uploadTimeout: ..., proxy: ...)`.
+
+### Injected transport: distinct HTTP timeouts and handler configuration
+
+```csharp
+using System;
+using System.Net;
+using System.Net.Http;
+using System.Net.Security;
+using System.Threading;
+using System.Threading.Tasks;
+using WebDAVClient;
+using WebDAVClient.Authentication;
+using WebDAVClient.HttpClient;
+
+var pipeline = new BearerTokenAuthenticationHandler(cancellationToken =>
+{
+    cancellationToken.ThrowIfCancellationRequested();
+    var value = Environment.GetEnvironmentVariable("WEBDAV_BEARER_TOKEN");
+    if (string.IsNullOrWhiteSpace(value))
+        throw new InvalidOperationException("Set WEBDAV_BEARER_TOKEN.");
+    return Task.FromResult(value);
+})
+{
+    InnerHandler = new HttpClientHandler
+    {
+        UseDefaultCredentials = false,
+        Proxy = new WebProxy("http://proxy.example.com:8080"),
+        ServerCertificateCustomValidationCallback = (_, _, _, errors) => errors == SslPolicyErrors.None
+    }
+};
+using var normal = new HttpClient(pipeline) { Timeout = TimeSpan.FromSeconds(20) };
+using var uploads = new HttpClient(pipeline, disposeHandler: false) { Timeout = TimeSpan.FromMinutes(10) };
+using var transport = new HttpClientWrapper(normal, uploads);
+using var client = new Client(transport)
+{
+    Server = "https://dav.example.com",
+    BasePath = "/dav/",
+    ResponseBodyTimeout = TimeSpan.FromSeconds(30)
+};
+using var budget = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+Console.WriteLine((await client.GetServerOptions(cancellationToken: budget.Token)).IsWebDavServer);
+```
+
+The concrete wrapper disposes both supplied HTTP clients; use dedicated instances
+or a custom wrapper with an explicit shared-client lifetime policy. The ordinary
+HTTP client owns the shared handler pipeline; the upload client does not dispose
+that pipeline. Dispose only after in-flight calls and returned streams finish.
+For injected credential authentication, omit the bearer handler and configure
+`HttpClientHandler.Credentials`; for anonymous access omit both auth mechanisms
+and keep `UseDefaultCredentials = false`.
+
+**Unsupported combinations:** constructor authentication/proxy/upload-timeout
+options configure owned transports only. With injection, configure these on your
+own handlers/HTTP clients before use. A non-null
+`Client.ServerCertificateValidationCallback` on an injected transport now causes
+`InvalidOperationException` before any outbound request, instead of being silently
+ignored. Set the callback on the injected handler, as above. Invalid owned upload
+timeouts raise `ArgumentOutOfRangeException` for `uploadTimeout` before allocating
+the owned transport. Do not combine competing bearer/credential handlers.
+
+| Budget | Configuration and scope |
+|---|---|
+| Ordinary HTTP | Owned default is 100 seconds; inject `HttpClient.Timeout` to customize. Covers request send/headers, not subsequent body reads |
+| Upload HTTP | Owned `uploadTimeout`, or a separate injected upload client's `Timeout`; covers upload send/headers |
+| Metadata body | Concrete `Client.ResponseBodyTimeout`, default 100 seconds after headers, separately for each parsed response |
+| Whole operation | Caller cancellation token spans discovery and the following operation; cancellation is not rollback |
+| Download body | Caller passes its token to `CopyToAsync`/`ReadAsync` and disposes the returned stream; metadata/HTTP header deadlines do not limit these reads |
+
+HTTP timeouts accept positive durations up to `Int32.MaxValue` milliseconds or
+`Timeout.InfiniteTimeSpan`; metadata deadlines also support infinite timeout.
+Different budgets race: the first expiration/cancellation wins. A returned
+download stream does not automatically retain the method's cancellation token.
 
 ## Recovery and retry policy
 
