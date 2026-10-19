@@ -1,4 +1,4 @@
-name: Publish to NuGet
+name: Validate and publish
 
 on:
   push:
@@ -12,13 +12,16 @@ on:
       - '.github/**'
       - '!.github/workflows/publish.yml'
   workflow_dispatch:
+  pull_request:
+    branches:
+      - master
 
 permissions:
   contents: read
 
 concurrency:
-  group: publish-nuget
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('validate-pr-{0}', github.event.pull_request.number) || 'publish-nuget' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   publish:
@@ -40,14 +43,22 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore
 
-      - name: Test
-        run: dotnet test -c Release --no-build --verbosity normal
+      - name: Test .NET 8
+        run: dotnet test WebDAVClient.UnitTests/WebDAVClient.UnitTests.csproj -c Release -f net8.0 --no-build --verbosity normal
+
+      - name: Test .NET 10
+        run: dotnet test WebDAVClient.UnitTests/WebDAVClient.UnitTests.csproj -c Release -f net10.0 --no-build --verbosity normal
 
       - name: Pack
+        if: ${{ success() && github.event_name != 'pull_request' }}
         run: dotnet pack WebDAVClient/WebDAVClient.csproj -c Release --no-build -o ${{ github.workspace }}/Release/nuget
 
       - name: Push to NuGet
+        if: ${{ success() && github.event_name != 'pull_request' }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           for file in Release/nuget/WebDAVClient.*.nupkg; do
-            dotnet nuget push -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }} --skip-duplicate "$file"
+            dotnet nuget push -s https://api.nuget.org/v3/index.json -k "$NUGET_API_KEY" "$file"
+            echo "Published $(basename "$file")" >> "$GITHUB_STEP_SUMMARY"
           done

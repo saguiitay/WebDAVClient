@@ -7,6 +7,16 @@ workflows, and documentation. No critical-severity defect was established.
 
 ## Remediation progress
 
+- REL-06 / CI hardening: Removed the duplicate manual publisher. Push and manual
+  publication share one concurrency group and explicitly run both target
+  frameworks before packing only the library. Pull requests run the same build
+  and tests but cannot pack/push. Duplicate package versions now fail instead of
+  reporting a skipped upload as a release; publication summaries follow actual
+  successful pushes. Remote disposable-branch execution is not performed because
+  this remediation does not authorize remote branch creation or publication.
+  The consolidated workflow passes actionlint; stale contributor testing/workflow
+  instructions were corrected.
+
 - REL-01: All network-backed metadata parsers use asynchronous XML reads,
   including nested property/lock parsing and skipped subtrees. A token-bound
   stream applies caller cancellation to every read. `Client.ResponseBodyTimeout`

@@ -4,16 +4,17 @@ Strongly-typed, async WebDAV client library for .NET. Published as the [`WebDAVC
 
 ## Build, test, run
 
-Targets `net8.0` and `net10.0` (multi-targeted, both LTS). The CI workflow (`.github/workflows/manual.yml`) installs both SDKs.
+Targets `net8.0` and `net10.0` (multi-targeted, both LTS). The CI workflow (`.github/workflows/publish.yml`) installs both SDKs and tests both targets before any publication. PR runs never publish; manual publication uses the same workflow and concurrency group. Duplicate package versions fail instead of being reported as a new release.
 
 ```pwsh
 dotnet restore
 dotnet build -c Release --no-restore          # builds both TFMs
+dotnet test -c Release --no-build             # runs both test TFMs after building
 dotnet build -c Release-Unsigned              # third configuration defined in csproj
 dotnet pack  -c Release -o Release/nuget      # produces .nupkg + .snupkg
 ```
 
-Solution-level `dotnet test` is currently a no-op: only `WebDAVClient` and `TestWebDAVClient` are listed in `WebDAVClient.sln`. The `WebDAVClient.UnitTests` folder exists but contains no test sources and is **not** part of the solution — if you add tests, also add the project to the .sln (and a test SDK + framework reference) before relying on `dotnet test`.
+`WebDAVClient.UnitTests` is an MSTest project included in `WebDAVClient.sln`. Solution-level `dotnet test` runs its tests for both target frameworks. For focused regressions use `dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release --no-restore --filter "FullyQualifiedName~TestClassName"`.
 
 `TestWebDAVClient/Program.cs` is a manual smoke-test console app (hard-coded credentials placeholders) — not an automated test. Run it with `dotnet run --project TestWebDAVClient` only after editing the credentials/server.
 
