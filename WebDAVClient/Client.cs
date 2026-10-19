@@ -536,6 +536,7 @@ namespace WebDAVClient
         /// <summary>
         /// Upload a file to the server
         /// </summary>
+        /// <remarks>Once the request is created, it owns and disposes <paramref name="content"/> on success, failure, or cancellation. Callers should still use a using scope because validation/discovery can fail before request creation. Reopen content for any retry.</remarks>
         /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
         /// <param name="content"></param>
         /// <param name="name"></param>
@@ -572,6 +573,7 @@ namespace WebDAVClient
         /// <summary>
         /// Partial upload a part of file to the server
         /// </summary>
+        /// <remarks>Once the request is created, it owns and disposes <paramref name="content"/> on success, failure, or cancellation. Callers should still use a using scope because validation/discovery can fail before request creation. Reopen and reposition content for any retry.</remarks>
         /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
         /// <param name="content">Readable, seekable content to send from its current position to its end.</param>
         /// <param name="name">Name of the file to update</param>

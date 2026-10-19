@@ -220,6 +220,21 @@ var folderCreated = await client.GetFolder("/" + tempFolderName, cancellationTok
 await client.DeleteFolder(folderCreated.Href, cancellationToken: token);
 ```
 
+## Transfer stream ownership
+
+Always dispose streams returned by `Download` / `DownloadPartial`, using `using`
+or `await using`; they keep the HTTP response alive and close it with its content.
+Cancellation of the method covers request/stream acquisition; pass a token to
+subsequent asynchronous stream reads to cancel the transfer itself.
+
+`Upload` / `UploadPartial` retain their existing ownership behavior: once an
+upload request is created, disposing that request closes the supplied content
+stream on success, failure, or cancellation. There is no leave-open option.
+Keep the input in a caller-side `using` scope too, because validation or discovery
+can fail before a request takes ownership. Do not reuse that stream for another
+attempt; reopen it, and for partial uploads set the correct source position and
+range again.
+
 ## Metadata deadlines and cancellation
 
 Configure `ResponseBodyTimeout` on the concrete `Client` before assigning it to

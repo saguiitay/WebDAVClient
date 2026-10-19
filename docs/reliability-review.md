@@ -7,6 +7,12 @@ workflows, and documentation. No critical-severity defect was established.
 
 ## Remediation progress
 
+- Upload ownership hardening: Documented the existing request-owned input stream
+  contract, caller cleanup before ownership transfer, and reopening/repositioning
+  for retries. Focused full/partial upload regressions preserve disposal on
+  success, failure, and cancellation without introducing a breaking leave-open
+  behavior change.
+
 - Download lifetime hardening: Successful full/partial downloads return a
   delegating stream that retains the response. Synchronous or asynchronous
   stream disposal releases the response/content exactly once without closing

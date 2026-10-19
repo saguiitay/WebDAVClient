@@ -166,6 +166,7 @@ namespace WebDAVClient
         /// <summary>
         /// Upload a file to the server
         /// </summary>
+        /// <remarks>The created upload request owns and disposes <paramref name="content"/>, including on failure/cancellation. Still use a caller-side using scope because validation/discovery may fail before request creation. Retries require a newly opened stream.</remarks>
         /// <param name="remoteFilePath">Target directory path on the server (excluding the filename) where the file will be created.</param>
         /// <param name="content">The stream containing the file content to upload. Must be readable and positioned at the start of the data to send.</param>
         /// <param name="name">The target filename to create under <paramref name="remoteFilePath"/>.</param>
@@ -178,6 +179,7 @@ namespace WebDAVClient
         /// <summary>
         /// Upload a part of a file to the server.
         /// </summary>
+        /// <remarks>The created upload request owns and disposes <paramref name="content"/>, including on failure/cancellation. Still use a caller-side using scope because validation/discovery may fail before request creation. Retries require a newly opened, correctly positioned stream.</remarks>
         /// <param name="remoteFilePath">Target path excluding the servername and base path</param>
         /// <param name="content">Readable, seekable content sent from its current position. Its remaining length must equal endBytes minus startBytes.</param>
         /// <param name="name">The target filename. The file must exist on the server</param>
