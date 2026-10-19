@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security and correctness fixes:
+  - Hidden metadata honors `0`/`1` and `false`/`true` values in both allprop and targeted responses; empty or unrecognized values remain false.
   - Targeted PROPFIND requests now support properties without an XML namespace, including mixed-namespace requests.
   - Versioning properties no longer cause the parser to skip metadata immediately following their XML subtrees.
   - Partial uploads preserve their exclusive-end API contract but now send the correct inclusive HTTP endpoint and validate the bytes remaining from the stream's current position.

@@ -9,6 +9,7 @@ This is the original review, before subsequent security remediation.
 - BUG-02: fixed; exclusive upload end offsets are translated to inclusive wire ranges and validated against remaining stream bytes.
 - BUG-09: fixed; reader advancement preserves siblings after empty and nonempty versioning properties.
 - BUG-11: fixed; empty-namespace properties serialize without an illegal namespace prefix.
+- BUG-12: fixed; hidden values are parsed rather than inferred from property presence, consistently across modes.
 
 ## Outcome
 

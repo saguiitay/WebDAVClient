@@ -259,5 +259,31 @@ namespace WebDAVClient.UnitTests.Parser
             Assert.IsNotNull(items);
             Assert.AreEqual(0, items.Count);
         }
+
+        [DataTestMethod]
+        [DataRow("0", false)]
+        [DataRow("1", true)]
+        [DataRow("false", false)]
+        [DataRow("true", true)]
+        [DataRow(" TRUE ", true)]
+        [DataRow("", false)]
+        [DataRow("invalid", false)]
+        [DataRow("2", false)]
+        public void Hidden_properties_use_their_values_in_allprop_and_targeted_modes(string value, bool expected)
+        {
+            foreach (var mode in new[] { PropFindMode.AllProp, PropFindMode.NamedProperties })
+            foreach (var name in new[] { "hidden", "ishidden" })
+            {
+                var property = value.Length == 0 ? $"<D:{name}/>" : $"<D:{name}>{value}</D:{name}>";
+                var xml = $@"<D:multistatus xmlns:D=""DAV:""><D:response><D:href>/file.txt</D:href>
+<D:propstat><D:prop>{property}<D:getetag>etag</D:getetag></D:prop>
+<D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>";
+
+                var item = ResponseParser.ParseItems(Xml(xml), mode).Single();
+
+                Assert.AreEqual(expected, item.IsHidden, $"{mode}: {name}={value}");
+                Assert.AreEqual("etag", item.Etag);
+            }
+        }
     }
 }

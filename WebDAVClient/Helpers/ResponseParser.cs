@@ -300,7 +300,8 @@ namespace WebDAVClient.Helpers
                         else if (string.Equals(localName, "hidden", StringComparison.OrdinalIgnoreCase) ||
                                  string.Equals(localName, "ishidden", StringComparison.OrdinalIgnoreCase))
                         {
-                            itemInfo.IsHidden = true;
+                            itemInfo.IsHidden = ParseBooleanValue(reader.ReadElementContentAsString());
+                            advance = false;
                         }
                         else if (string.Equals(localName, "checked-in", StringComparison.OrdinalIgnoreCase) ||
                                  string.Equals(localName, "version-controlled-configuration", StringComparison.OrdinalIgnoreCase))
@@ -530,8 +531,15 @@ namespace WebDAVClient.Helpers
             else if (string.Equals(localName, "hidden", StringComparison.OrdinalIgnoreCase)
                   || string.Equals(localName, "ishidden", StringComparison.OrdinalIgnoreCase))
             {
-                itemInfo.IsHidden = true;
+                itemInfo.IsHidden = ParseBooleanValue(value);
             }
+        }
+
+        private static bool ParseBooleanValue(string value)
+        {
+            if (bool.TryParse(value, out var result))
+                return result;
+            return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) && number == 1;
         }
 
         // RFC 7230 status-line parser. Returns 0 when the line is malformed.
