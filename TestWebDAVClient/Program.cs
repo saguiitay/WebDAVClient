@@ -1,4 +1,5 @@
-﻿using System.IO;
+using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -8,9 +9,21 @@ namespace TestWebDAVClient
 {
     class Program
     {
-        private static void Main(string[] args)
+        private static async Task<int> Main(string[] args)
         {
-            MainAsync().Wait();
+            if (args.Length == 0 || args.SequenceEqual(new[] { "--help" }))
+            {
+                Console.WriteLine("WebDAVClient manual sample. Select a framework with -f net8.0 or -f net10.0.");
+                Console.WriteLine("Use --run only after configuring the sample. Without --run no server is contacted.");
+                return 0;
+            }
+            if (!args.SequenceEqual(new[] { "--run" }))
+            {
+                Console.Error.WriteLine("Unknown arguments. Use --help.");
+                return 2;
+            }
+            await MainAsync().ConfigureAwait(false);
+            return 0;
         }
 
 

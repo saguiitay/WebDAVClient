@@ -7,6 +7,10 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-03: The multi-target sample is an executable and is not packable. Its async
+  entry point supports offline help and rejects unknown arguments before I/O;
+  contributor instructions select a framework explicitly.
+
 - UX-02: Corrected qualified property construction and namespace-aware dictionary
   lookup in the targeted PROPFIND example; executable regression retrieves a
   custom XML-decoded value.

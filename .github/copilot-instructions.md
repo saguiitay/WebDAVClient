@@ -16,7 +16,7 @@ dotnet pack  -c Release -o Release/nuget      # produces .nupkg + .snupkg
 
 `WebDAVClient.UnitTests` is an MSTest project included in `WebDAVClient.sln`. Solution-level `dotnet test` runs its tests for both target frameworks. For focused regressions use `dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release --no-restore --filter "FullyQualifiedName~TestClassName"`.
 
-`TestWebDAVClient/Program.cs` is a manual smoke-test console app (hard-coded credentials placeholders) — not an automated test. Run it with `dotnet run --project TestWebDAVClient` only after editing the credentials/server.
+`TestWebDAVClient/Program.cs` is a nonpackable manual smoke-test executable, not an automated test. Select a target explicitly: `dotnet run --project TestWebDAVClient -f net10.0 -- --help`. Help does not contact a server.
 
 `GeneratePackageOnBuild=true` is set on the library, so every Release build produces a `.nupkg` in `WebDAVClient/bin/Release`. Don't add a separate pack step in local workflows unless you need a custom output path.
 
