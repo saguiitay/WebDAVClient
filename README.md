@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security, correctness, and reliability fixes:
+  - Manual examples are runnable, read-only by default, configurable without source edits, and isolate opt-in mutations with scoped streams and bounded cleanup.
   - Concurrent cold operations coordinate one root discovery per connection configuration. Cancelling a waiter does not cancel discovery; cancelled or failed owners let another caller retry, and reconfiguration is not blocked by obsolete discovery.
   - Listings filter their parent in place, property-name responses skip unused values without materializing XML, and single-item lookups retain only the selected item while still validating the complete response.
   - Uploads complete after response headers instead of buffering unused PUT response bodies; success/error responses are still disposed.
@@ -151,14 +152,21 @@ compatibility; this is not an HTTPS-only policy for the standalone bearer handle
 `Client` implements `IDisposable` — wrap it in a `using` to make sure the underlying `HttpClient`/`HttpClientHandler` are released. Most async methods accept an optional `CancellationToken` so requests can be cancelled cleanly.
 
 ``` csharp
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using WebDAVClient;
+
 // Pick one of the constructors below.
 
 // (1) Basic authentication
 using IClient client = new Client(
     new NetworkCredential { UserName = "USERNAME", Password = "PASSWORD" });
 
-// (2) ...or no authentication
-// using IClient client = new Client(new NetworkCredential());
+// (2) ...or explicit anonymous transport (retain/dispose the HttpClient yourself)
+// using IClient client = new Client(myAnonymousHttpClient);
 
 // (3) ...or supply your own HttpClient (e.g. for IHttpClientFactory / DI scenarios)
 // using IClient client = new Client(myHttpClient);
@@ -182,47 +190,32 @@ client.CustomHeaders = new[]                          // sent with every request
 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 var token = cts.Token;
 
-// List items in the root folder
-var files = await client.List(cancellationToken: token);
-
-// Find folder named 'Test'
-var folder = files.FirstOrDefault(f => f.Href.EndsWith("/Test/"));
-// Reload folder 'Test'
-var folderReloaded = await client.GetFolder(folder.Href, cancellationToken: token);
-
-// Retrieve list of items in 'Test' folder
-var folderFiles = await client.List(folderReloaded.Href, cancellationToken: token);
-// Find first file in 'Test' folder
-var folderFile = folderFiles.FirstOrDefault(f => f.IsCollection == false);
-
-var tempFileName = Path.GetTempFileName();
-
-// Download item into a temporary file
-using (var tempFile = File.OpenWrite(tempFileName))
-using (var stream = await client.Download(folderFile.Href, cancellationToken: token))
-    await stream.CopyToAsync(tempFile, token);
-
-// Upload file back to webdav
-var tempName = Path.GetRandomFileName();
-using (var fileStream = File.OpenRead(tempFileName))
+var count = 0;
+foreach (var item in await client.List(cancellationToken: token))
 {
-    var fileUploaded = await client.Upload(folder.Href, fileStream, tempName, cancellationToken: token);
+    Console.WriteLine($"{(item.IsCollection ? "Folder" : "File")}: {item.DisplayName}");
+    count++;
 }
-
-// Create a folder
-var tempFolderName = Path.GetRandomFileName();
-var isfolderCreated = await client.CreateDir("/", tempFolderName, cancellationToken: token);
-
-// Copy a file
-await client.CopyFile(folderFile.Href, "/" + tempFolderName + "/copy.bin", cancellationToken: token);
-
-// Copy a folder
-await client.CopyFolder(folder.Href, "/" + tempFolderName + "-copy/", cancellationToken: token);
-
-// Delete created folder
-var folderCreated = await client.GetFolder("/" + tempFolderName, cancellationToken: token);
-await client.DeleteFolder(folderCreated.Href, cancellationToken: token);
+if (count == 0)
+    Console.WriteLine("This directory is empty.");
 ```
+
+This example is read-only and requires no pre-existing files or folders. The
+manual sample accepts configuration without source edits:
+
+```pwsh
+dotnet run --project TestWebDAVClient -f net10.0 -- --help
+dotnet run --project TestWebDAVClient -f net10.0 -- --server https://dav.example.com --base-path /dav/ --validate
+dotnet run --project TestWebDAVClient -f net10.0 -- --server https://dav.example.com --base-path /dav/
+```
+
+Use `WEBDAV_USERNAME`/`WEBDAV_PASSWORD` or `WEBDAV_BEARER_TOKEN` for authentication;
+without either it is anonymous, not Windows-default authentication. `--target`
+optionally reads a known file. Only `--mutate` enables writes, exclusively inside
+a unique run-owned directory. The sample scopes streams, unlocks before deletion,
+never deletes a directory whose creation was not confirmed, and reports cleanup
+failures. Ctrl+C uses a separate five-second budget for each cleanup operation;
+server/network failures can still require manual cleanup of the printed directory.
 
 ## Recovery and retry policy
 
@@ -381,13 +374,17 @@ bool supportsLock = options.IsClass2 && options.SupportsMethod("LOCK");
 // Take an exclusive write lock on a file (default timeout: 600 seconds)
 var info = await client.LockFile("/dav/report.docx", owner: "alice", cancellationToken: token);
 
-// Use the lock token on subsequent writes via the If header
-using (var fs = File.OpenRead(localPath))
-    await client.Upload("/dav/", fs, "report.docx", lockToken: info.Token, cancellationToken: token);
-
-// Extend / release the lock
-await client.RefreshLock("/dav/report.docx", info.Token, timeoutSeconds: 600, cancellationToken: token);
-await client.UnlockFile("/dav/report.docx", info.Token, cancellationToken: token);
+try
+{
+    using (var fs = File.OpenRead(localPath))
+        await client.Upload("/dav/", fs, "report.docx", lockToken: info.Token, cancellationToken: token);
+    await client.RefreshLock("/dav/report.docx", info.Token, timeoutSeconds: 600, cancellationToken: token);
+}
+finally
+{
+    using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+    await client.UnlockFile("/dav/report.docx", info.Token, cancellationToken: cleanup.Token);
+}
 ```
 
 `LockInfo.Token` is accepted in either bare (`opaquelocktoken:abc`) or `<opaquelocktoken:abc>` form everywhere it's used.

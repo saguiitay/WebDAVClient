@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\WebDAVClient\WebDAVClient.csproj" />
+    <ProjectReference Include="..\TestWebDAVClient\TestWebDAVClient.csproj" />
   </ItemGroup>
 
 </Project>

@@ -7,6 +7,13 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-05: Replaced source-edited/destructive onboarding with anonymous read-only
+  defaults, argument/environment configuration and offline validation. Explicit
+  mutations use a unique owned directory, known content, scoped streams and
+  independent bounded cleanup/unlock. Fake scenarios cover empty/missing data,
+  failure, cancellation, failed creation, lock failure and cleanup failure.
+  README onboarding is read-only; its lock example unlocks in `finally`.
+
 - UX-04: The partial-transfer sample uses upload offsets `[2,5)` for three bytes
   and download offsets `[2,4]` on the uploaded target, with scoped streams.
   A fake-transport regression verifies the exact range headers and payload.
