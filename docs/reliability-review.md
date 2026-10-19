@@ -7,6 +7,14 @@ workflows, and documentation. No critical-severity defect was established.
 
 ## Remediation progress
 
+- REL-01: All network-backed metadata parsers use asynchronous XML reads,
+  including nested property/lock parsing and skipped subtrees. A token-bound
+  stream applies caller cancellation to every read. `Client.ResponseBodyTimeout`
+  independently bounds acquisition/parsing of each metadata body (100 seconds
+  by default; `Timeout.InfiniteTimeSpan` disables only the deadline).
+  Prefix-then-stall coverage checks cancellation, deadlines, response disposal,
+  and uncancelled discovery retry. No whole-response buffering was introduced.
+
 - REL-04: Every URL-resolution call forwards its operation token into discovery,
   checks cancellation before I/O and before cache publication, and allows a new
   caller to retry cancelled discovery. Header cancellation and zero-send tests

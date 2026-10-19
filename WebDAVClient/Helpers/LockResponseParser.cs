@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 using WebDAVClient.Model;
 
@@ -24,17 +26,23 @@ namespace WebDAVClient.Helpers
         /// </summary>
         public static LockInfo Parse(Stream stream)
         {
+            return ParseAsync(stream).GetAwaiter().GetResult();
+        }
+
+        public static async Task<LockInfo> ParseAsync(Stream stream, CancellationToken cancellationToken = default)
+        {
             try
             {
                 using (var reader = XmlReader.Create(stream, ResponseParser.XmlReaderSettings))
                 {
-                    while (reader.Read())
+                    while (await reader.ReadAsync().ConfigureAwait(false))
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (reader.NodeType == XmlNodeType.Element
                             && string.Equals(reader.LocalName, "activelock", StringComparison.OrdinalIgnoreCase)
                             && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.OrdinalIgnoreCase))
                         {
-                            return ReadActiveLock(reader);
+                            return await ReadActiveLockAsync(reader, cancellationToken).ConfigureAwait(false);
                         }
                     }
                 }
@@ -48,17 +56,16 @@ namespace WebDAVClient.Helpers
             return null;
         }
 
-        private static LockInfo ReadActiveLock(XmlReader reader)
+        private static async Task<LockInfo> ReadActiveLockAsync(XmlReader reader, CancellationToken cancellationToken)
         {
             var info = new LockInfo();
             int depth = reader.Depth;
 
-            // All Read* helpers below use ReadSubtree internally, which leaves the parent
-            // reader positioned on the activelock-child's EndElement. That keeps the loop's
-            // reader.Read() correct (advances to the next sibling) without needing a
-            // "previous call already advanced" flag.
-            while (reader.Read())
+            bool advance = true;
+            while (!advance || await reader.ReadAsync().ConfigureAwait(false))
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                advance = true;
                 if (reader.NodeType == XmlNodeType.EndElement
                     && reader.Depth == depth
                     && string.Equals(reader.LocalName, "activelock", StringComparison.OrdinalIgnoreCase))
@@ -75,31 +82,43 @@ namespace WebDAVClient.Helpers
                 var localName = reader.LocalName;
                 if (string.Equals(localName, "locktype", StringComparison.OrdinalIgnoreCase))
                 {
-                    info.LockType = ReadFirstChildElementName(reader);
+                    info.LockType = await ReadFirstChildElementNameAsync(reader).ConfigureAwait(false);
                 }
                 else if (string.Equals(localName, "lockscope", StringComparison.OrdinalIgnoreCase))
                 {
-                    info.LockScope = ReadFirstChildElementName(reader);
+                    info.LockScope = await ReadFirstChildElementNameAsync(reader).ConfigureAwait(false);
                 }
                 else if (string.Equals(localName, "depth", StringComparison.OrdinalIgnoreCase))
                 {
-                    info.Depth = ReadElementText(reader);
+                    if (!reader.IsEmptyElement)
+                    {
+                        info.Depth = await reader.ReadElementContentAsStringAsync().ConfigureAwait(false);
+                        advance = false;
+                    }
                 }
                 else if (string.Equals(localName, "timeout", StringComparison.OrdinalIgnoreCase))
                 {
-                    info.TimeoutSeconds = ParseTimeout(ReadElementText(reader));
+                    if (!reader.IsEmptyElement)
+                    {
+                        info.TimeoutSeconds = ParseTimeout(await reader.ReadElementContentAsStringAsync().ConfigureAwait(false));
+                        advance = false;
+                    }
                 }
                 else if (string.Equals(localName, "owner", StringComparison.OrdinalIgnoreCase))
                 {
-                    info.Owner = ReadOwnerInnerXml(reader);
+                    if (!reader.IsEmptyElement)
+                    {
+                        info.Owner = (await reader.ReadInnerXmlAsync().ConfigureAwait(false)).Trim();
+                        advance = false;
+                    }
                 }
                 else if (string.Equals(localName, "locktoken", StringComparison.OrdinalIgnoreCase))
                 {
-                    info.Token = ReadHrefChild(reader);
+                    info.Token = await ReadHrefChildAsync(reader).ConfigureAwait(false);
                 }
                 else if (string.Equals(localName, "lockroot", StringComparison.OrdinalIgnoreCase))
                 {
-                    info.LockRoot = ReadHrefChild(reader);
+                    info.LockRoot = await ReadHrefChildAsync(reader).ConfigureAwait(false);
                 }
             }
 
@@ -107,72 +126,47 @@ namespace WebDAVClient.Helpers
         }
 
         // For elements like <D:locktype><D:write/></D:locktype> — return "write".
-        private static string ReadFirstChildElementName(XmlReader reader)
+        private static async Task<string> ReadFirstChildElementNameAsync(XmlReader reader)
         {
             if (reader.IsEmptyElement)
                 return null;
 
-            using (var sub = reader.ReadSubtree())
+            int depth = reader.Depth;
+            string name = null;
+            while (await reader.ReadAsync().ConfigureAwait(false))
             {
-                sub.MoveToContent();
-                while (sub.Read())
-                {
-                    if (sub.NodeType == XmlNodeType.Element)
-                        return sub.LocalName;
-                }
+                if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth)
+                    break;
+                if (name == null && reader.NodeType == XmlNodeType.Element)
+                    name = reader.LocalName;
             }
-            return null;
+            return name;
         }
 
         // For elements like <D:locktoken><D:href>opaquelocktoken:...</D:href></D:locktoken>
         // — return the inner href text.
-        private static string ReadHrefChild(XmlReader reader)
+        private static async Task<string> ReadHrefChildAsync(XmlReader reader)
         {
             if (reader.IsEmptyElement)
                 return null;
 
-            using (var sub = reader.ReadSubtree())
+            int depth = reader.Depth;
+            string href = null;
+            bool advance = true;
+            while (!advance || await reader.ReadAsync().ConfigureAwait(false))
             {
-                sub.MoveToContent();
-                while (sub.Read())
+                advance = true;
+                if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth)
+                    break;
+                if (href == null && reader.NodeType == XmlNodeType.Element
+                    && string.Equals(reader.LocalName, "href", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (sub.NodeType == XmlNodeType.Element
-                        && string.Equals(sub.LocalName, "href", StringComparison.OrdinalIgnoreCase)
-                        && string.Equals(sub.NamespaceURI, c_davNamespace, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return sub.ReadElementContentAsString().Trim();
-                    }
+                    href = (await reader.ReadElementContentAsStringAsync().ConfigureAwait(false)).Trim();
+                    advance = false;
                 }
             }
-            return null;
-        }
-
-        // Owner can be free-form XML (e.g. <D:href>...</D:href>) or plain text.
-        // Capture the inner XML so callers can inspect whatever the server returned.
-        private static string ReadOwnerInnerXml(XmlReader reader)
-        {
-            if (reader.IsEmptyElement)
-                return null;
-
-            using (var sub = reader.ReadSubtree())
-            {
-                sub.MoveToContent();
-                return sub.ReadInnerXml().Trim();
-            }
-        }
-
-        // Reads an element's text content. Uses a subtree reader so the parent reader is left
-        // on the element's EndElement (so the caller's outer loop advances normally).
-        private static string ReadElementText(XmlReader reader)
-        {
-            if (reader.IsEmptyElement)
-                return null;
-
-            using (var sub = reader.ReadSubtree())
-            {
-                sub.MoveToContent();
-                return sub.ReadElementContentAsString();
-            }
+            return href;
         }
 
         // RFC 4918 §10.7: TimeType = "Second-" 1*DIGIT | "Infinite"

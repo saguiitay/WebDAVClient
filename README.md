@@ -33,6 +33,7 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 ## Release Notes
 
 + **2.7.1** _(upcoming)_ Security, correctness, and reliability fixes:
+  - Metadata (PROPFIND, LOCK/refresh, PROPPATCH) is parsed asynchronously with caller cancellation and an independent, configurable `Client.ResponseBodyTimeout` (100 seconds by default). Stalled bodies cancel and release responses rather than blocking indefinitely.
   - Initial root discovery observes caller cancellation, sends nothing for an already-cancelled operation, and does not cache cancelled discovery.
   - Every operation consistently maps HTTP 409 to `WebDAVConflictException`; other failure codes remain available through `WebDAVException.GetHttpCode()`.
   - MOVE and COPY dispose response messages and content on both success and failure.
@@ -217,6 +218,32 @@ await client.CopyFolder(folder.Href, "/" + tempFolderName + "-copy/", cancellati
 var folderCreated = await client.GetFolder("/" + tempFolderName, cancellationToken: token);
 await client.DeleteFolder(folderCreated.Href, cancellationToken: token);
 ```
+
+## Metadata deadlines and cancellation
+
+Configure `ResponseBodyTimeout` on the concrete `Client` before assigning it to
+an `IClient` variable:
+
+```csharp
+using var client = new Client(credentials)
+{
+    Server = "https://dav.example.com",
+    BasePath = "/webdav/",
+    ResponseBodyTimeout = TimeSpan.FromSeconds(30)
+};
+var items = await client.List(cancellationToken: cancellationToken);
+```
+
+Each PROPFIND (including root discovery), LOCK/refresh, and PROPPATCH body has a
+100-second total deadline by default, starting after response headers arrive.
+This is independent of `HttpClient.Timeout`, which covers sending the request
+and receiving headers when using `ResponseHeadersRead`. Expiration and caller
+cancellation propagate as `OperationCanceledException` and release the response.
+Set `ResponseBodyTimeout = Timeout.InfiniteTimeSpan` to disable that deadline;
+caller cancellation remains effective. Configure an overall operation deadline
+with the supplied cancellation token when discovery and the following request
+must share one budget. Download streams are not subject to this metadata deadline;
+pass cancellation to their asynchronous reads and dispose them when finished.
 
 ## What's new in 2.7.0
 

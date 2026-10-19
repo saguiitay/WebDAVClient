@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 
 namespace WebDAVClient.Helpers
@@ -33,15 +35,21 @@ namespace WebDAVClient.Helpers
         /// </summary>
         public static IList<PropStatResult> Parse(Stream stream)
         {
+            return ParseAsync(stream).GetAwaiter().GetResult();
+        }
+
+        public static async Task<IList<PropStatResult>> ParseAsync(Stream stream, CancellationToken cancellationToken = default)
+        {
             var results = new List<PropStatResult>();
             using (var reader = XmlReader.Create(stream, ResponseParser.XmlReaderSettings))
             {
-                while (reader.Read())
+                while (await reader.ReadAsync().ConfigureAwait(false))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (reader.NodeType == XmlNodeType.Element
                         && IsDav(reader, "propstat"))
                     {
-                        var result = ReadPropStat(reader);
+                        var result = await ReadPropStatAsync(reader, cancellationToken).ConfigureAwait(false);
                         if (result != null)
                             results.Add(result);
                     }
@@ -50,7 +58,7 @@ namespace WebDAVClient.Helpers
             return results;
         }
 
-        private static PropStatResult ReadPropStat(XmlReader reader)
+        private static async Task<PropStatResult> ReadPropStatAsync(XmlReader reader, CancellationToken cancellationToken)
         {
             if (reader.IsEmptyElement)
                 return null;
@@ -58,8 +66,11 @@ namespace WebDAVClient.Helpers
             var result = new PropStatResult();
             int depth = reader.Depth;
 
-            while (reader.Read())
+            bool advance = true;
+            while (!advance || await reader.ReadAsync().ConfigureAwait(false))
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                advance = true;
                 if (reader.NodeType == XmlNodeType.EndElement
                     && reader.Depth == depth
                     && IsDav(reader, "propstat"))
@@ -75,28 +86,18 @@ namespace WebDAVClient.Helpers
                 // element (different namespace, different parent) and is correctly ignored.
                 if (IsDav(reader, "status"))
                 {
-                    result.StatusLine = ReadElementText(reader);
+                    result.StatusLine = await reader.ReadElementContentAsStringAsync().ConfigureAwait(false);
                     result.StatusCode = ParseStatusCode(result.StatusLine);
+                    advance = false;
                 }
                 else if (IsDav(reader, "responsedescription"))
                 {
-                    result.ResponseDescription = ReadElementText(reader);
+                    result.ResponseDescription = await reader.ReadElementContentAsStringAsync().ConfigureAwait(false);
+                    advance = false;
                 }
             }
 
             return result;
-        }
-
-        private static string ReadElementText(XmlReader reader)
-        {
-            if (reader.IsEmptyElement)
-                return null;
-
-            using (var sub = reader.ReadSubtree())
-            {
-                sub.MoveToContent();
-                return sub.ReadElementContentAsString();
-            }
         }
 
         // RFC 7230: status-line = HTTP-version SP status-code SP reason-phrase

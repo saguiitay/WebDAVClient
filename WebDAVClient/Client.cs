@@ -60,6 +60,7 @@ namespace WebDAVClient
         private long m_connectionVersion;
         private int? m_port;
         private bool m_disposedValue;
+        private TimeSpan m_responseBodyTimeout = TimeSpan.FromSeconds(100);
 
         #region WebDAV connection parameters
 
@@ -129,6 +130,24 @@ namespace WebDAVClient
         /// Specify the UserAgent (and UserAgent version) string to use in requests
         /// </summary>
         public string UserAgentVersion { get; set; }
+
+        /// <summary>
+        /// Total time allowed to acquire and parse each metadata response body after
+        /// headers arrive. Defaults to 100 seconds, independently of HttpClient.Timeout.
+        /// Use Timeout.InfiniteTimeSpan to disable the deadline; caller cancellation still applies.
+        /// Does not limit reads from streams returned by Download or DownloadPartial.
+        /// </summary>
+        public TimeSpan ResponseBodyTimeout
+        {
+            get => m_responseBodyTimeout;
+            set
+            {
+                if (value != Timeout.InfiniteTimeSpan
+                    && (value <= TimeSpan.Zero || value.TotalMilliseconds > uint.MaxValue - 1))
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                m_responseBodyTimeout = value;
+            }
+        }
 
         /// <summary>
         /// Specify additional headers to be sent with every request
@@ -388,26 +407,23 @@ namespace WebDAVClient
                     throw CreateWebDAVException((int)response.StatusCode, "Failed retrieving items in folder.");
                 }
 
-                using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                var items = await ReadMetadataResponse(response,
+                    (stream, token) => ResponseParser.ParseItemsAsync(stream, mode, token), cancellationToken).ConfigureAwait(false);
+                if (items == null)
                 {
-                    var items = ResponseParser.ParseItems(stream, mode);
-
-                    if (items == null)
-                    {
-                        throw new WebDAVException("Failed deserializing data returned from server.");
-                    }
-
-                    var listUrl = listUri.Uri.AbsoluteUri.TrimEnd('/');
-
-                    var result = new List<Item>(items.Count);
-                    foreach (var item in items)
-                    {
-                        var fullHref = BuildServerUrl(item.Href, false).Uri.AbsoluteUri.TrimEnd('/');
-                        if (!string.Equals(fullHref, listUrl, StringComparison.OrdinalIgnoreCase))
-                            result.Add(item);
-                    }
-                    return result;
+                    throw new WebDAVException("Failed deserializing data returned from server.");
                 }
+
+                var listUrl = listUri.Uri.AbsoluteUri.TrimEnd('/');
+
+                var result = new List<Item>(items.Count);
+                foreach (var item in items)
+                {
+                    var fullHref = BuildServerUrl(item.Href, false).Uri.AbsoluteUri.TrimEnd('/');
+                    if (!string.Equals(fullHref, listUrl, StringComparison.OrdinalIgnoreCase))
+                        result.Add(item);
+                }
+                return result;
             }
             finally
             {
@@ -798,10 +814,7 @@ namespace WebDAVClient
                 LockInfo info = null;
                 if (response.Content != null)
                 {
-                    using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                    {
-                        info = LockResponseParser.Parse(stream);
-                    }
+                    info = await ReadMetadataResponse(response, LockResponseParser.ParseAsync, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (info == null)
@@ -891,17 +904,13 @@ namespace WebDAVClient
                     throw CreateWebDAVException((int)response.StatusCode, string.Format("Failed retrieving item/folder (Status Code: {0})", response.StatusCode));
                 }
 
-                using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                var result = await ReadMetadataResponse(response,
+                    (stream, token) => ResponseParser.ParseItemAsync(stream, mode, token), cancellationToken).ConfigureAwait(false);
+                if (result == null)
                 {
-                    var result = ResponseParser.ParseItem(stream, mode);
-
-                    if (result == null)
-                    {
-                        throw new WebDAVException("Failed deserializing data returned from server.");
-                    }
-
-                    return result;
+                    throw new WebDAVException("Failed deserializing data returned from server.");
                 }
+                return result;
             }
             finally
             {
@@ -983,10 +992,7 @@ namespace WebDAVClient
                 LockInfo info = null;
                 if (response.Content != null)
                 {
-                    using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                    {
-                        info = LockResponseParser.Parse(stream);
-                    }
+                    info = await ReadMetadataResponse(response, LockResponseParser.ParseAsync, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (info == null)
@@ -1060,16 +1066,13 @@ namespace WebDAVClient
                     throw new WebDAVException((int)response.StatusCode, "PROPPATCH response had no body to confirm property status.");
                 }
 
-                using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                try
                 {
-                    try
-                    {
-                        results = PropPatchResponseParser.Parse(stream);
-                    }
-                    catch (System.Xml.XmlException ex)
-                    {
-                        throw new WebDAVException((int)response.StatusCode, "PROPPATCH response body could not be parsed.", ex);
-                    }
+                    results = await ReadMetadataResponse(response, PropPatchResponseParser.ParseAsync, cancellationToken).ConfigureAwait(false);
+                }
+                catch (System.Xml.XmlException ex)
+                {
+                    throw new WebDAVException((int)response.StatusCode, "PROPPATCH response body could not be parsed.", ex);
                 }
 
                 // No propstat at all = ambiguous response. RFC 4918 §9.2 requires the server to
@@ -1095,6 +1098,18 @@ namespace WebDAVClient
 
                 return true;
             }
+        }
+
+        private async Task<T> ReadMetadataResponse<T>(HttpResponseMessage response,
+            Func<Stream, CancellationToken, Task<T>> parse, CancellationToken cancellationToken)
+        {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            deadline.CancelAfter(ResponseBodyTimeout);
+            using var stream = await response.Content.ReadAsStreamAsync(deadline.Token).WaitAsync(deadline.Token).ConfigureAwait(false);
+            using var cancellableStream = new CancellationReadStream(stream, deadline.Token);
+            var result = await parse(cancellableStream, deadline.Token).ConfigureAwait(false);
+            deadline.Token.ThrowIfCancellationRequested();
+            return result;
         }
 
         // Centralised so 409 keeps mapping to WebDAVConflictException everywhere.

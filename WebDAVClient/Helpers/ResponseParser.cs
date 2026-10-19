@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 using WebDAVClient.Model;
 
@@ -72,6 +74,7 @@ namespace WebDAVClient.Helpers
 
         internal static XmlReaderSettings XmlReaderSettings = new XmlReaderSettings
         {
+            Async = true,
             DtdProcessing = DtdProcessing.Prohibit,
             XmlResolver = null,
             IgnoreComments = true,
@@ -86,7 +89,7 @@ namespace WebDAVClient.Helpers
         /// <returns>The list of parsed items.</returns>
         public static List<Item> ParseItems(Stream stream)
         {
-            return ParseItemsCore(stream, PropFindMode.AllProp);
+            return ParseItems(stream, PropFindMode.AllProp);
         }
 
         /// <summary>
@@ -95,10 +98,15 @@ namespace WebDAVClient.Helpers
         /// </summary>
         public static List<Item> ParseItems(Stream stream, PropFindMode mode)
         {
-            return ParseItemsCore(stream, mode);
+            return ParseItemsAsync(stream, mode).GetAwaiter().GetResult();
         }
 
-        private static List<Item> ParseItemsCore(Stream stream, PropFindMode mode)
+        public static async Task<Item> ParseItemAsync(Stream stream, PropFindMode mode, CancellationToken cancellationToken = default)
+        {
+            return (await ParseItemsAsync(stream, mode, cancellationToken).ConfigureAwait(false)).FirstOrDefault();
+        }
+
+        public static async Task<List<Item>> ParseItemsAsync(Stream stream, PropFindMode mode, CancellationToken cancellationToken = default)
         {
             var items = new List<Item>();
             using (var reader = XmlReader.Create(stream, XmlReaderSettings))
@@ -125,9 +133,10 @@ namespace WebDAVClient.Helpers
 
                 while (true)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (advance)
                     {
-                        if (!reader.Read()) break;
+                        if (!await reader.ReadAsync().ConfigureAwait(false)) break;
                     }
                     advance = true;
 
@@ -176,7 +185,7 @@ namespace WebDAVClient.Helpers
                                 || (propStatDepth >= 0 && reader.Depth == propStatDepth + 1)))
                         {
                             var isResourceStatus = reader.Depth == responseDepth + 1;
-                            var statusCode = ParseStatusCode(reader.ReadElementContentAsString());
+                            var statusCode = ParseStatusCode(await reader.ReadElementContentAsStringAsync().ConfigureAwait(false));
                             if (isResourceStatus)
                                 resourceStatus = statusCode;
                             else
@@ -186,7 +195,7 @@ namespace WebDAVClient.Helpers
                         }
                         if (propDepth >= 0 && reader.Depth == propDepth + 1)
                         {
-                            advance = !BufferProperty(reader, propStatBuffer, mode);
+                            advance = !await BufferPropertyAsync(reader, propStatBuffer, mode).ConfigureAwait(false);
                             continue;
                         }
 
@@ -195,8 +204,8 @@ namespace WebDAVClient.Helpers
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                reader.Read();
-                                var value = reader.Value;
+                                await reader.ReadAsync().ConfigureAwait(false);
+                                var value = await reader.GetValueAsync().ConfigureAwait(false);
                                 value = value.Replace("#", "%23");
                                 itemInfo.Href = value;
                             }
@@ -274,13 +283,13 @@ namespace WebDAVClient.Helpers
         // Returns true when the reader was advanced past the element's end tag (the caller
         // must NOT call Read() again for this iteration); false when the reader is still on
         // the original empty element.
-        private static bool BufferProperty(XmlReader reader, List<(PropertyName Name, string Value)> buffer, PropFindMode mode)
+        private static async Task<bool> BufferPropertyAsync(XmlReader reader, List<(PropertyName Name, string Value)> buffer, PropFindMode mode)
         {
             var localName = reader.LocalName;
             var ns = reader.NamespaceURI ?? string.Empty;
             if (mode == PropFindMode.AllProp && !string.Equals(ns, c_davNamespace, StringComparison.Ordinal))
             {
-                reader.Skip();
+                await reader.SkipAsync().ConfigureAwait(false);
                 return true;
             }
             var isEmpty = reader.IsEmptyElement;
@@ -295,13 +304,13 @@ namespace WebDAVClient.Helpers
             else if (mode == PropFindMode.PropName)
             {
                 // Be liberal: some servers emit non-empty elements anyway in propname mode; consume.
-                reader.ReadInnerXml();
+                await reader.ReadInnerXmlAsync().ConfigureAwait(false);
                 text = string.Empty;
                 advanced = true;
             }
             else
             {
-                text = reader.ReadInnerXml();
+                text = await reader.ReadInnerXmlAsync().ConfigureAwait(false);
                 advanced = true;
             }
 
