@@ -24,3 +24,17 @@ Add projects to the solution and test supported target frameworks. Keep vendor s
 Fixtures expose false success, mixed statuses, lost updates, resource leaks and crash/restart inconsistencies. External conformance tools complement rather than replace RFC-ledger coverage.
 
 No destructive tests target public demos. Network/platform prerequisites are explicit; ordinary unit tests do not require Office, a mounted driver or a cloud account.
+
+## Upstream comparison checklist
+
+The [skazantsev/WebDavClient recommendations](../PROTOCOL-COMPLETENESS-PLAN.md#9-lessons-from-skazantsevwebdavclient) provide pinned source references. Use its separation of method/request tests and parser fixtures as a checklist, while retaining this repository's MSTest setup.
+
+Add original regression cases for:
+
+- Per-operation headers/options and cancellation without cross-request mutation.
+- Ordered repeated PROPPATCH operations, qualified XML values and distinct property failures.
+- Shared/exclusive acquisition and multiple active-lock discovery.
+- Transfer-result disposal and continued usability of externally owned HTTP clients/wrappers.
+- Malformed/wrong-namespace multistatus rejection and 207 responses containing failures.
+
+Do not inherit upstream expectations that malformed 207 XML is a successful empty collection or that every outer 2xx indicates complete success. Derive expected behavior from the RFC ledger and our compatibility contracts, not another library's tests.

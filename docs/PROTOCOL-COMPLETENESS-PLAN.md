@@ -105,6 +105,8 @@ Priority: P0. Dependencies: P-01/P-02.
 
 Add request-scoped HTTP validators (`If-Match`, `If-None-Match`, date validators where relevant, `If-Range`) and the full DAV `If` grammar. A mutable global `CustomHeaders` collection is not an adequate per-operation concurrency API.
 
+Use method-specific options objects on the advanced surface for conditions, headers, depth and other operation settings rather than continually extending positional argument lists. Snapshot mutable options/collections when constructing a request so concurrent callers cannot change an in-flight operation. Retain trailing cancellation tokens and existing legacy signatures; do not move cancellation exclusively into an options object.
+
 Cover multiple affected resource URIs and lock tokens for parents, locked descendants and destination overwrites. Apply HTTP and DAV conditions according to their distinct semantics; do not reduce tagged lists to "all resources are locked." Unit-test the formal grammar and real request evaluation.
 
 Expose supported depth choices where meaningful: PROPFIND 0/1/infinity; collection COPY 0/infinity; MOVE and collection DELETE semantics mandated by RFC 4918. Validate unsupported depth values before I/O. Check unnecessary COPY/MOVE bodies against the standard and independently hosted servers.
@@ -129,6 +131,7 @@ Not every live property is returned by allprop and not every live property is wr
 Acceptance:
 
 - Ordered set/remove combinations are preserved; partial property failure exposes each property's status and 424 dependencies.
+- Repeated changes to the same qualified property preserve caller order, including remove-then-set and set-then-remove; separate dictionaries of sets/removes cannot express the complete sequence.
 - Text/XML values, namespace collisions, empty values, `xml:lang`, protected properties and authorization failures are distinct.
 - Lock-token conditions apply to PROPPATCH and to MKCOL in a locked parent, not only to PUT/DELETE/COPY/MOVE.
 - Discovery never treats 403 as "property does not exist."
@@ -147,6 +150,7 @@ Acceptance:
 
 - Both exclusive-only and shared-capable servers are covered without assuming either policy.
 - Supportedlock and lockdiscovery are parsed as structured properties, not opaque display strings.
+- Multiple active locks retain their individual scope, depth, owner, root, token and timeout rather than collapsing into the first entry.
 - A failed recursive LOCK cannot be treated as a granted tree-wide lock.
 - Refresh/unlock preserve token opacity, verify outcomes, and report expiry or missing information explicitly.
 
@@ -166,6 +170,7 @@ Acceptance:
 - 64-bit offsets and logical files larger than 4 GiB work without buffering entire content.
 - Caller-owned versus operation-owned upload streams have an explicit contract; non-seekable streams are supported for normal uploads.
 - Disposing a transfer result closes the response; cancellation and failed downloads release resources.
+- Transfer results expose relevant status, ETag, Content-Range and content metadata while preserving caller ownership of an externally supplied HttpClient/wrapper.
 - A resumed download detects an ETag change and cannot concatenate incompatible versions.
 
 ### P-07: capability-aware operations and origin/path rules
@@ -293,3 +298,29 @@ Normative requirements come from [RFC 4918](https://www.rfc-editor.org/rfc/rfc49
 The site's [property management](https://www.webdavsystem.com/client/programming/managing_properties/), [locking](https://www.webdavsystem.com/client/programming/locking/), [DeltaV](https://www.webdavsystem.com/client/programming/deltav/), [search](https://www.webdavsystem.com/client/programming/search/) and [synchronization](https://www.webdavsystem.com/client/programming/sync/) guides supply comparison scenarios, not a requirement to copy their API shapes.
 
 The [paging guide](https://www.webdavsystem.com/server/documentation/paging/) and [resumable-upload wire guide](https://www.webdavsystem.com/javaserver/doc/resumable_upload/how_it_works/) explicitly identify vendor extensions. Keep these separate from the core compliance claim.
+
+## 9. Lessons from skazantsev/WebDavClient
+
+Reviewed 2026-10-19 at commit [`acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2`](https://github.com/skazantsev/WebDavClient/tree/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2), dated 2025-03-30. This is a source-level comparison of a client library, not runtime interoperability evidence, an RFC conformance certification or a recommendation to replace this project's architecture.
+
+### Adopt the ideas, not the entire implementation
+
+| Upstream reference | Recommendation for this project | Work package |
+| --- | --- | --- |
+| [LockParameters](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client/Request/LockParameters.cs) groups request headers, depth, scope, timeout and cancellation. | Add method-specific advanced options without growing positional overloads or mutating global headers. Preserve our trailing cancellation-token convention and snapshot request state. | P-03/P-08. |
+| [WebDavPropertyStatus](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client/Core/WebDavPropertyStatus.cs) retains qualified name, status and description. | Keep exact per-property outcomes and outer status separately; expose failures without losing property identity. | P-02. |
+| [ProppatchRequestBuilder](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client/Request/ProppatchRequestBuilder.cs) submits multiple XML-valued sets/removes together. | Submit one atomic server request, but use an ordered instruction list rather than grouping every set before every removal. Model text and XML explicitly. | P-04. |
+| [LockResponseParser](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client/Response/LockResponseParser.cs) returns a collection of active locks; acquisition supports shared/exclusive scope. | Use multiple-lock discovery and scope selection as concrete scenarios; retain our stronger parsing and full lifecycle requirements. | P-05. |
+| [WebDavStreamResponse](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client/Response/WebDavStreamResponse.cs) owns the stream and HTTP response. | Provide an explicitly disposable transfer result, adding validators, range/content metadata and tested ownership semantics. | P-06. |
+| [PROPPATCH method tests](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client.Tests/Methods/ProppatchTests.cs) check request XML, headers and cancellation independently of parsers. | Extend our existing MSTest wire-contract checklist and separate request construction from response parsing tests. Do not migrate test frameworks or inherit incorrect expected behavior. | P-01/P-10 and WebDAV.Testing. |
+| [SearchRequestBuilder](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client/Request/SearchRequestBuilder.cs) builds projection, scope and a LIKE predicate. | Use as a small SEARCH example, not the complete design: E-02 still needs grammar discovery, a typed query model, ordering, limits and unsupported-feature behavior. | E-02. |
+
+### Counterexamples and required regression cases
+
+- **Malformed XML must not be a successful empty listing.** Upstream [parser tests](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client.Tests/Response/PropfindResponseParserTests.cs#L31-L44) explicitly accept that outcome for a 207 response. Our P-02 behavior must fail clearly, and D-01 must never reconcile such a response as remote deletion.
+- **HTTP 2xx is not aggregate DAV success.** Upstream [WebDavResponse](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client/Response/WebDavResponse.cs) uses only the outer status, and ProppatchResponse does not override that calculation. Test 207 with denied/failed-dependent properties and failed child operations; preserve both transport and operation outcomes.
+- **XML local names alone are not structural identity.** Upstream [XML helpers](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client/Helpers/LinqToXmlExtentions.cs) match local names, sometimes case-insensitively. Retain namespace-aware, case-correct and structurally bounded DAV parsing; test foreign namespaces and nested lookalike elements.
+- **Supplying HttpClient does not transfer ownership by default here.** Upstream [dispatcher disposal](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client/Core/WebDavDispatcher.cs) disposes its supplied client. Preserve this repository's caller-owned wrapper/client contract and test usability after disposing the DAV client/result.
+- **Convenience helpers are not full protocol coverage.** Upstream [IfHeaderHelper](https://github.com/skazantsev/WebDavClient/blob/acad5a8f7d3f08cec058404b1e3f9a9806e1b6b2/src/WebDav.Client/Helpers/IfHeaderHelper.cs) expresses one untagged token list. P-03 still requires tagged multi-resource conditions, ETags, negation and alternative lists; a simple SEARCH builder likewise does not establish full DASL support.
+
+These findings reinforce P-02 through P-06 and supply additional examples for E-02 and the testing package. They do not change the server, durable-sync or native-platform architecture. No upstream dependency or source code is introduced; any future reuse must separately review and preserve the applicable MIT notices.
