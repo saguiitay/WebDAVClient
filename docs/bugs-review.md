@@ -14,6 +14,7 @@ This is the original review, before subsequent security remediation.
 - BUG-03: fixed; changed connection settings invalidate discovery, and version-checked publication prevents stale in-flight roots from being cached.
 - BUG-04: fixed; exact URI tests cover both root formats, leading slashes, base-prefixed paths, uploads, MKCOL, and MOVE/COPY destinations.
 - BUG-05: fixed; parent exclusion is independent of collection flags, and sparse modes retain collection identity using href slashes when explicit type values are absent.
+- BUG-06: fixed; ranged downloads validate status, interval, unit and declared length, allow valid EOF clipping, and dispose rejected responses.
 
 ## Outcome
 

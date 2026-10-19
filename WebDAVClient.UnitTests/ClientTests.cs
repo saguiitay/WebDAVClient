@@ -225,17 +225,73 @@ namespace WebDAVClient.UnitTests.ClientTests
         [TestMethod]
         public async Task DownloadPartial_sets_range_header()
         {
-            var payload = Encoding.UTF8.GetBytes("partial");
+            var payload = Encoding.UTF8.GetBytes("partialdata");
             using var harness = new ClientHarness(Responder(req =>
             {
                 Assert.IsTrue(req.Headers.Contains("Range"));
                 Assert.AreEqual("bytes=10-20", req.Headers.GetValues("Range").First());
-                return StubHttpMessageHandler.Stream(HttpStatusCode.PartialContent, payload);
+                var response = StubHttpMessageHandler.Stream(HttpStatusCode.PartialContent, payload);
+                response.Content.Headers.ContentRange = new System.Net.Http.Headers.ContentRangeHeaderValue(10, 20, 100);
+                return response;
             }), Server, BasePath);
 
             using var stream = await harness.Client.DownloadPartial("file.txt", 10, 20);
             using var reader = new StreamReader(stream);
-            Assert.AreEqual("partial", await reader.ReadToEndAsync());
+            Assert.AreEqual("partialdata", await reader.ReadToEndAsync());
+        }
+
+        [DataTestMethod]
+        [DataRow(200, "bytes 2-4/10", "234")]
+        [DataRow(206, null, "234")]
+        [DataRow(206, "invalid", "234")]
+        [DataRow(206, "bytes 1-3/10", "123")]
+        [DataRow(206, "bytes 2-5/10", "2345")]
+        [DataRow(206, "items 2-4/10", "234")]
+        [DataRow(206, "bytes 2-4/10", "0123456789")]
+        public async Task DownloadPartial_rejects_invalid_responses_and_disposes_them(int status, string range, string body)
+        {
+            TrackingHttpResponseMessage response = null;
+            using var harness = new ClientHarness(Responder(_ =>
+            {
+                response = new TrackingHttpResponseMessage((HttpStatusCode)status) { Content = new StringContent(body) };
+                if (range != null) response.Content.Headers.TryAddWithoutValidation("Content-Range", range);
+                return response;
+            }), Server, BasePath);
+
+            await Assert.ThrowsExceptionAsync<WebDAVException>(() => harness.Client.DownloadPartial("file.txt", 2, 4));
+
+            Assert.IsTrue(response.WasDisposed);
+        }
+
+        [DataTestMethod]
+        [DataRow(4L, "bytes 2-4/10", "234")]
+        [DataRow(20L, "bytes 2-9/10", "23456789")]
+        public async Task DownloadPartial_returns_only_a_validated_range(long end, string range, string body)
+        {
+            using var harness = new ClientHarness(Responder(_ =>
+            {
+                var response = StubHttpMessageHandler.Stream(HttpStatusCode.PartialContent, Encoding.UTF8.GetBytes(body));
+                response.Content.Headers.ContentRange = System.Net.Http.Headers.ContentRangeHeaderValue.Parse(range);
+                return response;
+            }), Server, BasePath);
+
+            using var stream = await harness.Client.DownloadPartial("file.txt", 2, end);
+            using var reader = new StreamReader(stream);
+
+            Assert.AreEqual(body, await reader.ReadToEndAsync());
+        }
+
+        [DataTestMethod]
+        [DataRow(-1L, 1L)]
+        [DataRow(2L, 1L)]
+        public async Task DownloadPartial_rejects_invalid_intervals_before_IO(long start, long end)
+        {
+            using var harness = new ClientHarness(_ => throw new AssertFailedException("Must not send invalid input"), Server, BasePath);
+
+            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(
+                () => harness.Client.DownloadPartial("file.txt", start, end));
+
+            Assert.AreEqual(0, harness.Handler.Requests.Count);
         }
 
         [TestMethod]

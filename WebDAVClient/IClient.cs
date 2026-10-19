@@ -156,11 +156,11 @@ namespace WebDAVClient
         /// Download a part of file from the server
         /// </summary>
         /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
-        /// <param name="startBytes">Start bytes of content</param>
-        /// <param name="endBytes">End bytes of content</param>
+        /// <param name="startBytes">Inclusive starting byte offset.</param>
+        /// <param name="endBytes">Inclusive ending byte offset; a valid response can end earlier at the reported EOF.</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
         /// <returns>A stream with the partial content of the downloaded file. The caller owns the stream and must dispose it.</returns>
-        /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
+        /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server rejects or ignores the range, or returns a mismatched Content-Range.</exception>
         Task<Stream> DownloadPartial(string remoteFilePath, long startBytes, long endBytes, CancellationToken cancellationToken = default);
 
         /// <summary>

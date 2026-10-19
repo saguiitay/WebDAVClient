@@ -493,24 +493,28 @@ namespace WebDAVClient
             {
                 { "translate", "f" }
             };
-            return DownloadFile(remoteFilePath, headers, cancellationToken);
+            return DownloadFile(remoteFilePath, headers, cancellationToken: cancellationToken);
         }
 
         /// <summary>
         /// Download a part of file from the server
         /// </summary>
         /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
-        /// <param name="startBytes">Start bytes of content</param>
-        /// <param name="endBytes">End bytes of content</param>
+        /// <param name="startBytes">Inclusive starting byte offset.</param>
+        /// <param name="endBytes">Inclusive ending byte offset, clipped at EOF when the server reports a shorter resource.</param>
         /// <returns>A stream with the partial content of the downloaded file</returns>
         public Task<Stream> DownloadPartial(string remoteFilePath, long startBytes, long endBytes, CancellationToken cancellationToken = default)
         {
+            if (startBytes < 0)
+                throw new ArgumentOutOfRangeException(nameof(startBytes));
+            if (endBytes < startBytes)
+                throw new ArgumentOutOfRangeException(nameof(endBytes));
             var headers = new Dictionary<string, string>(2)
             { 
                 { "translate", "f" }, 
                 { "Range", "bytes=" + startBytes + "-" + endBytes } 
             };
-            return DownloadFile(remoteFilePath, headers, cancellationToken);
+            return DownloadFile(remoteFilePath, headers, startBytes, endBytes, cancellationToken);
         }
 
         /// <summary>
@@ -1104,16 +1108,34 @@ namespace WebDAVClient
             return new WebDAVException(httpCode, message);
         }
 
-        private async Task<Stream> DownloadFile(string remoteFilePath, Dictionary<string, string> header, CancellationToken cancellationToken = default)
+        private async Task<Stream> DownloadFile(string remoteFilePath, Dictionary<string, string> header, long? rangeStart = null, long? rangeEnd = null, CancellationToken cancellationToken = default)
         {
             // Should not have a trailing slash.
             var downloadUri = await GetServerUrl(remoteFilePath, false).ConfigureAwait(false);
             var response = await HttpRequest(downloadUri.Uri, HttpMethod.Get, header, cancellationToken: cancellationToken).ConfigureAwait(false);
-            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
+            try
             {
+                if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.PartialContent)
+                    throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
+                if (rangeStart.HasValue)
+                {
+                    var range = response.Content.Headers.ContentRange;
+                    var expectedEnd = range != null && range.HasLength
+                        ? Math.Min(rangeEnd.Value, range.Length.Value - 1) : rangeEnd.Value;
+                    if (response.StatusCode != HttpStatusCode.PartialContent || range == null || !range.HasRange
+                        || !string.Equals(range.Unit, "bytes", StringComparison.OrdinalIgnoreCase)
+                        || range.From != rangeStart || range.To != expectedEnd
+                        || (response.Content.Headers.ContentLength.HasValue
+                            && response.Content.Headers.ContentLength.Value != range.To.Value - range.From.Value + 1))
+                        throw new WebDAVException((int)response.StatusCode, "The server did not return the requested byte range.");
+                }
                 return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             }
-            throw new WebDAVException((int)response.StatusCode, "Failed retrieving file.");
+            catch
+            {
+                response.Dispose();
+                throw;
+            }
         }
         
         #region Server communication
