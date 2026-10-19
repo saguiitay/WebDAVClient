@@ -10,15 +10,20 @@ Targets `net8.0` and `net10.0` (multi-targeted, both LTS). The CI workflow (`.gi
 dotnet restore
 dotnet build -c Release --no-restore          # builds both TFMs
 dotnet test -c Release --no-build             # runs both test TFMs after building
-dotnet build -c Release-Unsigned              # third configuration defined in csproj
+dotnet build WebDAVClient\WebDAVClient.csproj -c Release-Unsigned # library-only configuration
 dotnet pack  -c Release -o Release/nuget      # produces .nupkg + .snupkg
 ```
 
 `WebDAVClient.UnitTests` is an MSTest project included in `WebDAVClient.sln`. Solution-level `dotnet test` runs its tests for both target frameworks. For focused regressions use `dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release --no-restore --filter "FullyQualifiedName~TestClassName"`.
 
-`TestWebDAVClient/Program.cs` is a nonpackable manual smoke-test executable, not an automated test. Select a target explicitly: `dotnet run --project TestWebDAVClient -f net10.0 -- --help`. Help does not contact a server.
+`TestWebDAVClient/Program.cs` is a nonpackable manual smoke-test executable, not an automated test. Select a target explicitly: `dotnet run --project TestWebDAVClient -f net10.0 -- --help`. Help and `--validate` are offline. Configure server/base path via arguments or environment; reads are the default and only `--mutate` enables run-owned changes with bounded cleanup. Authentication is anonymous unless explicitly configured.
 
 `GeneratePackageOnBuild=true` is set on the library, so every Release build produces a `.nupkg` in `WebDAVClient/bin/Release`. Don't add a separate pack step in local workflows unless you need a custom output path.
+
+`GenerateDocumentationFile=true` ships XML beside both framework assemblies.
+Resolve XML warnings, inherit interface contracts where appropriate, and keep
+parameter/stream-ownership/exception descriptions consistent across both surfaces.
+Version 2.7.0 is already released (maintainer-confirmed); current 2.7.1 is upcoming.
 
 ## Architecture
 
@@ -28,6 +33,7 @@ dotnet pack  -c Release -o Release/nuget      # produces .nupkg + .snupkg
 - **`Helpers/ResponseParser`** — parses multistatus XML asynchronously with whitespace-ignoring settings; tolerates missing/null fields (e.g. `CreationDate`). `CancellationReadStream` binds network reads to caller cancellation and `Client.ResponseBodyTimeout` (100 seconds by default). Keep synchronous parsing limited to buffered property values and internal compatibility entry points.
 - **`Helpers/WebDAVException` & `WebDAVConflictException`** — all server-side failures surface as `WebDAVException` (HTTP code accessible via `GetHttpCode()`); 409 responses surface as the more specific `WebDAVConflictException`. Preserve this mapping when adding new operations.
 - **`Authentication/BearerTokenAuthenticationHandler`** — shipped static-token and async-provider authentication, exposed through `Client` constructor overloads. Providers run once per request and may run concurrently; caching/refresh coordination belongs to the provider. `AuthenticationOptions`, `BearerToken`, credential abstractions, and `ClientBuilder` remain roadmap proposals, not available APIs. Preserve the legacy `Client(ICredentials, TimeSpan?, IWebProxy)` constructor.
+- **Consumer configuration** — explicit `Client.CreateWithCredentials` / `CreateWithBearerToken` / `CreateWithBearerTokenProvider` factories avoid new constructor ambiguity. Null credentials mean Windows-default authentication, not anonymous. Injected handlers own proxy/auth/TLS/HTTP timeout settings; a concrete-client TLS callback with injection is rejected before I/O. Metadata body deadlines remain on concrete `Client`.
 
 ## Conventions specific to this repo
 
@@ -39,4 +45,4 @@ dotnet pack  -c Release -o Release/nuget      # produces .nupkg + .snupkg
 - **Disposal**: dispose requests and responses after use. Successful `Download`/`DownloadPartial` transfers response ownership to `ResponseOwnedStream`; do not dispose that response before returning the stream, but dispose it on acquisition/validation failure. Upload requests own and dispose their input streams; callers still need a using scope for pre-request failures.
 - **Recovery**: no automatic retries. DELETE/MOVE/COPY HTTP 207 remains a failure and retains member outcomes in `WebDAVException.ResourceStatuses`; malformed recovery XML is explicit through `InnerException`. Reconcile ambiguous/partial mutations before replaying and reopen upload content for every attempt.
 - **Versioning**: `Version`, `AssemblyVersion`, `FileVersion`, and `PackageReleaseNotes` in `WebDAVClient.csproj` are bumped together; `README.md`'s "Release Notes" section is the human-readable changelog and should be updated for any user-visible change.
-- **`ROADMAP.md`** is authoritative for planned API direction (modern auth via `TokenCredential`/`ApiKeyCredential`, LOCK/UNLOCK, PROPPATCH, `ClientBuilder` fluent API, retry/logging). Align new work with the patterns described there rather than inventing parallel APIs.
+- **`ROADMAP.md`** separates current status from historical proposals (direct identity credentials, builder, retry/logging and other future APIs). LOCK/UNLOCK and PROPPATCH are implemented, not planned. Use README/IClient/XML docs for current contracts; archival signatures and dates are not API or release commitments.

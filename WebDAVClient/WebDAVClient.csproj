@@ -14,11 +14,14 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>* Performance: Filter listings in place, skip unused property-name XML, retain only selected single-item results, avoid PUT response buffering, and coordinate concurrent root discovery.
+    <PackageReleaseNotes>* Developer experience: Ship XML documentation for both targets, safe configurable examples, early argument validation, qualified property statuses, explicit authentication factories, sanitized exception context, and complete configuration/ownership guidance.
+* Configuration: Reject ineffective client TLS callbacks on injected transports and validate owned upload timeouts before transport allocation.
+* Performance: Filter listings in place, skip unused property-name XML, retain only selected single-item results, avoid PUT response buffering, and coordinate concurrent root discovery.
 * Reliability: Cancellable asynchronous metadata parsing with configurable body deadlines; cancellation-aware discovery; consistent 409 exceptions; complete response ownership; member-level mutation recovery diagnostics.
 * Bug fixes: Correct partial transfer ranges, connection reconfiguration, URL joining, sparse listings, targeted XML values, PROPFIND failure statuses, OPTIONS discovery, empty-namespace properties and hidden values.
 * Security: Reject absolute WebDAV URLs outside the configured origin (scheme, hostname and effective port), preventing metadata-driven HTTPS downgrades and credential disclosure.
 * Security: Scope PROPFIND resource identities and typed properties to their DAV namespace and structural position.
+Historical context (already released in 2.7.0):
 * Feature: WebDAV LOCK / UNLOCK support (RFC 4918 §9.10–9.11).
 * Feature: WebDAV PROPPATCH support — set / remove custom properties (RFC 4918 §9.2).
 * Bug fix: COPY / MOVE now send the Overwrite header (RFC 4918 §9.8.3 / §9.9.3); 204 No Content accepted as success.

@@ -7,6 +7,12 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-16: Reconciled contributor commands/sample behavior/XML packaging with source,
+  marked 2.7.0 released and 2.7.1 upcoming without claiming feed verification,
+  and labeled roadmap signatures/dependencies/dates as historical proposals.
+  Current versus unavailable auth, lock/property, retry and diagnostic APIs are
+  explicit; package notes distinguish prior-release features.
+
 - UX-17: Added complete owned/injected configuration recipes covering credentials,
   per-request bearer rotation, proxy, TLS, disposal and five distinct timeout
   scopes. Invalid upload timeouts and ineffective injected-transport TLS callbacks

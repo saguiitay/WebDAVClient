@@ -102,7 +102,7 @@ checking for false.
 * Implemented using HttpClient, which means support for extendibility such as throttling and monitoring
 * Authentication: unauthenticated, Windows / Basic / Digest (via `ICredentials`), and Bearer / OAuth 2.0 (via static token or async refreshable provider)
 * Supports custom Certificate validation
-* Supports the full WebDAV API:
+* Supports these WebDAV operations:
   * Retrieving files & folders
   * Listing items in a folder (`<allprop/>`, targeted `<prop>`, and `<propname/>` PROPFIND variants)
   * Creating & deleting folders

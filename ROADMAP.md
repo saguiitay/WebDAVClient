@@ -1,8 +1,29 @@
 ﻿# WebDAV Client Roadmap
 
-This document outlines the recommended improvements and missing features for the WebDAV Client library to enhance its functionality, performance, and usability.
+This document preserves historical design proposals, with current status called
+out below. It is not the current API reference or a release schedule. Use
+`README.md`, `IClient`, and the packaged XML documentation for available APIs.
 
-## 🎯 Major Missing Features
+## Current status
+
+- **2.7.0 is already released**, as confirmed by the maintainer. This document does
+  not independently verify package-feed publication.
+- **2.7.1 is upcoming in this source tree**, targeting .NET 8 and .NET 10, with
+  security/correctness/reliability/performance fixes, XML documentation, explicit
+  authentication factories, qualified property statuses and sanitized exception context.
+- Already available: credential/static-bearer/provider constructors,
+  `BearerTokenAuthenticationHandler`, `LockInfo` and LOCK/UNLOCK/refresh,
+  PROPPATCH, targeted/property-name PROPFIND and `ServerOptions` via OPTIONS.
+- Still proposals: direct identity-credential integration, `AuthenticationOptions`,
+  a `BearerToken` helper, `ClientBuilder`, search, progress/logging/health APIs and
+  automatic retry policies. Current behavior intentionally has no automatic retries.
+- All remaining timelines, dependency versions and unmarked code sketches are
+  **archival proposals, not available APIs or delivery commitments**. Prefer
+  explicit authentication factories/builders for future API additions, rather than
+  adding more ambiguous constructor overloads. A future major release may normalize
+  delete methods to required `path`; shipped parameter names/defaults remain intact.
+
+## 🎯 Archived feature proposals and current status
 
 ### 1. Advanced Authentication Support
 **Priority: High**
@@ -10,7 +31,9 @@ This document outlines the recommended improvements and missing features for the
 
 > **Status update (2.7.0)**: Bearer token / OAuth 2.0 authentication has shipped via two new `Client` constructor overloads (static token + async refreshable provider) backed by the public `WebDAVClient.Authentication.BearerTokenAuthenticationHandler`. The remaining items below — `TokenCredential` / `ApiKeyCredential` integration, `AuthenticationOptions`, and the fluent `ClientBuilder` — are still planned for v3.0.0.
 
-The current implementation only supports basic authentication and Windows authentication. We need to add support for modern authentication methods using established .NET patterns:
+Before the 2.7.0 bearer additions, authentication was limited to credentials.
+The following sketches explore further integration and do not describe current
+constructor overloads or dependencies.
 
 #### Modern Authentication Patterns
 
@@ -75,7 +98,7 @@ public static class BearerToken
 }
 ```
 
-#### Standard Authentication Types Supported
+#### Proposed Standard Authentication Integrations
 
 - **`System.ClientModel.Primitives.TokenCredential`**
   - OAuth2 tokens
@@ -157,9 +180,11 @@ var client = ClientBuilder.Create()
 
 > **Status update (2.7.0)**: Shipped. `IClient` now exposes `LockFile` / `LockFolder` / `UnlockFile` / `UnlockFolder` / `RefreshLock` returning a strongly-typed `LockInfo`, and the `If` lock-token header is sent on PUT / DELETE / MOVE / COPY when callers pass the new optional `lockToken` (and source / destination variants) parameters.
 
-Critical WebDAV operations that are currently missing:
+LOCK/UNLOCK/refresh are now implemented. The original sketch below has obsolete
+return types and model fields; use the current `IClient`/`LockInfo` contract.
+`GetLockInfo` remains a proposal.
 
-#### New Methods to Implement
+#### Archived Method Sketch (not the current contract)
 ```csharp
 // Lock operations
 Task<string> LockFile(string filePath, int timeoutSeconds = 600, CancellationToken cancellationToken = default);
@@ -170,7 +195,7 @@ Task<bool> RefreshLock(string path, string lockToken, int timeoutSeconds = 600, 
 Task<LockInfo> GetLockInfo(string path, CancellationToken cancellationToken = default);
 ```
 
-#### New Model Classes
+#### Archived Model Sketch (not the current LockInfo)
 ```csharp
 public class LockInfo
 {
@@ -188,9 +213,11 @@ public class LockInfo
 
 > **Status update (2.7.0)**: Shipped. `IClient.SetProperty(path, name, namespace, value)` and `IClient.RemoveProperty(path, name, namespace)` are available; targeted PROPFIND via `<prop>` / `<propname/>` also shipped (see the new `List` / `GetFolder` / `GetFile` overloads taking `IEnumerable<PropertyName>` and the `*PropertyNames` methods).
 
-The client can read properties but cannot set or manage custom properties:
+Set/remove and targeted reads are implemented. The original sketches below are
+not the shipped parameter order/defaults. Batch setters and the proposed
+`GetCustomProperties` convenience method remain unavailable.
 
-#### New Methods to Implement
+#### Archived Method Sketch (not the current contract)
 ```csharp
 Task<bool> SetProperty(string path, string propertyName, string propertyValue, string nameSpace = "DAV:", CancellationToken cancellationToken = default);
 Task<Dictionary<string, string>> GetCustomProperties(string path, string[] propertyNames = null, CancellationToken cancellationToken = default);
@@ -214,6 +241,10 @@ Task<IEnumerable<Item>> SearchByProperty(string basePath, string propertyName, s
 ### 5. Retry Mechanism with Exponential Backoff
 **Priority: High**
 **Target: v2.3.0**
+
+> **Current policy:** Not implemented. The target version is historical, not a
+> release claim. Any future retry feature must honor the mutation-reconciliation,
+> ownership and bounded-attempt requirements in README's recovery policy.
 
 Add built-in retry logic for transient failures:
 
@@ -303,19 +334,18 @@ public Client(ICredentials credential = null, TimeSpan? uploadTimeout = null,
 **Priority: High**
 **Target: v2.3.0**
 
-Improve exception context and debugging information:
+The upcoming 2.7.1 source adds read-only request-local context without exposing
+request credentials, query/fragment values, headers or bodies. Resource paths can
+still be sensitive. Existing constructors, HTTP codes and conflict subtypes remain.
 
-#### Enhanced WebDAVException
+#### Current 2.7.1 Context Surface (excerpt)
 ```csharp
 public class WebDAVException : Exception
 {
-    public string OperationType { get; set; }
-    public string RequestUri { get; set; }
-    public string RequestMethod { get; set; }
-    public Dictionary<string, string> RequestHeaders { get; set; }
-    public string ResponseContent { get; set; }
-    public TimeSpan RequestDuration { get; set; }
-    public string ServerVersion { get; set; }
+    public string Operation { get; }
+    public string Method { get; }
+    public Uri ResourceUri { get; }
+    public IReadOnlyList<ResourceStatus> ResourceStatuses { get; }
 }
 ```
 
@@ -468,7 +498,11 @@ var client = await AsyncClientBuilder.CreateAsync(async config =>
 );
 ```
 
-## 📅 Release Timeline
+## 📅 Archived Timeline (not release history)
+
+These were original planning dates and are retained for context only. They are
+not publication records or current commitments; the current-status section above
+and README release notes take precedence.
 
 ### Version 2.3.0 (Q1 2025)
 - Retry mechanism with exponential backoff
@@ -506,9 +540,10 @@ var client = await AsyncClientBuilder.CreateAsync(async config =>
 
 ## 🎯 Authentication Migration Guide
 
-### For v3.0.0 Breaking Changes
+### Unreleased Migration Sketch
 
-The authentication system will be modernized but maintain backward compatibility:
+The following proposes future modernization, not a required migration or an
+available v3 API. Existing credential and bearer construction remains supported.
 
 #### Current Usage (v2.x - Still Supported)
 ```csharp
@@ -519,7 +554,7 @@ var client = new Client(new NetworkCredential("user", "pass"));
 var client = new Client();
 ```
 
-#### New Usage (v3.0+)
+#### Proposed Usage (unavailable in current source)
 ```csharp
 // Modern token-based authentication
 var client = new Client(new DefaultAzureCredential());
