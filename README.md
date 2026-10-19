@@ -169,6 +169,12 @@ compatibility; this is not an HTTPS-only policy for the standalone bearer handle
 
 `Client` implements `IDisposable` — wrap it in a `using` to make sure the underlying `HttpClient`/`HttpClientHandler` are released. Most async methods accept an optional `CancellationToken` so requests can be cancelled cleanly.
 
+Boolean mutations return `true` on confirmed success; they do **not** return
+`false` for HTTP rejection. Handle `WebDAVException` and use `GetHttpCode()`;
+HTTP 409 is the derived `WebDAVConflictException`. Caller cancellation throws
+`OperationCanceledException`; transport/XML failures can retain their original
+exception types. Existing return types are unchanged.
+
 ``` csharp
 using System;
 using System.Collections.Generic;

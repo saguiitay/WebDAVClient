@@ -13,6 +13,10 @@ namespace WebDAVClient
     /// Mutation and download paths must not be null; use "/" explicitly for the root.
     /// Null or invalid required arguments throw ArgumentException (including its subclasses)
     /// with a parameter name before network discovery. Upload names must not be empty.
+    /// Boolean mutations return true on confirmed success, not false on rejection.
+    /// HTTP failures throw WebDAVException (WebDAVConflictException for 409);
+    /// caller cancellation throws OperationCanceledException. Transport and XML
+    /// failures can surface their underlying exceptions.
     /// </remarks>
     public interface IClient : IDisposable
     {
@@ -181,7 +185,7 @@ namespace WebDAVClient
         /// <param name="name">The target filename to create under <paramref name="remoteFilePath"/>.</param>
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. Required when the destination resource (or a parent collection) is locked, otherwise the server returns <c>423 Locked</c>. Bare and angle-bracket-wrapped forms are both accepted.</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
-        /// <returns>True if the file was uploaded successfully. False otherwise.</returns>
+        /// <returns>True on confirmed upload success; HTTP rejection throws WebDAVException.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
         Task<bool> Upload(string remoteFilePath, Stream content, string name, string lockToken = null, CancellationToken cancellationToken = default);
 
@@ -196,7 +200,7 @@ namespace WebDAVClient
         /// <param name="endBytes">Exclusive end offset on the target file; the HTTP range ends at endBytes minus one.</param>
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. See <see cref="Upload"/> for details.</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
-        /// <returns>True if the file part was uploaded successfully. False otherwise.</returns>
+        /// <returns>True on confirmed partial-upload success; HTTP rejection throws WebDAVException.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
         Task<bool> UploadPartial(string remoteFilePath, Stream content, string name, long startBytes, long endBytes, string lockToken = null, CancellationToken cancellationToken = default);
 
@@ -206,7 +210,7 @@ namespace WebDAVClient
         /// <param name="remotePath">Destination path of the directory on the server</param>
         /// <param name="name">The name of the folder to create</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
-        /// <returns>True if the folder was created successfully. False otherwise.</returns>
+        /// <returns>True on confirmed creation; HTTP rejection throws WebDAVException.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVConflictException">Thrown when the server returns 409 (Conflict), typically because a parent path is missing.</exception>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns any other non-success status.</exception>
         Task<bool> CreateDir(string remotePath, string name, CancellationToken cancellationToken = default);
@@ -238,7 +242,7 @@ namespace WebDAVClient
         /// <param name="sourceLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the source folder. Required when the source is locked, since MOVE removes the source.</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination folder (or its locked parent collection).</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
-        /// <returns>True if the folder was moved successfully. False otherwise.</returns>
+        /// <returns>True on confirmed move success; HTTP rejection throws WebDAVException.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
         Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default);
 
@@ -251,7 +255,7 @@ namespace WebDAVClient
         /// <param name="sourceLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the source file. Required when the source is locked, since MOVE removes the source.</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination file (or its locked parent collection).</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
-        /// <returns>True if the file was moved successfully. False otherwise.</returns>
+        /// <returns>True on confirmed move success; HTTP rejection throws WebDAVException.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
         Task<bool> MoveFile(string srcFilePath, string dstFilePath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default);
 
@@ -263,7 +267,7 @@ namespace WebDAVClient
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination folder (or its locked parent collection). The source is not modified by COPY (RFC 4918 §7.5.1) so no source lock token is required.</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
-        /// <returns>True if the folder was copied successfully. False otherwise.</returns>
+        /// <returns>True on confirmed copy success; HTTP rejection throws WebDAVException.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
         Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default);
 
@@ -275,7 +279,7 @@ namespace WebDAVClient
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination file (or its locked parent collection). The source is not modified by COPY (RFC 4918 §7.5.1) so no source lock token is required.</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
-        /// <returns>True if the file was copied successfully. False otherwise.</returns>
+        /// <returns>True on confirmed copy success; HTTP rejection throws WebDAVException.</returns>
         /// <exception cref="WebDAVClient.Helpers.WebDAVException">Thrown when the server returns a non-success status.</exception>
         Task<bool> CopyFile(string srcFilePath, string dstFilePath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default);
 

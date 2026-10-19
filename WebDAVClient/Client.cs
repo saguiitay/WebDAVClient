@@ -581,7 +581,7 @@ namespace WebDAVClient
         /// <param name="remoteFilePath">Source path and filename of the file on the server</param>
         /// <param name="content"></param>
         /// <param name="name"></param>
-        /// <returns>True if the file was uploaded successfully. False otherwise</returns>
+        /// <returns>True on confirmed upload success; HTTP rejection throws WebDAVException.</returns>
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. Pass the token returned by <see cref="LockFile"/> / <see cref="LockFolder"/> when the destination resource (or a parent collection) is locked, otherwise the server will reject the request with <c>423 Locked</c>. Bare (<c>opaquelocktoken:...</c>) and angle-bracket-wrapped forms are both accepted.</param>
         public async Task<bool> Upload(string remoteFilePath, Stream content, string name, string lockToken = null, CancellationToken cancellationToken = default)
         {
@@ -625,7 +625,7 @@ namespace WebDAVClient
         /// <param name="name">Name of the file to update</param>
         /// <param name="startBytes">Start byte position of the target content</param>
         /// <param name="endBytes">Exclusive end offset. Must equal <paramref name="startBytes"/> plus the remaining content length.</param>
-        /// <returns>True if the file part was uploaded successfully. False otherwise</returns>
+        /// <returns>True on confirmed partial-upload success; HTTP rejection throws WebDAVException.</returns>
         /// <param name="lockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the resource being written. See <see cref="Upload"/> for details.</param>
         public async Task<bool> UploadPartial(string remoteFilePath, Stream content, string name, long startBytes, long endBytes, string lockToken = null, CancellationToken cancellationToken = default)
         {
@@ -675,7 +675,7 @@ namespace WebDAVClient
         /// </summary>
         /// <param name="remotePath">Destination path of the directory on the server</param>
         /// <param name="name">The name of the folder to create</param>
-        /// <returns>True if the folder was created successfully. False otherwise</returns>
+        /// <returns>True on confirmed creation; HTTP rejection throws WebDAVException.</returns>
         public async Task<bool> CreateDir(string remotePath, string name, CancellationToken cancellationToken = default)
         {
             ValidatePath(remotePath, nameof(remotePath));
@@ -734,7 +734,7 @@ namespace WebDAVClient
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="sourceLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the source folder. Required when the source is locked, since MOVE removes the source.</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination folder (or its locked parent collection).</param>
-        /// <returns>True if the folder was moved successfully. False otherwise</returns>
+        /// <returns>True on confirmed move success; HTTP rejection throws WebDAVException.</returns>
         public async Task<bool> MoveFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(srcFolderPath, nameof(srcFolderPath));
@@ -754,7 +754,7 @@ namespace WebDAVClient
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="sourceLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the source file. Required when the source is locked, since MOVE removes the source.</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination file (or its locked parent collection).</param>
-        /// <returns>True if the file was moved successfully. False otherwise</returns>
+        /// <returns>True on confirmed move success; HTTP rejection throws WebDAVException.</returns>
         public async Task<bool> MoveFile(string srcFilePath, string dstFilePath, bool overwrite = true, string sourceLockToken = null, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(srcFilePath, nameof(srcFilePath));
@@ -773,7 +773,7 @@ namespace WebDAVClient
         /// <param name="dstFolderPath">Destination path of the folder on the server</param>
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination folder (or its locked parent collection). For COPY only the destination needs a lock token because the source is not modified (RFC 4918 §7.5.1).</param>
-        /// <returns>True if the folder was copied successfully. False otherwise</returns>
+        /// <returns>True on confirmed copy success; HTTP rejection throws WebDAVException.</returns>
         public async Task<bool> CopyFolder(string srcFolderPath, string dstFolderPath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(srcFolderPath, nameof(srcFolderPath));
@@ -792,7 +792,7 @@ namespace WebDAVClient
         /// <param name="dstFilePath">Destination path and filename of the file on the server</param>
         /// <param name="overwrite">If <c>true</c> (the default), the server is instructed to overwrite an existing destination resource (<c>Overwrite: T</c>, RFC 4918 §10.6). If <c>false</c>, the request fails with <c>412 Precondition Failed</c> when the destination already exists (<c>Overwrite: F</c>).</param>
         /// <param name="destinationLockToken">Optional WebDAV lock token (RFC 4918 §10.4) for the destination file (or its locked parent collection). For COPY only the destination needs a lock token because the source is not modified (RFC 4918 §7.5.1).</param>
-        /// <returns>True if the file was copied successfully. False otherwise</returns>
+        /// <returns>True on confirmed copy success; HTTP rejection throws WebDAVException.</returns>
         public async Task<bool> CopyFile(string srcFilePath, string dstFilePath, bool overwrite = true, string destinationLockToken = null, CancellationToken cancellationToken = default)
         {
             ValidatePath(srcFilePath, nameof(srcFilePath));

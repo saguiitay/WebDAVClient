@@ -7,6 +7,10 @@ consumption, upgrades, documentation, configuration, errors, and sample usabilit
 
 ## Remediation progress
 
+- UX-15: Corrected all seven boolean mutation return descriptions on both public
+  surfaces and added HTTP/conflict/cancellation guidance. No return types or
+  exception behavior changed; the sample handles rejected operations explicitly.
+
 - UX-12: Documented the shipped concrete `href` versus interface optional `path`
   discrepancy, explicit positional-call guidance and the risk of root defaults.
   Selected required `path` as a proposed next-major normalization only.
