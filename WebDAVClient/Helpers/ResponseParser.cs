@@ -306,6 +306,7 @@ namespace WebDAVClient.Helpers
                                  string.Equals(localName, "version-controlled-configuration", StringComparison.OrdinalIgnoreCase))
                         {
                             reader.Skip();
+                            advance = false;
                         }
                     }
                     else if (reader.NodeType == XmlNodeType.EndElement)

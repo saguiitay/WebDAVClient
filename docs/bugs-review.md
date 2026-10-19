@@ -7,6 +7,7 @@ This is the original review, before subsequent security remediation.
 
 - BUG-01: fixed by security remediation in `a3c2415`; authenticated parser regressions cover the original identity-poisoning cases.
 - BUG-02: fixed; exclusive upload end offsets are translated to inclusive wire ranges and validated against remaining stream bytes.
+- BUG-09: fixed; reader advancement preserves siblings after empty and nonempty versioning properties.
 
 ## Outcome
 

@@ -165,28 +165,33 @@ namespace WebDAVClient.UnitTests.Parser
             Assert.AreEqual("/path/file%231.txt", item.Href);
         }
 
-        [TestMethod]
-        public void ParseItems_does_not_crash_on_special_props_that_must_be_skipped()
+        [DataTestMethod]
+        [DataRow("checked-in")]
+        [DataRow("version-controlled-configuration")]
+        public void ParseItems_preserves_properties_after_skipped_versioning_subtrees(string property)
         {
-            // The parser explicitly Skip()s checked-in / version-controlled-configuration
-            // because their inner <href> elements would otherwise be (mis)read as the
-            // response href. We only assert that parsing completes and we get one item back —
-            // the precise siblings the parser may consume after Skip() are an implementation
-            // detail of XmlReader semantics we don't want to over-specify.
-            const string xml = @"<?xml version=""1.0""?>
+            var xml = $@"<?xml version=""1.0""?>
 <D:multistatus xmlns:D=""DAV:"">
     <D:response>
-        <D:href>/f.txt</D:href>
+        <D:href>/folder/</D:href>
         <D:propstat><D:prop>
-            <D:checked-in><D:href>/old</D:href></D:checked-in>
-            <D:version-controlled-configuration><D:href>/cfg</D:href></D:version-controlled-configuration>
+            <D:{property}><D:href>/old</D:href></D:{property}>
+            <D:resourcetype><D:collection/></D:resourcetype>
+            <D:{property}/>
+            <D:displayname>folder</D:displayname>
+            <D:{property}><D:href>/cfg</D:href></D:{property}>
+            <D:getetag>etag</D:getetag>
         </D:prop></D:propstat>
     </D:response>
 </D:multistatus>";
 
             var items = ResponseParser.ParseItems(Xml(xml));
 
-            Assert.AreEqual(1, items.Count);
+            var item = items.Single();
+            Assert.AreEqual("/folder/", item.Href);
+            Assert.IsTrue(item.IsCollection);
+            Assert.AreEqual("folder", item.DisplayName);
+            Assert.AreEqual("etag", item.Etag);
         }
 
         [TestMethod]
