@@ -38,7 +38,7 @@ namespace WebDAVClient.HttpClient
         /// <inheritdoc />
         public Task<HttpResponseMessage> SendUploadAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
         {
-            return m_uploadHttpClient.SendAsync(request, cancellationToken);
+            return m_uploadHttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         }
 
 

@@ -27,7 +27,9 @@ namespace WebDAVClient.HttpClient
         /// Sends an upload (PUT) request using the upload <c>HttpClient</c>,
         /// which may have a different timeout from the primary client. When
         /// no separate upload client was supplied at construction time, this
-        /// falls through to the primary client.
+        /// falls through to the primary client. Completes after response headers
+        /// without buffering the response body; caller cancellation/timeouts cover
+        /// body reads only when the caller explicitly applies them.
         /// </summary>
         /// <param name="request">The upload HTTP request to send. The wrapper does not dispose the request — the caller retains ownership.</param>
         /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
