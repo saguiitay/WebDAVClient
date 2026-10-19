@@ -23,6 +23,9 @@ Reviewed 2026-10-19 at revision `ac0ef8a` by a dedicated performance agent.
 - PERF-01: Already addressed by correctness/reliability commits `44769de`,
   `370f337`, and `2d1f130`. MOVE/COPY and failed downloads dispose responses;
   successful download streams own response/content lifetime.
+  A bounded TCP-loopback regression now exercises 15 requests through a real
+  HTTP transport with `MaxConnectionsPerServer = 1`, including twelve unread
+  64 KiB mutation/error bodies. All requests complete on one TCP connection.
 - PERF-02: Already addressed by `0510260`. Metadata parsing uses asynchronous
   XML throughout, with token-bound reads and body deadlines. Existing
   prefix-then-stall regressions reject synchronous network reads.
