@@ -8,7 +8,10 @@ out below. It is not the current API reference or a release schedule. Use
 
 - **2.7.0 is already released**, as confirmed by the maintainer. This document does
   not independently verify package-feed publication.
-- **2.8.0 is upcoming in this source tree**, targeting .NET 8 and .NET 10, with
+- **3.0.0 is upcoming in this source tree**, targeting .NET 8 and .NET 10, with
+  immutable `DavClient`, shared XML codecs, typed request conditions/results,
+  streaming listings and a single-batch collection-sync REPORT profile. Existing
+  `Client`/`IClient` remain available. It includes the unreleased 2.8.0
   security/correctness/reliability/performance fixes, XML documentation, explicit
   authentication factories, qualified property statuses and sanitized exception context.
 - Already available: credential/static-bearer/provider constructors,
@@ -16,7 +19,8 @@ out below. It is not the current API reference or a release schedule. Use
   PROPPATCH, targeted/property-name PROPFIND and `ServerOptions` via OPTIONS.
 - Still proposals: direct identity-credential integration, `AuthenticationOptions`,
   a `BearerToken` helper, `ClientBuilder`, search, progress/logging/health APIs and
-  automatic retry policies. Current behavior intentionally has no automatic retries.
+  automatic retry policies, managed lock leases and durable synchronization.
+  Current behavior intentionally has no automatic retries.
 - All remaining timelines, dependency versions and unmarked code sketches are
   **archival proposals, not available APIs or delivery commitments**. Prefer
   explicit authentication factories/builders for future API additions, rather than
@@ -27,9 +31,12 @@ out below. It is not the current API reference or a release schedule. Use
 
 ### 1. Advanced Authentication Support
 **Priority: High**
-**Target: v3.0.0**
+**Target: archival proposal, not the current v3 delivery scope**
 
 > **Status update (2.7.0)**: Bearer token / OAuth 2.0 authentication has shipped via two new `Client` constructor overloads (static token + async refreshable provider) backed by the public `WebDAVClient.Authentication.BearerTokenAuthenticationHandler`. The remaining items below — `TokenCredential` / `ApiKeyCredential` integration, `AuthenticationOptions`, and the fluent `ClientBuilder` — are still planned for v3.0.0.
+
+The current `DavClient` accepts a configured `HttpClient`; direct identity
+adapters and builders below are not shipped v3.0.0 APIs.
 
 Before the 2.7.0 bearer additions, authentication was limited to credentials.
 The following sketches explore further integration and do not describe current
@@ -334,11 +341,11 @@ public Client(ICredentials credential = null, TimeSpan? uploadTimeout = null,
 **Priority: High**
 **Target: v2.3.0**
 
-The upcoming 2.8.0 source adds read-only request-local context without exposing
+The current source includes read-only request-local context without exposing
 request credentials, query/fragment values, headers or bodies. Resource paths can
 still be sensitive. Existing constructors, HTTP codes and conflict subtypes remain.
 
-#### Current 2.8.0 Context Surface (excerpt)
+#### Legacy Context Surface (retained in v3)
 ```csharp
 public class WebDAVException : Exception
 {

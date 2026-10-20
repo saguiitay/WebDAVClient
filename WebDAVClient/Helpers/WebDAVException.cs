@@ -55,6 +55,12 @@ namespace WebDAVClient.Helpers
         /// </summary>
         public int ErrorCode { get; }
 
+        /// <summary>Actual outer HTTP response status when available, distinct from legacy GetHttpCode mappings.</summary>
+        public int? ResponseStatusCode { get; internal set; }
+
+        /// <summary>Member/property status that caused a modern EnsureSucceeded failure, when applicable.</summary>
+        public int? FailedStatusCode { get; internal set; }
+
         /// <summary>
         /// Resource outcomes reported by a DELETE, MOVE, or COPY HTTP 207 response.
         /// Includes successful and failed members for reconciliation; empty when

@@ -27,10 +27,25 @@ Coverage uses private `coverlet.msbuild` tooling. `CollectCoverage=true` enforce
 `GenerateDocumentationFile=true` ships XML beside both framework assemblies.
 Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
-Version 2.7.0 is already released (maintainer-confirmed); current 2.8.0 is upcoming.
+Version 2.7.0 is already released (maintainer-confirmed); current 3.0.0 is upcoming,
+including improvements previously planned for 2.8.0. Do not imply feed publication.
 
 ## Architecture
 
+- **`DavClient`** — v3 resource-oriented API with immutable endpoint configuration.
+  No preliminary discovery or retries. Well-formed server rejections are results;
+  callers inspect them or call operation-specific `EnsureSucceeded()`. Injected
+  HttpClient remains caller-owned; configure auth/TLS and disable redirects before injection.
+- **`Protocol`** — shared bounded asynchronous XML reader, qualified XML values,
+  exact resource/property outcomes, typed property codecs and structured DAV If
+  expressions. Legacy parsers project these results while preserving documented
+  compatibility behavior. Protocol types stay in the existing assembly for now.
+- **`DavListing` / `DavDownloadResult`** — response owners. A listing becomes complete
+  only after full enumeration and document validation. Modern uploads retain input
+  ownership unless `UploadOptions.DisposeContent` is selected; legacy uploads differ.
+- **`Extensions.CollectionSync`** — one sync-level 1 REPORT batch, not durable sync.
+  Apply changes durably before committing tokens; a 404 member is a deletion only
+  in the report profile. Server/desktop/DI/managed-lease packages remain future work.
 - **`IClient` / `Client`** (`WebDAVClient/Client.cs`) — the public surface. `Client` implements `IDisposable`; it owns an `IHttpClientWrapper` and disposes it only when it created it itself (`m_shouldDispose`). Callers passing in their own wrapper retain ownership.
 - **`IHttpClientWrapper` / `HttpClientWrapper`** (`WebDAVClient/HttpClient/`) — thin abstraction over `System.Net.Http.HttpClient` so the client is testable and so a single `HttpClient` can be reused (avoids the well-known socket-exhaustion leak). Custom WebDAV verbs (`PROPFIND`, `MKCOL`, `MOVE`, `COPY`) are constructed as `static readonly HttpMethod` instances on `Client`.
 - **`Model.Item`** — strongly-typed representation of a WebDAV resource returned by `PROPFIND`. Folders have a trailing `/` in `Href`; files do not (this distinction is load-bearing — see release notes 1.0.15 and the `IsCollection` checks in `README.md` examples).

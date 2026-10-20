@@ -17,9 +17,41 @@ dotnet add package WebDAVClient
 ```
 
 Current source targets **.NET 8 and .NET 10**. Version 2.7.0 is already released;
-2.8.0 additions described here are upcoming, not a claim of feed publication.
-The install command selects the published package. This read-only anonymous
-example uses the existing injected-transport API:
+**3.0.0 is the upcoming source version**, including improvements previously
+planned for 2.8.0. This is not a claim of feed publication. The install command
+selects the published package.
+
+### Version 3: resource-oriented API
+
+```csharp
+using System;
+using System.Threading;
+using WebDAVClient;
+using WebDAVClient.Protocol;
+
+// Owns an anonymous transport; redirects and automatic decompression are off.
+using var client = new DavClient(new Uri("https://dav.example.com/dav/"));
+using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+var result = await client.PropFindAsync(DavPath.Root, new PropFindOptions
+{
+    Depth = DavDepth.One,
+    Selection = DavPropertySelection.Selected,
+    Properties = new[] { DavProperties.DisplayName.Name, DavProperties.ETag.Name }
+}, cancellation.Token);
+result.EnsureSucceeded();
+foreach (var resource in result.Resources)
+{
+    Console.WriteLine(resource.Hrefs[0]);
+}
+```
+
+Unlike legacy `List`, `PropFindAsync` preserves the requested resource as well
+as its children. Server rejections are inspectable results; explicitly check
+them or call `EnsureSucceeded()`. See [v3 migration and contracts](#v3-migration-and-contracts).
+
+### Existing API (retained)
+
+This read-only anonymous example uses the existing injected-transport API:
 
 ```csharp
 using System;
@@ -45,6 +77,141 @@ if (count == 0)
     Console.WriteLine("This directory is empty.");
 }
 ```
+
+## V3 migration and contracts
+
+`Client` and `IClient` remain available without renamed members or changed
+upload ownership. They use compatibility projections over shared XML reading.
+`DavClient` is a separate API: migration is explicit, not a constructor rename.
+The assembly version is now `3.0.0.0`; rebuild consumers when upgrading.
+
+| Concern | Existing API | Modern API |
+|---|---|---|
+| Endpoint | Mutable Server/BasePath/Port; first-call discovery | Immutable absolute collection URI ending in `/`; no hidden discovery |
+| Resource address | Legacy strings and normalization | `DavPath.FromSegments(...)` escapes names once; `DavPath.Parse(...)` accepts already-escaped references |
+| Leading `/` | May be interpreted relative to the configured root | Always origin-relative; `DavPath.Root` selects the endpoint |
+| Listings | `List` excludes the addressed collection and returns `Item` | `PropFindAsync` preserves every response; `OpenListingAsync` streams them |
+| Server rejection | Throws | Returns a result; inspect status/errors or call `EnsureSucceeded()` |
+| Upload stream | Request owns the stream | Caller owns it by default; `UploadOptions.DisposeContent` explicitly transfers ownership |
+| Download | Caller owns the returned response-owning stream | Caller disposes `DavDownloadResult`, including 304/error results |
+| COPY/MOVE replacement | Defaults to true | Defaults to false; opt in using `Overwrite = true` |
+| Conditions | Limited token arguments/global custom headers | Per-call HTTP validators plus structured tagged/untagged DAV `If` conditions |
+| Properties | Legacy typed fields and string bags | Exact statuses, XML values, ordered updates and optional typed codecs |
+
+### Results and errors
+
+`StatusCode` always means the outer HTTP status. Resource and property statuses
+are separate, ordered, and never flattened into a dictionary. Duplicate property
+names survive. `DavXmlValue.ToElement()` returns a defensive copy with namespaces,
+attributes and inherited language context; fidelity is semantic XML, not original
+byte serialization. `TryGetText` refuses to flatten structured XML.
+
+`DavProperties` contains codecs for core properties. `Read(resource)` returns
+every matching occurrence; no entries means no reported value. Inspect `HasValue`,
+`Source.StatusCode`, and `DecodingError` before using a decoded value. An invalid
+length is not zero bytes; an absent resource type is not proof of a file.
+
+For core multistatus operations, `EnsureSucceeded()` checks outer and reported
+member/property statuses. `EnsureHttpSuccess()` checks only the outer status.
+For REPORT, the extension must interpret members: a collection-sync 404 is a
+deletion, not a generic failed HTTP request. A 207 recursive LOCK is never a
+granted tree lock.
+
+Malformed protocol responses throw `WebDAVException` with parsing details in
+`InnerException` where available. HTTP 409 retains `WebDAVConflictException`.
+`ResponseStatusCode` and `FailedStatusCode` distinguish outer/member statuses;
+legacy `GetHttpCode()` mappings are retained on the old API. Transport exceptions
+and cancellation remain exceptions, not invented server responses. A lost response
+or cancellation after sending a mutation **does not prove the write failed**.
+Reconcile server state before replaying. Neither API automatically retries.
+
+### Conditional writes and property updates
+
+```csharp
+using System;
+using System.IO;
+using WebDAVClient;
+using WebDAVClient.Protocol;
+
+using var client = new DavClient(new Uri("https://dav.example.com/dav/"));
+var path = DavPath.FromSegments("documents", "draft.txt");
+using var content = File.OpenRead("draft.txt");
+var upload = await client.UploadAsync(path, content, new UploadOptions
+{
+    IfNoneMatch = "*", // Race-safe create; use IfMatch for an existing representation.
+    ContentType = "text/plain"
+});
+upload.EnsureSucceeded();
+
+var patch = await client.UpdatePropertiesAsync(path, new[]
+{
+    DavPropertyChange.Remove(DavProperties.DisplayName.Name),
+    DavPropertyChange.Set(DavXmlValue.Text(DavProperties.DisplayName.Name, "Draft"))
+});
+patch.EnsureSucceeded();
+```
+
+PROPPATCH submits one ordered request, not a loop of separate mutations.
+Server atomicity is not simulated locally. Use `DavIfConditions`,
+`DavTaggedConditions`, `DavConditionList` and `DavCondition` to express lock
+tokens, entity tags, negation and alternative lists. Tagged alternatives are not
+a universal assertion that all named resources are locked. Options collections
+are copied before the first await; do not mutate collections during that copy.
+
+### Lifetimes, limits and transport
+
+Use `using`/`await using` for `DavDownloadResult` and `DavListing`. A download's
+`Content` is null on 304 and rejection; `NotModified` explicitly identifies 304.
+Range requests accept one validated bytes range, request identity encoding and
+reject ignored-range 200 responses. Resuming an existing file requires a stable
+validator (`IfRange`) and explicit caller reconciliation. Ordinary transfers
+support non-seekable input and 64-bit sizes without full buffering; the modern
+surface does not expose partial PUT or promise automatic resumability.
+
+`OpenListingAsync` returns a single-use enumeration. `IsComplete` becomes true
+only after every resource and the end of the document have been validated.
+Cancellation, early break, disposal and a malformed tail leave it false.
+Completion does not imply every member succeeded or that the server provided
+an atomic filesystem snapshot. Never infer deletions from incomplete/denied data.
+`Extensions` contains root-level metadata observed during enumeration.
+
+`DavClientOptions.MetadataTimeout` bounds acquisition and reading of a metadata
+body after headers, including the lifetime of a streamed listing (100 seconds by
+default). Download content uses caller-supplied read cancellation, not that metadata
+deadline. XML defaults limit the entire response to 16 Mi characters, each retained
+XML subtree to 1 Mi characters, and nesting to depth 64. A buffered XML document
+counts as one subtree; choose streaming for large listings or explicitly increase
+`XmlLimits` for larger buffered responses. DTDs/external resolution are prohibited.
+
+Inject `HttpClient` for authentication, proxy, TLS, pooling or factory integration;
+it remains caller-owned. Configure its handler with `AllowAutoRedirect = false`
+and, for range-sensitive use, `AutomaticDecompression = DecompressionMethods.None`.
+Automatic redirects in a caller's handler happen before the library can inspect
+the final URI and are therefore unsupported. The owned anonymous transport disables
+both. Use authentication handlers (including the existing bearer handler), not
+per-operation authorization headers. Do not configure shared default protocol
+headers on an injected client. Tagged conditions and destinations must remain
+on the configured scheme/host/port. Returned hrefs are data, never instructions
+to automatically fetch another origin.
+
+### Extension and delivery boundaries
+
+`ReportAsync` accepts an XML report and `ReportOptions` through the same origin,
+condition, transport and parsing path. It returns raw XML plus any multistatus
+members; generic REPORT support is not implementation of every extension.
+`WebDAVClient.Extensions.CollectionSync.SyncCollectionAsync` implements one
+sync-level 1 batch, including returned tokens, deletion members and collection
+truncation. It does not persist checkpoints, follow continuations automatically,
+infer stable IDs, or resolve conflicts. Apply changes durably before committing
+the returned token; invalid-token errors require explicit reconciliation.
+
+The v3 package is still lightweight: no new NuGet dependencies or separate
+protocol package. Server hosting, DI adapters, managed lock renewal, durable sync,
+desktop providers, SEARCH/ACL/DeltaV and other completeness-plan milestones remain
+separate work. Unit/wire-contract coverage is not independent-server interoperability
+evidence or a full RFC conformance certification.
+
+## Legacy API recipes
 
 ### Paths
 
@@ -78,7 +245,7 @@ normalize trailing slashes, while file hrefs do not end in `/`.
 | Static bearer | `new Client(bearerToken: token)` |
 | Refreshable bearer | `new Client(bearerTokenProvider: provider)`; provider receives cancellation and must handle concurrent calls |
 
-Version 2.8.0 also adds unambiguous `CreateWithCredentials`,
+Version 3 also includes the unambiguous `CreateWithCredentials`,
 `CreateWithBearerToken` and `CreateWithBearerTokenProvider` factories. Do not
 remove shipped constructor overloads to resolve null ambiguity. Use HTTPS for
 credentials. See [configuration recipes](#configuration-recipes) for proxy,
@@ -137,15 +304,26 @@ CI runs both frameworks and uploads these reports even when a test or coverage
 gate fails; a failed gate prevents publication. No production-code exclusions
 are added to reach the thresholds.
 
-Measured on both frameworks: **533 passing cases per framework**, with library
-coverage of **99.40% lines / 97.18% branches** and sample coverage of
-**100% lines / 98.78% branches**. Both modules have **100% method coverage**.
-Coverage is a regression signal, not proof of correctness; unexecuted defensive
-branches are not forced through reflection just to reach 100%.
+The suite includes legacy compatibility and v3 wire/ownership/error contracts,
+including a 100,000-resource streaming case. Use the generated reports for current
+measurements. Coverage is a regression signal, not proof of correctness; unexecuted
+defensive branches are not forced through reflection just to reach 100%.
 
 ## Release Notes
 
-+ **2.8.0** _(upcoming)_ Security, correctness, and reliability fixes:
++ **3.0.0** _(upcoming)_ Protocol-first API redesign:
+  - Added `DavClient` with an immutable endpoint, explicit escaped `DavPath`
+    references, resource-oriented operations and request-local options.
+  - Added faithful XML/status/error results, typed property codecs, HTTP/DAV
+    conditions, ordered XML-valued PROPPATCH and conservative overwrite defaults.
+  - Added HEAD, metadata-rich owned downloads, range validation, explicit upload
+    ownership, lock scope/depth/timeout options and streamed listing completion.
+  - Consolidated XML reading beneath modern results and legacy projections.
+    Retained existing `Client`/`IClient` signatures and ownership contracts.
+  - Added the public REPORT seam and a single-batch sync-level 1 profile. No
+    automatic retry, lease renewal, durable synchronization or conformance claim.
+  - Included the following security, correctness and reliability improvements
+    from the unreleased 2.8.0 source:
   - PROPPATCH outcomes and descriptions come only from direct `propstat` children; nested property values cannot overwrite success or failure.
   - Sample transfer-integrity failures produce an explicit failure exit and retain run-owned cleanup instead of escaping unhandled.
   - Configuration recipes cover owned/injected authentication, proxy, TLS and distinct deadlines; ineffective TLS callback settings on injected transports now fail explicitly before I/O.
