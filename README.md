@@ -10,6 +10,12 @@ WebDAVClient is based originally on <https://github.com/kvdb/WebDAVClient>. I've
 
 WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/WebDAVClient/)
 
+## License
+
+NuGet references the packaged [LICENSE.md](LICENSE.md) as the license text.
+All existing MIT and Apache 2.0 notices are retained; the package does not
+replace that combined text with a single-license SPDX declaration.
+
 ## Quickstart
 
 ```pwsh
