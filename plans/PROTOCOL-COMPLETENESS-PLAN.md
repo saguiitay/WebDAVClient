@@ -41,6 +41,8 @@ lockdiscovery match, while its nonstandard wire form remains inspectable.
 Basic-authentication runs pass 19 observations plus two unavailable/unsupported
 extension observations on each target framework, with confirmed clean teardown.
 This narrow evidence does not certify other servers or all RFC server invariants.
+PROPPATCH target validation additionally recognizes equivalent escape-hex digit
+case without weakening case-sensitive path/query or escaped-separator identity.
 
 Implementation update (v3 source): `DavClient` now provides the immutable
 resource-oriented surface, shared bounded XML reading, rich outcomes, typed

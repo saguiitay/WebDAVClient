@@ -82,6 +82,45 @@ namespace WebDAVClient.UnitTests
         }
 
         [DataTestMethod]
+        [DataRow("caf%C3%A9%20%E4%B8%AD%E6%96%87%20%2B%20%25%20%23.bin",
+            "/dav/caf%c3%a9%20%e4%b8%ad%e6%96%87%20%2b%20%25%20%23.bin", true)]
+        [DataRow("caf%C3%A9", "/dav/caf%c3%a9", true)]
+        [DataRow("caf%C3%A9", "https://EXAMPLE.com:443/dav/caf%c3%a9", true)]
+        [DataRow("file%2Fname", "/dav/file%2fname", true)]
+        [DataRow("file?name=%C3%A9%2B", "/dav/file?name=%c3%a9%2b", true)]
+        [DataRow("File", "/dav/file", false)]
+        [DataRow("file?name=A", "/dav/file?name=a", false)]
+        [DataRow("file%2Fname", "/dav/file/name", false)]
+        [DataRow("file%252F", "/dav/file%252f", false)]
+        [DataRow("file%2F", "/dav/file%3f", false)]
+        [DataRow("file%2F", "/dav/file%2b", false)]
+        [DataRow("file%2F", "/dav/fileXYZ", false)]
+        [DataRow("fileXYZ", "/dav/file%2f", false)]
+        [DataRow("file", "/dav/files", false)]
+        [DataRow("file?x=1", "/dav/file?x=2", false)]
+        [DataRow("file?a=%26", "/dav/file?a=&", false)]
+        [DataRow("file", "https://other.example/dav/file", false)]
+        public async Task Proppatch_target_identity_ignores_only_escape_hex_case_not_path_or_query_identity(
+            string reference, string responseHref, bool same)
+        {
+            using var handler = new StubHttpMessageHandler(_ => XmlResponse(Multi(Resource("<X:dead/>", href: responseHref))));
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            var changes = new[] { DavPropertyChange.Set(new DavXmlValue(new XElement(XName.Get("dead", "urn:test"), "value"))) };
+            if (same)
+            {
+                var result = await client.UpdatePropertiesAsync(DavPath.Parse(reference), changes);
+                result.EnsureSucceeded();
+                Assert.AreEqual(responseHref, result.Resources.Single().Hrefs.Single());
+            }
+            else
+            {
+                await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.UpdatePropertiesAsync(DavPath.Parse(reference), changes));
+            }
+            Assert.AreEqual(1, handler.Requests.Count);
+        }
+
+        [DataTestMethod]
         [DataRow(false)]
         [DataRow(true)]
         public async Task Duplicate_hrefs_and_mixed_resource_formats_cannot_certify_core_snapshots(bool mixed)

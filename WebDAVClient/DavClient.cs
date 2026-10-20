@@ -512,7 +512,9 @@ namespace WebDAVClient
                     }
                     if ((int)response.StatusCode == 207 && expectedProperties != null)
                     {
-                        if (resources.Count != 1 || new Uri(request.RequestUri!, resources[0].Hrefs[0]) != request.RequestUri
+                        // ParseResources has checked origins; escape hex case must not change target identity.
+                        if (resources.Count != 1 || !DavCoreResponseValidator.SameEscapedPathAndQuery(
+                            new Uri(request.RequestUri!, resources[0].Hrefs[0]), request.RequestUri!)
                             || expectedProperties.Any(name => !resources[0].GetProperties(name).Any()))
                         {
                             throw ProtocolError(response, request, "PROPPATCH did not report outcomes for every requested property on the target resource.");

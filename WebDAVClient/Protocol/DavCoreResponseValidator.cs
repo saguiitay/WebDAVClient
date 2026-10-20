@@ -128,6 +128,33 @@ namespace WebDAVClient.Protocol
             }
         }
 
+        internal static bool SameEscapedPathAndQuery(Uri left, Uri right)
+        {
+            var first = left.GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped);
+            var second = right.GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped);
+            if (first.Length != second.Length)
+            {
+                return false;
+            }
+            for (int i = 0; i < first.Length; i++)
+            {
+                if (first[i] == '%' && second[i] == '%')
+                {
+                    if (char.ToUpperInvariant(first[i + 1]) != char.ToUpperInvariant(second[i + 1])
+                        || char.ToUpperInvariant(first[i + 2]) != char.ToUpperInvariant(second[i + 2]))
+                    {
+                        return false;
+                    }
+                    i += 2;
+                }
+                else if (first[i] != second[i])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         internal static bool SimpleReference(string value, bool resource)
         {
             if (value.Length == 0 || value.Any(c => c > 127 || char.IsWhiteSpace(c) || char.IsControl(c))
