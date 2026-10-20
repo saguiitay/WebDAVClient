@@ -33,6 +33,13 @@ namespace WebDAVClient.UnitTests
         [DataRow("--server|https://example.com#fragment|--validate", 2, "HTTP(S) origin")]
         [DataRow("--server|https://example.com|--base-path| |--validate", 2, "must not be blank")]
         [DataRow("--server|https://example.com|--base-path|/dav/|--target|file|--mutate|--validate", 0, "No server contacted")]
+        [DataRow("--server|https://example.com|--modern|--base-path|/dav/|--mutate|--validate", 0, "No server contacted")]
+        [DataRow("--server|https://example.com|--modern|--validate", 0, "No server contacted")]
+        [DataRow("--server|https://example.com|--modern|--base-path|/dav/?query|--validate", 2, "without query")]
+        [DataRow("--server|https://example.com|--modern|--base-path|/dav/#fragment|--validate", 2, "without query")]
+        [DataRow("--server|https://example.com|--partial-put|--validate", 2, "requires --mutate")]
+        [DataRow("--server|https://example.com|--modern|--mutate|--partial-put|--validate", 2, "legacy API")]
+        [DataRow("--server|https://example.com|--mutate|--partial-put|--validate", 0, "No server contacted")]
         public async Task Help_validation_and_argument_errors_are_offline_with_documented_exit_codes(string arguments, int expected, string message)
         {
             using var environment = new CommandLineEnvironment();
@@ -62,10 +69,13 @@ namespace WebDAVClient.UnitTests
         }
 
         [DataTestMethod]
-        [DataRow("anonymous")]
-        [DataRow("credentials")]
-        [DataRow("bearer")]
-        public async Task Actual_entry_point_lists_and_reads_over_loopback_with_each_authentication_mode(string authentication)
+        [DataRow("anonymous", false)]
+        [DataRow("credentials", false)]
+        [DataRow("bearer", false)]
+        [DataRow("anonymous", true)]
+        [DataRow("credentials", true)]
+        [DataRow("bearer", true)]
+        public async Task Actual_entry_point_lists_and_reads_over_loopback_with_each_authentication_mode(string authentication, bool modern)
         {
             using var environment = new CommandLineEnvironment();
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -88,7 +98,7 @@ namespace WebDAVClient.UnitTests
             System.Net.Http.HttpClient.DefaultProxy = new WebProxy();
             int completed = 0;
             int challenged = 0;
-            int expectedRequests = authentication == "credentials" ? 2 : 3;
+            int expectedRequests = (authentication == "credentials" ? 2 : 3) - (modern ? 1 : 0);
 
             async Task Serve()
             {
@@ -174,14 +184,27 @@ namespace WebDAVClient.UnitTests
             var server = Serve();
             try
             {
-                var args = authentication == "credentials" ? Array.Empty<string>()
-                    : new[] { "--server", origin, "--base-path", "/webdav/", "--target", "file.txt" };
-                Assert.AreEqual(0, await TestWebDAVClient.Program.Main(args).WaitAsync(deadline.Token));
+                var args = new List<string>();
+                if (authentication != "credentials")
+                {
+                    args.AddRange(new[]
+                    {
+                        "--server", origin, "--base-path", "/webdav/", "--target", "file.txt"
+                    });
+                }
+                if (modern)
+                {
+                    args.Add("--modern");
+                }
+                Assert.AreEqual(0, await TestWebDAVClient.Program.Main(args.ToArray()).WaitAsync(deadline.Token));
                 await server.WaitAsync(deadline.Token);
                 Assert.AreEqual(expectedRequests, completed);
                 Assert.IsTrue(authentication != "credentials" || challenged > 0);
-                StringAssert.Contains(environment.Output.ToString(), "File:");
-                StringAssert.Contains(environment.Output.ToString(), "Folder:");
+                StringAssert.Contains(environment.Output.ToString(), modern ? "Resource:" : "File:");
+                if (!modern)
+                {
+                    StringAssert.Contains(environment.Output.ToString(), "Folder:");
+                }
                 if (authentication != "credentials")
                 {
                     StringAssert.Contains(environment.Output.ToString(), "Requested target read successfully.");

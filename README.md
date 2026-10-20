@@ -22,13 +22,21 @@ replace that combined text with a single-license SPDX declaration.
 dotnet add package WebDAVClient
 ```
 
-Current source targets **.NET 8 and .NET 10**. Version 2.7.0 is already released;
-**3.0.0 is the upcoming source version**, including improvements previously
-planned for 2.8.0. This is not a claim of feed publication. The install command
-selects the published package.
+Current source targets **.NET 8 and .NET 10**. **2.8.0 is published**;
+**3.0.0 is the upcoming source version** and retains those fixes. The install
+command selects the published package; 2.8.0 does not contain `DavClient`.
+Until 3.0.0 is published, run the v3 examples using a project reference to this
+checkout, or build and install the local package:
+
+```pwsh
+dotnet build C:\Github\WebDAVClient\WebDAVClient\WebDAVClient.csproj -c Release
+# Run in your consumer project; adjust the checkout path as needed.
+dotnet add package WebDAVClient --version 3.0.0 --source C:\Github\WebDAVClient\WebDAVClient\bin\Release
+```
 
 ### Version 3: resource-oriented API
 
+<!-- compile-example: modern-propfind -->
 ```csharp
 using System;
 using System.Threading;
@@ -59,6 +67,7 @@ them or call `EnsureSucceeded()`. See [v3 migration and contracts](#v3-migration
 
 This read-only anonymous example uses the existing injected-transport API:
 
+<!-- compile-example: legacy-propfind -->
 ```csharp
 using System;
 using System.Net.Http;
@@ -133,6 +142,7 @@ Reconcile server state before replaying. Neither API automatically retries.
 
 ### Conditional writes and property updates
 
+<!-- compile-example: modern-conditional-writes -->
 ```csharp
 using System;
 using System.IO;
@@ -181,6 +191,10 @@ Cancellation, early break, disposal and a malformed tail leave it false.
 Completion does not imply every member succeeded or that the server provided
 an atomic filesystem snapshot. Never infer deletions from incomplete/denied data.
 `Extensions` contains root-level metadata observed during enumeration.
+For rejected requests, `OpenListingAsync` reads the bounded DAV error body before
+returning, making `Errors` available without enumeration. Malformed rejection XML
+throws during opening; cancellation and XML limits still apply. Successful
+listings do not acquire or read their body until enumeration.
 
 `DavClientOptions.MetadataTimeout` bounds acquisition and reading of a metadata
 body after headers, including the lifetime of a streamed listing (100 seconds by
@@ -252,7 +266,7 @@ normalize trailing slashes, while file hrefs do not end in `/`.
 | Static bearer | `new Client(bearerToken: token)` |
 | Refreshable bearer | `new Client(bearerTokenProvider: provider)`; provider receives cancellation and must handle concurrent calls |
 
-Version 3 also includes the unambiguous `CreateWithCredentials`,
+The retained API also includes the unambiguous `CreateWithCredentials`,
 `CreateWithBearerToken` and `CreateWithBearerTokenProvider` factories. Do not
 remove shipped constructor overloads to resolve null ambiguity. Use HTTPS for
 credentials. See [configuration recipes](#configuration-recipes) for proxy,
@@ -285,10 +299,10 @@ checking for false.
   * Listing items in a folder (`<allprop/>`, targeted `<prop>`, and `<propname/>` PROPFIND variants)
   * Creating & deleting folders
   * Downloading & uploading files
-  * Downloading & uploading partial content
+  * Ranged downloads; legacy-only partial PUT requires explicit server support
   * Moving & copying files and folders (with the `Overwrite` header and optional destination lock-token)
-  * Locking & unlocking resources (LOCK / UNLOCK / RefreshLock) with a strongly-typed `LockInfo`
-  * Setting & removing custom (dead) properties via PROPPATCH
+  * Locking & unlocking resources, with legacy `LockInfo` or modern `DavLock` observations
+  * Setting & removing properties via PROPPATCH; the modern API also accepts writable DAV properties
   * Discovering server capabilities via OPTIONS (DAV compliance classes + allowed methods)
   * Submitting WebDAV lock tokens through the `If` header on PUT / DELETE / MOVE / COPY
 
@@ -298,6 +312,9 @@ The MSTest suite runs on both .NET 8 and .NET 10 without an external WebDAV
 server. It covers protocol outcomes, XML structure, cancellation and deadlines,
 stream ownership, authentication, configuration changes, and sample CLI behavior.
 Bounded loopback tests also exercise actual HTTP transport and authentication.
+The seven complete C# examples marked `compile-example` in this README are
+compiled by the test suite against each target framework. Other C# blocks are
+contextual fragments that require the surrounding client/application variables.
 
 ```pwsh
 dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -p:CollectCoverage=true
@@ -325,6 +342,19 @@ and a successful 1,000-resource completion check from 152,096 bytes to zero on
 .NET 8/10. These are in-process fixture measurements, not network throughput
 guarantees. XML copies and read-only snapshots remain intact.
 
+## Release validation
+
+Validate candidate commits through a pull request targeting `master`: the
+Ubuntu workflow builds both frameworks and runs tests, README compilation and
+coverage gates without publishing. A successful code push to `master` or manual
+workflow dispatch **publishes to NuGet**; do not use those paths as a
+validation-only rehearsal. A local green run is not a GitHub/Linux CI result.
+
+Independent-server smoke evidence and its limits are recorded in the
+[protocol plan](docs/PROTOCOL-COMPLETENESS-PLAN.md). Keep authentication, TLS,
+server-specific extensions and broader conformance checks separate from the
+basic transfer smoke result.
+
 ## Release Notes
 
 + **3.0.0** _(upcoming)_ Protocol-first API redesign:
@@ -335,6 +365,10 @@ guarantees. XML copies and read-only snapshots remain intact.
   - Preserve structured DAV rejection errors when opening streamed listings.
     Error bodies honor metadata deadlines and XML limits; successful listings
     remain lazy and single-use.
+  - Added a runnable `--modern` sample and automated compilation of complete
+    README examples. Legacy partial PUT now requires `--partial-put`; ordinary
+    mutation smoke runs use standard full PUT.
+  - NuGet now references the existing license file, preserving all notices.
   - Added `DavClient` with an immutable endpoint, explicit escaped `DavPath`
     references, resource-oriented operations and request-local options.
   - Added faithful XML/status/error results, typed property codecs, HTTP/DAV
@@ -354,8 +388,8 @@ guarantees. XML copies and read-only snapshots remain intact.
     successful completion checks. Preserved legacy parsing and immutable results.
   - Added the public REPORT seam and a single-batch sync-level 1 profile. No
     automatic retry, lease renewal, durable synchronization or conformance claim.
-  - Included the following security, correctness and reliability improvements
-    from the unreleased 2.8.0 source:
+
++ **2.8.0** _(released)_ Security, correctness and reliability improvements:
   - PROPPATCH outcomes and descriptions come only from direct `propstat` children; nested property values cannot overwrite success or failure.
   - Sample transfer-integrity failures produce an explicit failure exit and retain run-owned cleanup instead of escaping unhandled.
   - Configuration recipes cover owned/injected authentication, proxy, TLS and distinct deadlines; ineffective TLS callback settings on injected transports now fail explicitly before I/O.
@@ -472,7 +506,10 @@ guarantees. XML copies and read-only snapshots remain intact.
 + **1.0.0**   Initial release.
 
 
-# Usage
+# Legacy API usage
+
+This section and its configuration, recovery and ownership recipes describe
+`Client`/`IClient`. For new v3 integrations, start with `DavClient` above.
 
 **Delete call compatibility:** `Client.DeleteFile(href: "...")` and
 `Client.DeleteFolder(href: "...")` require `href`; through `IClient` the shipped
@@ -482,7 +519,7 @@ never omit it unless root deletion is intended. This version preserves both
 surfaces. The proposed next-major normalization is a required `path` on both
 types, not a silent parameter rename or overload change in a patch release.
 
-For new code, use `Client.CreateWithCredentials`,
+For new code that must use the legacy API, use `Client.CreateWithCredentials`,
 `Client.CreateWithBearerToken`, or `Client.CreateWithBearerTokenProvider` to
 select authentication without overloaded-null ambiguity. All shipped constructors
 remain available. Legacy calls with a null credential should name that argument:
@@ -509,7 +546,8 @@ headers and bodies are not added to this context. Resource paths can still conta
 sensitive application names, so apply your logging policy. Manually constructed
 exceptions can have null context. No shared "last request" state is used.
 
-``` csharp
+<!-- compile-example: legacy-usage -->
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -567,6 +605,8 @@ manual sample accepts configuration without source edits:
 dotnet run --project TestWebDAVClient -f net10.0 -- --help
 dotnet run --project TestWebDAVClient -f net10.0 -- --server https://dav.example.com --base-path /dav/ --validate
 dotnet run --project TestWebDAVClient -f net10.0 -- --server https://dav.example.com --base-path /dav/
+dotnet run --project TestWebDAVClient -f net10.0 -- --modern --server https://dav.example.com --base-path /dav/ --validate
+dotnet run --project TestWebDAVClient -f net10.0 -- --modern --server https://dav.example.com --base-path /dav/
 ```
 
 Use `WEBDAV_USERNAME`/`WEBDAV_PASSWORD` or `WEBDAV_BEARER_TOKEN` for authentication;
@@ -576,8 +616,17 @@ a unique run-owned directory. The sample scopes streams, unlocks before deletion
 never deletes a directory whose creation was not confirmed, and reports cleanup
 failures. Ctrl+C uses a separate five-second budget for each cleanup operation;
 server/network failures can still require manual cleanup of the printed directory.
+Use `--modern` for the v3 `DavClient` path, including full PUT/download integrity
+checking with `--mutate`. Omitting it retains the legacy sample. Legacy mutation
+mode now uses full PUT plus a ranged download by default; add `--partial-put`
+only when the server explicitly supports that nonstandard partial-upload
+agreement. `--partial-put` requires `--mutate` and cannot be combined with
+`--modern`. Neither API performs automatic retries.
 
 ## Configuration recipes
+
+These recipes use the retained `Client` API. For `DavClient`, configure a
+caller-owned `HttpClient` as described in [v3 transport contracts](#lifetimes-limits-and-transport).
 
 Configure the concrete `Client` before exposing it as `IClient`; no new required
 interface members or builder are needed. Replace example endpoints with your
@@ -586,6 +635,7 @@ creating one per request.
 
 ### Owned transport: credentials, proxy and TLS
 
+<!-- compile-example: legacy-credentials -->
 ```csharp
 using System;
 using System.Net;
@@ -618,6 +668,7 @@ Use `CreateWithCredentials(null, ...)` only for Windows-default authentication.
 
 ### Owned transport: per-request bearer rotation
 
+<!-- compile-example: legacy-token-provider -->
 ```csharp
 using System;
 using System.Net;
@@ -656,6 +707,7 @@ For a fixed token, use `CreateWithBearerToken(token, uploadTimeout: ..., proxy: 
 
 ### Injected transport: distinct HTTP timeouts and handler configuration
 
+<!-- compile-example: legacy-injected-transport -->
 ```csharp
 using System;
 using System.Net;
@@ -730,12 +782,16 @@ download stream does not automatically retain the method's cancellation token.
 
 ## Recovery and retry policy
 
+The no-automatic-retry policy applies to both APIs. The exception/member mapping
+below describes legacy `Client`/`IClient`; modern `DavClient` returns inspectable
+results and `EnsureSucceeded()` checks valid resource-level mutation outcomes.
+
 The library intentionally does not automatically retry WebDAV operations.
 A timeout or disconnect during a mutation can occur after the server committed
 the change; cancellation is not a rollback. Reconcile remote state before
 replaying PUT, DELETE, MOVE, COPY, LOCK, or PROPPATCH.
 
-DELETE/MOVE/COPY `207 Multi-Status` remains a failure. The thrown
+Legacy DELETE/MOVE/COPY `207 Multi-Status` remains a failure. The thrown
 `WebDAVException` keeps HTTP 207 and exposes `ResourceStatuses` with each reported
 member's `Href`, `StatusCode`, and optional `ResponseDescription`, including
 successful members. These identifiers are untrusted diagnostics, not URLs to
@@ -753,6 +809,10 @@ these reliability fixes.
 
 ## Transfer stream ownership
 
+This section describes legacy transfers. Modern `DavClient.UploadAsync` leaves
+input streams open by default (`DisposeContent = true` transfers ownership);
+dispose the modern download result to release its stream and response.
+
 Always dispose streams returned by `Download` / `DownloadPartial`, using `using`
 or `await using`; they keep the HTTP response alive and close it with its content.
 Cancellation of the method covers request/stream acquisition; pass a token to
@@ -768,6 +828,8 @@ range again.
 
 ## Concurrent root discovery
 
+This is legacy-only behavior. `DavClient` performs no implicit root discovery.
+
 Concurrent first operations share a resolved root through an asynchronous gate
 and a second cache check, rather than sending duplicate discovery requests.
 Each caller can cancel its own wait. The caller performing discovery owns its
@@ -779,6 +841,9 @@ and stale results cannot repopulate the cache. Normal resource requests are not
 serialized by this gate.
 
 ## Metadata deadlines and cancellation
+
+This section covers legacy `Client`; modern `DavClient` uses
+`DavClientOptions.MetadataTimeout` as described in the v3 contracts.
 
 Configure `ResponseBodyTimeout` on the concrete `Client` before assigning it to
 an `IClient` variable:
@@ -805,19 +870,24 @@ with the supplied cancellation token when discovery and the following request
 must share one budget. Download streams are not subject to this metadata deadline;
 pass cancellation to their asynchronous reads and dispose them when finished.
 
-## What's new in 2.7.0
+## Historical 2.7.0 additions (legacy API)
 
 ### Bearer token / OAuth 2.0 authentication
 
 ```csharp
-// Static token (Nextcloud app-password, long-lived service token, …)
+// Static OAuth/access token, not a Nextcloud app password.
 using IClient client = new Client("eyJ0eXAiOiJKV1Qi...");
 
 // Async, refreshable token provider (Azure AD / MSAL / IdentityModel / custom)
-using IClient client = new Client(async ct => await tokenSource.GetTokenAsync(ct));
+using IClient refreshableClient = new Client(async ct => await tokenSource.GetTokenAsync(ct));
 ```
 
 Returning `null` / empty from the provider omits the `Authorization` header (the server then naturally returns `401`). The handler is also exposed publicly as `WebDAVClient.Authentication.BearerTokenAuthenticationHandler` if you need to compose it into your own `HttpClient` pipeline.
+
+Nextcloud app passwords are used with a username through HTTP Basic
+authentication, not as bearer tokens. Use `NetworkCredential(username, appPassword)`
+with the credential recipe, over HTTPS; see the
+[Nextcloud WebDAV authentication guide](https://docs.nextcloud.com/server/latest/developer_manual/client_apis/WebDAV/basic.html).
 
 #### Concurrent token refresh
 

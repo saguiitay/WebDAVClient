@@ -22,13 +22,18 @@ Coverage uses private `coverlet.msbuild` tooling. `CollectCoverage=true` enforce
 
 `TestWebDAVClient/Program.cs` is a nonpackable smoke-test executable; its offline CLI paths and bounded loopback workflows also have automated coverage. Select a target explicitly: `dotnet run --project TestWebDAVClient -f net10.0 -- --help`. Help and `--validate` are offline. Configure server/base path via arguments or environment; reads are the default and only `--mutate` enables run-owned changes with bounded cleanup. Authentication is anonymous unless explicitly configured.
 
+Use `--modern` to exercise `DavClient`. Legacy mutation samples use full PUT by
+default; nonstandard partial PUT requires the additional `--partial-put` opt-in.
+The test suite compiles the README's marked complete examples on both frameworks
+using a private test-only Roslyn dependency; the library still has no NuGet dependencies.
+
 `GeneratePackageOnBuild=true` is set on the library, so every Release build produces a `.nupkg` in `WebDAVClient/bin/Release`. Don't add a separate pack step in local workflows unless you need a custom output path.
 
 `GenerateDocumentationFile=true` ships XML beside both framework assemblies.
 Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
-Version 2.7.0 is already released (maintainer-confirmed); current 3.0.0 is upcoming,
-including improvements previously planned for 2.8.0. Do not imply feed publication.
+Version 2.8.0 is published; current 3.0.0 is upcoming and retains those fixes.
+Do not imply that the v3 source has been published.
 
 ## Architecture
 
