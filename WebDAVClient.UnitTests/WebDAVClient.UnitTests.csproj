@@ -22,9 +22,11 @@
     <PackageReference Include="MSTest.TestAdapter" Version="3.6.4" />
     <PackageReference Include="MSTest.TestFramework" Version="3.6.4" />
     <PackageReference Include="coverlet.msbuild" Version="6.0.4" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\README.md" Link="README.md" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="..\WebDAVClient\WebDAVClient.csproj" />
     <ProjectReference Include="..\TestWebDAVClient\TestWebDAVClient.csproj" />
   </ItemGroup>

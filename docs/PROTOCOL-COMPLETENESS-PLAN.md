@@ -2,6 +2,39 @@
 
 Status: proposed. Baseline: repository commit `ac0ef8a7b637b03114cf18a16a1e60d9a53396a1`, reviewed 2026-10-19.
 
+Implementation update (v3 source): `DavClient` now provides the immutable
+resource-oriented surface, shared bounded XML reading, rich outcomes, typed
+properties/conditions, ordered PROPPATCH, metadata-rich transfers, lock options,
+and streamed listing completion. Existing `Client`/`IClient` remain compatibility
+APIs. A public REPORT seam and a single-batch sync-level 1 profile exercise the
+extension boundary. See the README's v3 migration section for current contracts.
+This is not completion of P-01 through P-10: the normative ledger, independent
+server conformance evidence, DI/resilience integration, managed leases, and
+the broader extension portfolio remain outstanding. No package publication or
+full RFC conformance is implied.
+
+### Release-hardening smoke evidence (2026-10-20)
+
+Both .NET 8 and .NET 10 sample paths were exercised successfully against an
+independent WsgiDAV 4.3.5 / Cheroot 11.1.2 server on Windows, using anonymous
+HTTP restricted to loopback and an initially empty temporary filesystem share:
+
+| API | Observed successful operations |
+| --- | --- |
+| Modern `DavClient` (`--modern --mutate`) | PROPFIND, MKCOL, conditional full PUT, GET with byte-for-byte verification, DELETE |
+| Legacy `Client` (`--mutate`, without `--partial-put`) | Root discovery and listing, OPTIONS, MKCOL, full PUT, LOCK, ranged GET with byte verification, UNLOCK, DELETE |
+
+All four runs exited successfully and the share was empty afterward. Partial PUT
+was intentionally not required. The runnable sample and its bounded cleanup are
+covered by automated loopback tests, including both API paths and authentication
+modes; the independent server run is a separate manual smoke check.
+
+This is limited interoperability evidence, not a conformance matrix. It does not
+establish independent-server authentication/TLS, modern locking/PROPPATCH/REPORT,
+other server implementations, or production-scale performance. Those remain part
+of the broader protocol plan. A green GitHub/Linux candidate run is still a
+separate release gate; local Windows results do not substitute for it.
+
 Related: [server plan](SERVER-SUPPORT-PLAN.md) and [package plan](SUBPACKAGE-AND-DESKTOP-PLAN.md).
 
 ## 1. Scope and definition of done
@@ -21,7 +54,7 @@ Core completion requires:
 
 The target is protocol capability and evidence. It does not imply that every server must implement optional locks, shared locks, search, versioning, calendars, or a particular storage model.
 
-## 2. Verified current implementation
+## 2. Reviewed baseline implementation (historical)
 
 | Area | Present in source | Completion work |
 | --- | --- | --- |

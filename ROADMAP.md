@@ -6,9 +6,11 @@ out below. It is not the current API reference or a release schedule. Use
 
 ## Current status
 
-- **2.7.0 is already released**, as confirmed by the maintainer. This document does
-  not independently verify package-feed publication.
-- **2.8.0 is upcoming in this source tree**, targeting .NET 8 and .NET 10, with
+- **2.8.0 is published**, following the already-released 2.7.0.
+- **3.0.0 is upcoming in this source tree**, targeting .NET 8 and .NET 10, with
+  immutable `DavClient`, shared XML codecs, typed request conditions/results,
+  streaming listings and a single-batch collection-sync REPORT profile. Existing
+  `Client`/`IClient` remain available. It retains the published 2.8.0
   security/correctness/reliability/performance fixes, XML documentation, explicit
   authentication factories, qualified property statuses and sanitized exception context.
 - Already available: credential/static-bearer/provider constructors,
@@ -16,7 +18,8 @@ out below. It is not the current API reference or a release schedule. Use
   PROPPATCH, targeted/property-name PROPFIND and `ServerOptions` via OPTIONS.
 - Still proposals: direct identity-credential integration, `AuthenticationOptions`,
   a `BearerToken` helper, `ClientBuilder`, search, progress/logging/health APIs and
-  automatic retry policies. Current behavior intentionally has no automatic retries.
+  automatic retry policies, managed lock leases and durable synchronization.
+  Current behavior intentionally has no automatic retries.
 - All remaining timelines, dependency versions and unmarked code sketches are
   **archival proposals, not available APIs or delivery commitments**. Prefer
   explicit authentication factories/builders for future API additions, rather than
@@ -27,9 +30,12 @@ out below. It is not the current API reference or a release schedule. Use
 
 ### 1. Advanced Authentication Support
 **Priority: High**
-**Target: v3.0.0**
+**Target: archival proposal, not the current v3 delivery scope**
 
-> **Status update (2.7.0)**: Bearer token / OAuth 2.0 authentication has shipped via two new `Client` constructor overloads (static token + async refreshable provider) backed by the public `WebDAVClient.Authentication.BearerTokenAuthenticationHandler`. The remaining items below — `TokenCredential` / `ApiKeyCredential` integration, `AuthenticationOptions`, and the fluent `ClientBuilder` — are still planned for v3.0.0.
+> **Status update (2.7.0)**: Bearer token / OAuth 2.0 authentication has shipped via two new `Client` constructor overloads (static token + async refreshable provider) backed by the public `WebDAVClient.Authentication.BearerTokenAuthenticationHandler`. The remaining items below — `TokenCredential` / `ApiKeyCredential` integration, `AuthenticationOptions`, and the fluent `ClientBuilder` — remain archival proposals, not v3.0.0 delivery commitments.
+
+The current `DavClient` accepts a configured `HttpClient`; direct identity
+adapters and builders below are not shipped v3.0.0 APIs.
 
 Before the 2.7.0 bearer additions, authentication was limited to credentials.
 The following sketches explore further integration and do not describe current
@@ -176,7 +182,7 @@ var client = ClientBuilder.Create()
 
 ### 2. WebDAV Lock/Unlock Operations
 **Priority: High**
-**Target: v3.0.0**
+**Target: archival v3 proposal, not the current release scope**
 
 > **Status update (2.7.0)**: Shipped. `IClient` now exposes `LockFile` / `LockFolder` / `UnlockFile` / `UnlockFolder` / `RefreshLock` returning a strongly-typed `LockInfo`, and the `If` lock-token header is sent on PUT / DELETE / MOVE / COPY when callers pass the new optional `lockToken` (and source / destination variants) parameters.
 
@@ -334,11 +340,11 @@ public Client(ICredentials credential = null, TimeSpan? uploadTimeout = null,
 **Priority: High**
 **Target: v2.3.0**
 
-The upcoming 2.8.0 source adds read-only request-local context without exposing
+The current source includes read-only request-local context without exposing
 request credentials, query/fragment values, headers or bodies. Resource paths can
 still be sensitive. Existing constructors, HTTP codes and conflict subtypes remain.
 
-#### Current 2.8.0 Context Surface (excerpt)
+#### Legacy Context Surface (retained in v3)
 ```csharp
 public class WebDAVException : Exception
 {
@@ -351,7 +357,7 @@ public class WebDAVException : Exception
 
 ### 11. Health Checking and Diagnostics
 **Priority: Medium**
-**Target: v3.0.0**
+**Target: archival v3 proposal, not the current release scope**
 
 > **Status update (2.7.0)**: `GetServerCapabilities` is partially covered by the new `IClient.GetServerOptions(path, ct)` returning a strongly-typed `ServerOptions` (DAV compliance classes + allowed methods). The full `CheckHealth` / `GetConnectionInfo` surface below remains planned.
 
@@ -367,7 +373,7 @@ Task<ConnectionInfo> GetConnectionInfo(CancellationToken cancellationToken = def
 
 ### 12. Fluent Configuration API
 **Priority: Medium**
-**Target: v3.0.0**
+**Target: archival v3 proposal, not the current release scope**
 
 Create a more intuitive configuration experience that integrates with modern authentication patterns:
 
@@ -516,7 +522,7 @@ and README release notes take precedence.
 - Connection pooling and keep-alive optimization
 - IAsyncDisposable support
 
-### Version 3.0.0 (Q3 2025) - Major Release
+### Archived v3.0.0 proposal (Q3 2025; not the current release schedule)
 - **Advanced authentication support with modern .NET patterns**
   - TokenCredential integration (Azure AD, OAuth2, JWT)
   - ApiKeyCredential support

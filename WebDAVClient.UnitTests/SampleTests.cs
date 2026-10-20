@@ -17,6 +17,7 @@ namespace WebDAVClient.UnitTests
         [DataTestMethod]
         [DataRow("empty", 0)]
         [DataRow("success", 0)]
+        [DataRow("full-put", 0)]
         [DataRow("missing-target", 1)]
         [DataRow("upload-failure", 1)]
         [DataRow("locked-failure", 1)]
@@ -69,6 +70,10 @@ namespace WebDAVClient.UnitTests
 
                 if (method == "PUT")
                 {
+                    if (scenario == "full-put")
+                    {
+                        Assert.IsNull(request.Content.Headers.ContentRange);
+                    }
                     if (scenario == "cancelled")
                     {
                         uploading.TrySetResult();
@@ -98,7 +103,8 @@ namespace WebDAVClient.UnitTests
                         return new HttpResponseMessage(HttpStatusCode.NotFound);
                     }
 
-                    var content = new ByteArrayContent(scenario == "bad-range" ? new byte[3] : new byte[] { 0xF0, 0x0B, 0xA5 });
+                    var content = new ByteArrayContent(scenario == "bad-range" ? new byte[3]
+                        : scenario == "full-put" ? new byte[] { 99, 100, 101 } : new byte[] { 0xF0, 0x0B, 0xA5 });
                     content.Headers.ContentRange = new ContentRangeHeaderValue(2, 4, 8);
                     return new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = content };
                 }
@@ -109,7 +115,8 @@ namespace WebDAVClient.UnitTests
             using var output = new StringWriter();
             using var error = new StringWriter();
             var pending = TestWebDAVClient.Program.RunAsync(client, mutate,
-                scenario == "missing-target" ? "missing" : scenario == "read-target" ? "file" : null, output, error, cancellation.Token);
+                scenario == "missing-target" ? "missing" : scenario == "read-target" ? "file" : null, output, error, cancellation.Token,
+                partialPut: scenario != "full-put");
             if (scenario == "cancelled")
             {
                 await uploading.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -117,6 +124,10 @@ namespace WebDAVClient.UnitTests
             }
             Assert.AreEqual(expectedExit, await pending.WaitAsync(TimeSpan.FromSeconds(5)));
             var requests = handler.Requests.ToArray();
+            if (scenario == "full-put")
+            {
+                Assert.AreEqual(1, requests.Count(request => request.Method == "PUT"));
+            }
             Assert.IsTrue(output.ToString().Contains("No items found"));
             var deletes = requests.Where(r => r.Method == "DELETE").ToArray();
             if (!mutate || scenario == "not-created" || scenario == "timeout" || scenario == "transport-failure")

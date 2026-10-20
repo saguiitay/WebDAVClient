@@ -1343,6 +1343,8 @@ namespace WebDAVClient
             WebDAVException exception = code == (int)HttpStatusCode.Conflict
                 ? new WebDAVConflictException(code, message, innerException)
                 : new WebDAVException(code, message, innerException);
+            exception.ResponseStatusCode = (int)response.StatusCode;
+            exception.FailedStatusCode = httpCode;
             return exception.WithRequestContext(response.RequestMessage);
         }
 

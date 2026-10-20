@@ -22,15 +22,35 @@ Coverage uses private `coverlet.msbuild` tooling. `CollectCoverage=true` enforce
 
 `TestWebDAVClient/Program.cs` is a nonpackable smoke-test executable; its offline CLI paths and bounded loopback workflows also have automated coverage. Select a target explicitly: `dotnet run --project TestWebDAVClient -f net10.0 -- --help`. Help and `--validate` are offline. Configure server/base path via arguments or environment; reads are the default and only `--mutate` enables run-owned changes with bounded cleanup. Authentication is anonymous unless explicitly configured.
 
+Use `--modern` to exercise `DavClient`. Legacy mutation samples use full PUT by
+default; nonstandard partial PUT requires the additional `--partial-put` opt-in.
+The test suite compiles the README's marked complete examples on both frameworks
+using a private test-only Roslyn dependency; the library still has no NuGet dependencies.
+
 `GeneratePackageOnBuild=true` is set on the library, so every Release build produces a `.nupkg` in `WebDAVClient/bin/Release`. Don't add a separate pack step in local workflows unless you need a custom output path.
 
 `GenerateDocumentationFile=true` ships XML beside both framework assemblies.
 Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
-Version 2.7.0 is already released (maintainer-confirmed); current 2.8.0 is upcoming.
+Version 2.8.0 is published; current 3.0.0 is upcoming and retains those fixes.
+Do not imply that the v3 source has been published.
 
 ## Architecture
 
+- **`DavClient`** — v3 resource-oriented API with immutable endpoint configuration.
+  No preliminary discovery or retries. Well-formed server rejections are results;
+  callers inspect them or call operation-specific `EnsureSucceeded()`. Injected
+  HttpClient remains caller-owned; configure auth/TLS and disable redirects before injection.
+- **`Protocol`** — shared bounded asynchronous XML reader, qualified XML values,
+  exact resource/property outcomes, typed property codecs and structured DAV If
+  expressions. Legacy parsers project these results while preserving documented
+  compatibility behavior. Protocol types stay in the existing assembly for now.
+- **`DavListing` / `DavDownloadResult`** — response owners. A listing becomes complete
+  only after full enumeration and document validation. Modern uploads retain input
+  ownership unless `UploadOptions.DisposeContent` is selected; legacy uploads differ.
+- **`Extensions.CollectionSync`** — one sync-level 1 REPORT batch, not durable sync.
+  Apply changes durably before committing tokens; a 404 member is a deletion only
+  in the report profile. Server/desktop/DI/managed-lease packages remain future work.
 - **`IClient` / `Client`** (`WebDAVClient/Client.cs`) — the public surface. `Client` implements `IDisposable`; it owns an `IHttpClientWrapper` and disposes it only when it created it itself (`m_shouldDispose`). Callers passing in their own wrapper retain ownership.
 - **`IHttpClientWrapper` / `HttpClientWrapper`** (`WebDAVClient/HttpClient/`) — thin abstraction over `System.Net.Http.HttpClient` so the client is testable and so a single `HttpClient` can be reused (avoids the well-known socket-exhaustion leak). Custom WebDAV verbs (`PROPFIND`, `MKCOL`, `MOVE`, `COPY`) are constructed as `static readonly HttpMethod` instances on `Client`.
 - **`Model.Item`** — strongly-typed representation of a WebDAV resource returned by `PROPFIND`. Folders have a trailing `/` in `Href`; files do not (this distinction is load-bearing — see release notes 1.0.15 and the `IsCollection` checks in `README.md` examples).
@@ -42,6 +62,7 @@ Version 2.7.0 is already released (maintainer-confirmed); current 2.8.0 is upcom
 ## Conventions specific to this repo
 
 - **Braces**: always use `{}` for C# control-flow bodies, including single statements in library, sample, and test code. `.editorconfig` sets IDE0011 to error, and CI verifies it with the targeted formatting command above.
+- **Layout**: put braces on separate lines, including short blocks and accessors. Leave a blank line between members, including before their XML documentation or attributes. Use multiline XML documentation elements rather than inline `<summary>...</summary>` comments; self-closing `<inheritdoc/>` references remain appropriate.
 - **Path handling is opinionated**: `Server` is stored without a trailing slash; `BasePath` is normalized to `"/" + value + "/"` (or `"/"` if empty). Don't bypass these setters when constructing URLs internally — use `m_server` / `m_basePath` / `m_encodedBasePath`.
 - **Async**: public I/O methods return tasks and accept a trailing `CancellationToken cancellationToken = default`. Always add `.ConfigureAwait(false)` on awaits in library code (per release-notes 1.0.7 and existing usage). Thread tokens through discovery and body reads, not only HTTP sends.
 - **Field naming**: instance fields use `m_camelCase`, statics use `s_camelCase`, constants use `c_camelCase`. Match this when adding new members in `Client.cs` / `HttpClientWrapper.cs`.
