@@ -149,10 +149,23 @@ namespace WebDAVClient.Protocol
                 throw new XmlException("A DAV href requires an absolute URI or an absolute path.");
             }
             if (!Uri.TryCreate(absolutePath ? "http://validation.invalid" + value : value, UriKind.Absolute, out var uri)
-                || !uri.IsWellFormedOriginalString() || resource && (uri.Scheme != "http" && uri.Scheme != "https"
+                || resource && (uri.Scheme != "http" && uri.Scheme != "https"
                     || uri.UserInfo.Length != 0 || uri.Host.Length == 0))
             {
                 throw new XmlException("A DAV resource href requires an HTTP(S) URI or an absolute path.");
+            }
+            int contentStart = absolutePath ? 0 : colon + 1;
+            if (!absolutePath && value.AsSpan(contentStart).StartsWith("//", StringComparison.Ordinal))
+            {
+                int authorityEnd = value.IndexOfAny(new[] { '/', '?' }, contentStart + 2);
+                contentStart = authorityEnd < 0 ? value.Length : authorityEnd;
+            }
+            // Uri's IRI normalization can misclassify valid escaped Unicode combined with %25 or %23.
+            // Validate the original path/query octets instead of the normalized URI's well-formedness.
+            if (value.AsSpan(contentStart).ContainsAnyExcept(
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!$&'()*+,;=:@/?%"))
+            {
+                throw new XmlException("Invalid character in DAV href path or query.");
             }
             if (resource)
             {

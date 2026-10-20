@@ -48,7 +48,7 @@ and `net10.0`. Handler/loopback tests are not independent server implementations
 | E-LIFETIME | `DavLifetimeTests`, `DavLoopbackTests`, and `DavResourceProjectionTests`; `DavClientTests`: `Streaming_completion_requires_full_enumeration_and_error_tail_cannot_certify_a_snapshot`, `Early_break_releases_listing_but_does_not_certify_completion`. |
 | E-PATH | `DavProtocolTests`: `Paths_keep_identity_and_explicit_resolution_rules`, `Conditions_preserve_tagging_alternatives_negation_and_validate_every_origin`; `DavClientTests`: `Direct_requests_do_not_discover_or_mutate_connection_and_keep_transport_caller_owned`. |
 | E-OPTIONS | `DavClientTests`: `Options_are_evidence_and_preserve_unknown_tokens`; E-CORE coded-URI test; `DavFailureContractTests` missing-advertisement tests. |
-| E-VALIDATION | `DavCoreValidationTests`: positive/negative resource URI grammar, escaping, origin and dot-segment fixtures; duplicate/mixed href forms; core singleton and element-only-content checks in buffered and streamed paths; REPORT/legacy boundary checks; mandatory LOCK response confirmation; lock URI/cardinality checks and header OWS. |
+| E-VALIDATION | `DavCoreValidationTests`: positive/negative resource URI grammar, combined escaped Unicode/reserved octets, origin and dot-segment fixtures; duplicate/mixed href forms; core singleton and element-only-content checks in buffered and streamed paths; REPORT/legacy boundary checks; mandatory LOCK response confirmation; lock URI/cardinality checks, header OWS, confirmed bare-token compatibility and contradictory/ambiguous token rejection. |
 
 ### Core receive-validation boundary
 
@@ -57,6 +57,9 @@ resource hrefs as escaped same-origin HTTP(S) absolute URIs or absolute paths
 (with optional query), reject fragments/dot segments, require one format within
 the response, and reject repeated resource href wire values. Escaped separators
 and escaped Unicode remain opaque and are not decoded into different paths.
+Wire path/query grammar is checked directly: .NET URI IRI normalization can
+misclassify valid combined escaped Unicode, percent and hash octets, so
+`Uri.IsWellFormedOriginalString()` is not used to reject those response identities.
 Distinct status-level aliases remain valid. A listing cannot become complete if
 a later member, singleton or document tail is invalid. Validation retains href
 identity strings for uniqueness, not prior resource/property DOMs, and remains
@@ -75,8 +78,12 @@ responses. An empty PROPFIND multistatus remains permitted by the core
 `response*` container; namespace mutations and recursive LOCK failures require
 their operation-specific nonempty outcomes.
 
-Successful acquisition requires the RFC 4918 single bracketed Lock-Token header
-and a lockdiscovery body. Successful refresh requires HTTP 200 and its
+Successful acquisition requires one valid Lock-Token header matching exactly
+one lockdiscovery observation. Servers must bracket that header under section
+10.5; the client tolerates a single bare absolute token only with that exact
+body confirmation, preserving the raw wire header separately from the canonical
+bracketed result token. This interoperability tolerance is not a claim that the
+server's header conforms. Successful refresh requires HTTP 200 and its
 lockdiscovery body, while the refresh request remains bodyless. Missing refresh
 confirmation is no longer tolerated. Optional discovery fields remain optional;
 in particular, omission of lockroot is tolerated because section 14.12 makes its
@@ -162,7 +169,7 @@ one valid href. Managed leases additionally confirm token/scope/depth identity.
 | R-10.3 / 10.3 | Send an absolute Destination with COPY/MOVE. | Implemented same-origin URI resolution and source/destination difference check. | E-PATH, E-NAMESPACE. Foreign-origin destinations intentionally unsupported. |
 | R-10.4a / 10.4.1–10.4.4 | Encode tagged/no-tag lists, AND, OR, Not, state tokens and entity tags without mixing forms. | Implemented structured immutable condition model. | E-IF. Evaluation is server responsibility; DAV ETag comparison is not replaced with HTTP If-Match semantics. |
 | R-10.4b / 10.4.5 | Prevent non-DAV-aware proxies from satisfying an If-conditioned request from cache. | Implemented mandatory `Cache-Control: no-cache` and `Pragma: no-cache` for DAV If requests, preserving other directives. | E-CORE. Caller-provided cache headers cannot remove no-cache. |
-| R-10.5 / 10.5 | Bracket the bare token for UNLOCK; preserve acquisition header evidence. | Implemented request validation and raw result header; managed identity validation. | E-NAMESPACE, E-LEASE. Tokens are never treated as credentials for another origin. |
+| R-10.5 / 10.5 | Bracket the bare token for UNLOCK; preserve acquisition header evidence. | Implemented request validation, canonical confirmed acquisition token and separate raw result header. | E-NAMESPACE, E-LEASE, E-VALIDATION. Single bare response-header compatibility requires exact lockdiscovery confirmation; tokens are never treated as credentials for another origin. |
 | R-10.6 / 10.6 | Use T/F Overwrite independently of request-URI HTTP validators. | Implemented typed policy plus separate If-Match/If-None-Match and tagged destination conditions. | E-NAMESPACE, E-IF. No mistaken assumption that source If-Match protects the destination. |
 | R-10.7 / 10.7 | Send ordered LOCK timeout preferences only on LOCK, bounded by the unsigned wire range. | Implemented finite/infinite preferences and protected raw Timeout header. | E-LOCK, E-IF, E-CORE. The full unsigned seconds range, including zero and 2^32-1, is covered. |
 | R-11.1 / 11.1 | Interpret 207 body members instead of equating outer 2xx with operation success. | Implemented resource/property outcomes and operation-specific `EnsureSucceeded`. | E-STRUCTURE, E-NAMESPACE. Extension REPORT profiles supply their own member semantics. |

@@ -33,6 +33,15 @@ successful refresh responses must provide HTTP 200 with lockdiscovery XML.
 The prior low-level empty-refresh-response tolerance is removed. Optional
 lockroot omission retains the section 14.12 SHOULD applicability rationale.
 
+Independent WsgiDAV 4.3.5 / cheroot 11.1.2 testing exposed a .NET URI
+well-formedness false rejection for combined escaped Unicode/reserved octets;
+wire grammar validation now preserves those identities. For interoperability,
+one valid bare acquisition header token is accepted only with one exact
+lockdiscovery match, while its nonstandard wire form remains inspectable.
+Basic-authentication runs pass 19 observations plus two unavailable/unsupported
+extension observations on each target framework, with confirmed clean teardown.
+This narrow evidence does not certify other servers or all RFC server invariants.
+
 Implementation update (v3 source): `DavClient` now provides the immutable
 resource-oriented surface, shared bounded XML reading, rich outcomes, typed
 properties/conditions, ordered PROPPATCH, metadata-rich transfers, lock options,

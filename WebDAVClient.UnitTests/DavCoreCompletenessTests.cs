@@ -165,7 +165,8 @@ namespace WebDAVClient.UnitTests
             var kinds = "<D:lockscope><X:extension><D:exclusive/></X:extension><D:unknown/>" + scope + "</D:lockscope>"
                 + "<D:locktype><X:extension/><D:unknown/>" + type + "</D:locktype>";
             var supported = "<D:supportedlock><D:lockentry>" + kinds + "</D:lockentry></D:supportedlock>";
-            var active = "<D:lockdiscovery><D:activelock>" + kinds + "<D:depth>0</D:depth></D:activelock></D:lockdiscovery>";
+            var active = "<D:lockdiscovery><D:activelock>" + kinds + "<D:depth>0</D:depth>"
+                + "<D:locktoken><D:href>urn:lock:1</D:href></D:locktoken></D:activelock></D:lockdiscovery>";
             using var handler = new StubHttpMessageHandler(r =>
             {
                 if (r.Method.Method != "LOCK")
