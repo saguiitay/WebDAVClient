@@ -9,6 +9,7 @@ on:
       - 'LICENSE.md'
       - 'ROADMAP.md'
       - '.gitignore'
+      - 'plans/**'
       - '.github/**'
       - '!.github/workflows/publish.yml'
   workflow_dispatch:
