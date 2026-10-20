@@ -153,7 +153,12 @@ namespace WebDAVClient.Protocol
             get;
         } =
             new DavProperty<IReadOnlyList<PropertyName>>(new PropertyName("DAV:", "resourcetype"),
-                v => Array.AsReadOnly(v.ToElement().Elements().Select(e => new PropertyName(e.Name.NamespaceName, e.Name.LocalName)).ToArray()));
+                v =>
+                {
+                    var element = v.ToElement();
+                    DavCoreResponseValidator.ElementContent(element);
+                    return Array.AsReadOnly(element.Elements().Select(e => new PropertyName(e.Name.NamespaceName, e.Name.LocalName)).ToArray());
+                });
 
         /// <summary>
         /// Every active lock in DAV:lockdiscovery.
@@ -172,8 +177,15 @@ namespace WebDAVClient.Protocol
             get;
         } =
             new DavProperty<IReadOnlyList<DavSupportedLock>>(new PropertyName("DAV:", "supportedlock"), v =>
-                Array.AsReadOnly(v.ToElement().Elements(DavXml.Dav + "lockentry").Select(e =>
-                    new DavSupportedLock(ChildName(e, "lockscope"), ChildName(e, "locktype"))).ToArray()));
+            {
+                var element = v.ToElement();
+                DavCoreResponseValidator.ElementContent(element);
+                return Array.AsReadOnly(element.Elements(DavXml.Dav + "lockentry").Select(e =>
+                {
+                    DavCoreResponseValidator.ElementContent(e);
+                    return new DavSupportedLock(ChildName(e, "lockscope"), ChildName(e, "locktype"));
+                }).ToArray());
+            });
 
         private static PropertyName ChildName(XElement element, string name)
         {

@@ -41,13 +41,47 @@ and `net10.0`. Handler/loopback tests are not independent server implementations
 | E-STRUCTURE | `DavFailureContractTests`: `Ambiguous_structural_outcomes_fail_in_buffered_and_streaming_paths`, `Empty_listing_can_complete_but_empty_mutation_cannot_confirm_a_write`; `DavProtocolEdgeTests`: `Malformed_status_line_cannot_confirm_a_successful_resource`, `Root_and_resource_extension_errors_and_multiple_hrefs_are_retained`. |
 | E-IF | `DavProtocolTests`: `Conditions_preserve_tagging_alternatives_negation_and_validate_every_origin`, `Invalid_arguments_fail_before_network_io`; `DavCoreCompletenessTests`: `If_conditions_always_prevent_non_dav_proxy_cache_hits_without_losing_custom_directives`. |
 | E-NAMESPACE | `DavClientTests`: `Namespace_operations_have_no_spurious_body_and_preserve_rejections`, `Recursive_mutation_failure_retains_successful_and_denied_resources`; `DavFailureContractTests` covers operation-specific success confirmation, missing patch outcomes, and invalid namespace multistatus shapes. |
-| E-LOCK | `DavClientTests`: `Lock_observations_preserve_granted_timeout_and_structured_owner`, `Refresh_has_no_body_and_does_not_invent_lock_metadata`, `Recursive_lock_failure_is_not_a_granted_tree_lock`; `DavFailureContractTests` covers malformed lock XML and omitted metadata. |
+| E-LOCK | `DavClientTests`: `Lock_observations_preserve_granted_timeout_and_structured_owner`, `Refresh_has_no_request_body_and_rejects_missing_response_confirmation`, `Recursive_lock_failure_is_not_a_granted_tree_lock`; `DavFailureContractTests` covers malformed lock XML and omitted metadata. |
 | E-LEASE | `DavLockLeaseTests`: acquisition header/token/scope/depth checks; finite/infinite/omitted timeouts; conservative monotonic deadlines; explicit renewals; lost/changed confirmation; cancellation; serialization; at-most-one release attempt. See [lifecycle reference](LOCK-LIFECYCLE.md). |
 | E-CORE | `DavCoreCompletenessTests`: `Lock_timeout_supports_the_entire_unsigned_seconds_range`, `Empty_locked_resources_accept_204_without_acquiring_a_body_and_keep_response_owned`, `No_content_cannot_be_used_as_appendable_or_contradictory_content`, `Capabilities_keep_compliance_classes_and_coded_extension_uris_with_embedded_commas`, `Lock_kind_decoding_ignores_extensions_without_promoting_lookalikes_or_ambiguous_kinds`, `Every_core_condition_preserves_qualified_details_without_following_error_hrefs`. |
 | E-HTTP | `DavClientTests`: `Downloads_keep_metadata_and_conditional_outcomes_without_fake_streams`, `Download_validates_closed_open_and_suffix_ranges`, `Unsafe_range_responses_are_never_returned_as_appendable_content`, `Upload_ownership_is_explicit_and_nonseekable_streams_work`, `Seekable_upload_uses_remaining_length_and_does_not_replay_after_transport_failure`. |
 | E-LIFETIME | `DavLifetimeTests`, `DavLoopbackTests`, and `DavResourceProjectionTests`; `DavClientTests`: `Streaming_completion_requires_full_enumeration_and_error_tail_cannot_certify_a_snapshot`, `Early_break_releases_listing_but_does_not_certify_completion`. |
 | E-PATH | `DavProtocolTests`: `Paths_keep_identity_and_explicit_resolution_rules`, `Conditions_preserve_tagging_alternatives_negation_and_validate_every_origin`; `DavClientTests`: `Direct_requests_do_not_discover_or_mutate_connection_and_keep_transport_caller_owned`. |
 | E-OPTIONS | `DavClientTests`: `Options_are_evidence_and_preserve_unknown_tokens`; E-CORE coded-URI test; `DavFailureContractTests` missing-advertisement tests. |
+| E-VALIDATION | `DavCoreValidationTests`: positive/negative resource URI grammar, escaping, origin and dot-segment fixtures; duplicate/mixed href forms; core singleton and element-only-content checks in buffered and streamed paths; REPORT/legacy boundary checks; mandatory LOCK response confirmation; lock URI/cardinality checks and header OWS. |
+
+### Core receive-validation boundary
+
+Core `DavClient` multistatus operations and streamed listings validate structural
+resource hrefs as escaped same-origin HTTP(S) absolute URIs or absolute paths
+(with optional query), reject fragments/dot segments, require one format within
+the response, and reject repeated resource href wire values. Escaped separators
+and escaped Unicode remain opaque and are not decoded into different paths.
+Distinct status-level aliases remain valid. A listing cannot become complete if
+a later member, singleton or document tail is invalid. Validation retains href
+identity strings for uniqueness, not prior resource/property DOMs, and remains
+bounded by the existing total XML limit.
+
+Known core response/propstat/location, error and lock singleton constraints are
+enforced after ignoring unexpected extension elements. Element-only containers
+reject non-whitespace text. Required URI-container hrefs are singular and scalar.
+Arbitrary property/owner XML and error-condition detail are not recursively
+treated as structural resource links. Redirect locations can identify another
+origin or URI scheme and are retained, never followed automatically.
+
+These extra core checks are deliberately not imposed on generic REPORT
+cardinalities or legacy projection. REPORT profiles still interpret their own
+responses. An empty PROPFIND multistatus remains permitted by the core
+`response*` container; namespace mutations and recursive LOCK failures require
+their operation-specific nonempty outcomes.
+
+Successful acquisition requires the RFC 4918 single bracketed Lock-Token header
+and a lockdiscovery body. Successful refresh requires HTTP 200 and its
+lockdiscovery body, while the refresh request remains bodyless. Missing refresh
+confirmation is no longer tolerated. Optional discovery fields remain optional;
+in particular, omission of lockroot is tolerated because section 14.12 makes its
+inclusion a SHOULD, not an unconditional MUST. When present, lockroot has exactly
+one valid href. Managed leases additionally confirm token/scope/depth identity.
 
 ## Resource/property model: sections 4–5
 
@@ -87,7 +121,7 @@ and `net10.0`. Handler/loopback tests are not independent server implementations
 | --- | --- | --- | --- |
 | R-8.1 / 8.1 | Preserve the server's actual error outcome rather than guessing precedence or replaying. | Implemented result/exception distinction. | E-NAMESPACE, E-HTTP. Authentication/authorization/precondition evaluation order is server responsibility. |
 | R-8.2 / 8.2 | Process XML namespaces and supported encodings without unsafe entity resolution. | Implemented async XML reader, UTF-8 requests, UTF-8/UTF-16 response tests, DTD prohibition. | E-XML, E-CONTEXT. No DTD validation or external entity retrieval. |
-| R-8.3 / 8.3 | Escape request URLs correctly; retain response href identity without following it implicitly. | Partial: request paths are validated and same-origin; hrefs remain raw evidence. | E-PATH, E-STRUCTURE. Full response href grammar, uniform absolute-URI/absolute-path format and URI equivalence conformance are not enforced. |
+| R-8.3 / 8.3 | Escape request URLs correctly; validate structural response hrefs without following them implicitly. | Implemented core href grammar, percent escaping, origin, dot-segment, uniform-format and repeated-value checks. | E-PATH, E-VALIDATION. Property/owner/error-detail hrefs are data, not implicit request targets; redirected locations are not followed. |
 | R-8.4 / 8.4 | Provide required method bodies and avoid inventing bodies for bodyless operations. | Implemented PROPFIND/PROPPATCH/LOCK XML; bodyless MKCOL/DELETE/MOVE/COPY/refresh/UNLOCK. | E-PROP, E-NAMESPACE, E-LOCK. Optional empty-body PROPFIND shorthand is not necessary; explicit allprop is sent. |
 | R-8.5 / 8.5 | Keep HTTP validators/dates/representation metadata available independently from DAV XML. | Implemented typed request validators and detached result headers. | E-HTTP, E-IF. Injected HTTP transport remains responsible for general HTTP behavior. |
 | R-8.6 / 8.6 | Preserve entity-tag opacity and weak/strong distinctions. | Implemented headers and typed property text; range validators reject weak ETags. | E-PROP, E-HTTP, E-IF. No ETag generation, content hash inference, or conversion of weak tags to strong. |
@@ -112,8 +146,8 @@ and `net10.0`. Handler/loopback tests are not independent server implementations
 | R-9.8c / 9.8.4–9.8.5 | Express overwrite policy and interpret 201/204/207/412 distinctly. | Implemented explicit Overwrite; safe default F. | E-NAMESPACE. Server default is T, but client always sends its explicit policy. |
 | R-9.9a / 9.9, 9.9.2 | MOVE requires Destination and recursive collection semantics, without COPY/DELETE emulation. | Implemented `MoveAsync`; no non-infinite depth option. | E-NAMESPACE. Server consistency/atomicity remains unproven locally. |
 | R-9.9b / 9.9.1, 9.9.3–9.9.4 | Preserve properties and replacement semantics while exposing affected member failures. | Implemented request/result support; property/binding preservation is server responsibility. | E-NAMESPACE. No automatic merging, compensating mutation, or foreign destination. |
-| R-9.10a / 9.10.1 | Acquire with lockinfo XML and interpret lockdiscovery plus new Lock-Token. | Partial low-level; implemented managed confirmation. | E-LOCK, E-LEASE. Low-level results do not require matching header/token/scope/depth; `DavLockLease` does. |
-| R-9.10b / 9.10.2 | Refresh exactly one token with no body and interpret returned lockdiscovery. | Partial low-level, implemented managed confirmation. | E-LOCK, E-LEASE. Low-level bodyless 200 refresh tolerance remains for compatibility; managed renewal rejects missing confirmation. |
+| R-9.10a / 9.10.1 | Acquire with lockinfo XML and interpret lockdiscovery plus new Lock-Token. | Implemented required body and single valid acquisition header; managed leases additionally match token/scope/depth observations. | E-LOCK, E-LEASE, E-VALIDATION. Low-level results retain all advertised observations rather than assigning ownership to every shared lock. |
+| R-9.10b / 9.10.2 | Refresh exactly one token with no request body and interpret returned lockdiscovery. | Implemented HTTP 200 and mandatory response lockdiscovery confirmation. | E-LOCK, E-LEASE, E-VALIDATION. A bodyless successful response is malformed, never an assumed renewal. |
 | R-9.10c / 9.10.3 | LOCK depth only 0/infinity; recursive 207 failure is not a granted tree lock. | Implemented depth validation and lock-specific success check. | E-LOCK. Actual all-or-nothing server lock acquisition requires independent-server evidence. |
 | R-9.10d / 9.10.4 | Newly locked unmapped resources can be empty and GET may return 204. | Implemented full GET 204 as an empty stream; range 204 and contradictory length/range metadata are rejected. | E-CORE. Response ownership is retained until result disposal. |
 | R-9.10e / 9.10.5–9.10.6 | Distinguish lock compatibility failure and confirmed 200/201 acquisition. | Implemented result/status/error retention; compatibility matrix enforcement is server responsibility. | E-LOCK, E-CORE. No local exclusivity promise or reacquisition fallback. |
@@ -143,22 +177,22 @@ and `net10.0`. Handler/loopback tests are not independent server implementations
 
 | Ledger ID / clause | Requirement | Status / implementation | Evidence and remaining boundary |
 | --- | --- | --- | --- |
-| R-13 / 13 | Interpret response-level status versus propstats, retaining each href/group/outcome. | Implemented strict core shape checks and ordered detached results. | E-STRUCTURE, E-PROP. Full schema/cardinality validation is partial, not a hard-coded DTD. |
+| R-13 / 13 | Interpret response-level status versus propstats, retaining each href/group/outcome. | Implemented strict core shape, singleton, href and element-only-content checks with ordered detached results. | E-STRUCTURE, E-PROP, E-VALIDATION. REPORT profile cardinalities and arbitrary property XML are not constrained as core resource structures. |
 | R-13.1 / 13.1 | Do not treat Location header as a redirect target for every member. | Implemented evidence-only headers and member locations. | E-STRUCTURE. No implicit follow-up request. |
 | R-13.2 / 13.2 | Retain per-resource redirect location and status without automatically following it. | Implemented `DavResourceResponse.Location`. | E-STRUCTURE. Automatic redirected-child traversal is unsupported. |
 | R-13.3 / 13.3 | Preserve internal statuses even when they are not the expected success code. | Implemented numeric parsing and success validation. | E-PROP, E-STRUCTURE. Parser preserves informational codes rather than certifying them as valid server behavior. |
-| R-14.1 / 14.1 activelock | Read structured active locks. | Implemented core write-lock decoding; partial complete cardinality/schema validation. | E-LOCK, E-CORE, E-LEASE. Unknown extension kinds are not promoted to core lock types. |
+| R-14.1 / 14.1 activelock | Read structured active locks. | Implemented core write-lock kinds, singleton/cardinality and element-only-content validation. | E-LOCK, E-CORE, E-LEASE, E-VALIDATION. Unknown extensions are ignored; optional private metadata is not fabricated. |
 | R-14.2 / 14.2 allprop | Generate the allprop selector. | Implemented. | E-PROP. |
 | R-14.3 / 14.3 collection | Decode DAV collection marker while preserving other resource types. | Implemented. | E-PROP. |
 | R-14.4 / 14.4 depth | Decode lock depth and validate requested method depth. | Implemented. | E-LOCK, E-CORE. |
 | R-14.5 / 14.5 error | Retain qualified condition XML and nested detail. | Implemented. | E-CORE, E-STRUCTURE. |
 | R-14.6 / 14.6 exclusive | Generate/decode exclusive scope. | Implemented; extension siblings ignored. | E-LOCK, E-CORE, E-LEASE. |
-| R-14.7 / 14.7 href | Preserve href text and require direct resource hrefs. | Partial: no full response URL grammar/uniform-format validator. | E-STRUCTURE, E-PATH. Hrefs are never authorization to follow another origin. |
+| R-14.7 / 14.7 href | Preserve href text and validate its structural resource context. | Implemented core HTTP(S)/absolute-path grammar, format/origin/escaping checks and resource uniqueness. | E-STRUCTURE, E-PATH, E-VALIDATION. General dead-property href text is not promoted to structural resource identity. |
 | R-14.8 / 14.8 include | Generate allprop include. | Implemented. | E-PROP. |
-| R-14.9 / 14.9 location | Retain member location/href. | Implemented basic decoding; complete duplicate/singleton validation remains partial. | E-STRUCTURE. |
+| R-14.9 / 14.9 location | Retain one member location with one scalar href. | Implemented singleton/cardinality validation; locations remain evidence only. | E-STRUCTURE, E-VALIDATION. Other-origin and non-HTTP redirect URI schemes are not automatically followed. |
 | R-14.10 / 14.10 lockentry | Decode supported core scope/type pairs. | Implemented; invalid entries yield typed decoding errors. | E-PROP, E-CORE. |
 | R-14.11 / 14.11 lockinfo | Generate scope/type/optional owner acquisition XML. | Implemented. | E-LOCK. |
-| R-14.12 / 14.12 lockroot | Retain lockroot without following it. | Implemented observation; missing root tolerated low-level. | E-LOCK, E-LEASE. |
+| R-14.12 / 14.12 lockroot | Retain lockroot without following it. | Implemented optional singleton with one valid href when present. | E-LOCK, E-LEASE, E-VALIDATION. Omission is tolerated because inclusion is a SHOULD in this clause, not an unconditional MUST. |
 | R-14.13 / 14.13 lockscope | Decode one known core scope, ignoring unexpected extensions. | Implemented. | E-CORE. Duplicate recognized kinds or foreign lookalikes cannot establish a core scope. |
 | R-14.14 / 14.14 locktoken | Retain optional discovery token; require matching acquisition identity for managed lifecycle. | Implemented with low-level discovery tolerance. | E-LOCK, E-LEASE. |
 | R-14.15 / 14.15 locktype | Generate/decode the core write type. | Implemented; unknown XML is not a core lock kind. | E-CORE. |
@@ -194,7 +228,7 @@ client-side enforcement guarantees.
 | R-15.5 / 15.5 | `getcontenttype` / `ContentType` | Implemented text-preserving decoding. | E-PROP; content sniffing is not performed. |
 | R-15.6 / 15.6 | `getetag` / `ETag` | Implemented opaque text preservation. | E-PROP; server validity/uniqueness rules are not locally certified. |
 | R-15.7 / 15.7 | `getlastmodified` / `LastModified` | Implemented date decoding with explicit errors. | E-PROP; decoder tolerates more than the strict HTTP-date lexical form. |
-| R-15.8 / 15.8 | `lockdiscovery` / `LockDiscovery` | Implemented all core active locks; partial full schema validation. | E-LOCK, E-CORE; omitted private metadata remains omitted. |
+| R-15.8 / 15.8 | `lockdiscovery` / `LockDiscovery` | Implemented core active-lock singleton, content and URI validation. | E-LOCK, E-CORE, E-VALIDATION; omitted optional private metadata remains omitted. |
 | R-15.9 / 15.9 | `resourcetype` / `ResourceTypes` | Implemented expanded-name list with empty/missing/denied distinctions. | E-PROP; no slash-based type guessing. |
 | R-15.10 / 15.10 | `supportedlock` / `SupportedLocks` | Implemented core write-lock entries. | E-PROP, E-CORE; unsupported extension lock types remain available as raw XML, not typed core locks. |
 
@@ -206,7 +240,7 @@ client-side enforcement guarantees.
 | R-16b / 16 | Retain `no-external-entities`, `preserved-live-properties`, `propfind-finite-depth`, `cannot-modify-protected-property`. | Implemented qualified XML and numeric outcomes. | E-CORE covers all four. No automatic depth downgrade, property dropping or destructive fallback. |
 | R-16c / 16 | Retain unknown custom conditions without treating an unknown QName as success. | Implemented raw `DavXmlValue` condition lists. | E-XML, E-STRUCTURE, E-LIFETIME. Complete condition-specific content-schema validation is unsupported. |
 | R-17a / 17 | Ignore unexpected XML for protocol interpretation rather than searching arbitrary descendants for known fields. | Implemented direct-child interpretation; lock kind extensions are ignored while foreign lookalikes cannot establish kinds. | E-XML, E-CORE. Raw property XML remains available. |
-| R-17b / 17 | Do not validate DAV against a hard-coded/dynamic DTD or retrieve external entities. | Implemented DTD prohibition, namespace-aware parsing and explicit shape checks. | E-XML. Complete cardinality validation of every singleton remains partial. |
+| R-17b / 17 | Do not validate DAV against a hard-coded/dynamic DTD or retrieve external entities. | Implemented DTD prohibition, namespace-aware parsing and explicit core cardinality/content checks. | E-XML, E-VALIDATION. Unknown extensions are ignored rather than rejected as DTD violations. |
 | R-17c / 17 | Preserve arbitrary dead-property XML during set/roundtrip. | Implemented structured XML copy/serialization. | E-CONTEXT. No normative behavior is assigned to processing instructions. |
 | R-18.1 / 18.1 | Observe class 1 resource advertisement; do not assert remote conformance from it. | Implemented exact capability tokens. | E-OPTIONS, E-CORE. Server MUST obligations require independent execution evidence. |
 | R-18.2 / 18.2 | Observe class 2 separately and expose its locking capabilities. | Implemented OPTIONS plus separate supportedlock/lockdiscovery queries. | E-OPTIONS, E-PROP, E-LOCK. No assumption that absent advertisement means permanent lack of support. |
@@ -218,10 +252,12 @@ client-side enforcement guarantees.
    multi-server conformance matrix. Independently execute properties, lock
    compatibility/expiry, hierarchy failures and conditional operations; record
    server identity/version/configuration and complete expected outcomes.
-2. **Strict receive validation:** uniform href forms/escaping and complete XML
-   singleton/cardinality rules are not finished. Low-level LOCK still tolerates
-   omitted metadata/bodyless refresh; use managed confirmation when lease state
-   matters.
+2. **Validation scope:** core href/singleton rules and mandatory refresh response
+   confirmation are implemented as described above. This does not certify every
+   normative sentence in an extension, server behavior, or arbitrary dead-property
+   schema. REPORT profiles retain their own validation responsibility. Optional
+   discovery metadata remains optional; lockroot omission has the SHOULD
+   applicability rationale recorded above.
 3. **Server-only invariants:** property atomic rollback, binding consistency,
    lock conflict/privilege enforcement, empty-resource persistence, copy/move
    property preservation and validator generation cannot be certified by local
