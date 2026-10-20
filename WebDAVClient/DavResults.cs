@@ -430,8 +430,9 @@ namespace WebDAVClient
 
         private int m_disposed;
 
-        internal DavListing(HttpResponseMessage response, Uri uri, DavXmlLimits limits, TimeSpan timeout, CancellationToken token)
-            : base(response, uri, "PROPFIND")
+        internal DavListing(HttpResponseMessage response, Uri uri, DavXmlLimits limits, TimeSpan timeout, CancellationToken token,
+            IReadOnlyList<DavXmlValue>? errors = null)
+            : base(response, uri, "PROPFIND", errors)
         {
             m_response = response;
             m_limits = limits;

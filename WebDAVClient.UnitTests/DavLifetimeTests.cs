@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WebDAVClient.Extensions;
+using WebDAVClient.Helpers;
 using WebDAVClient.Model;
 using WebDAVClient.Protocol;
 using WebDAVClient.UnitTests.Helpers;
@@ -27,7 +28,7 @@ namespace WebDAVClient.UnitTests
         {
             foreach (var operation in new[]
             {
-                "OPTIONS", "PROPFIND", "PROPPATCH", "MKCOL", "DELETE", "MOVE", "COPY", "PUT", "LOCK", "REFRESH", "UNLOCK", "REPORT", "SYNC", "GET", "LIST"
+                "OPTIONS", "PROPFIND", "PROPPATCH", "MKCOL", "DELETE", "MOVE", "COPY", "PUT", "LOCK", "REFRESH", "UNLOCK", "REPORT", "SYNC", "GET", "LIST", "REJECTED-LIST"
             })
             {
                 foreach (var acquisition in new[]
@@ -55,7 +56,7 @@ namespace WebDAVClient.UnitTests
         {
             using var stalled = new PrefixThenStallStream("<D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>");
             using var factory = new StallingContent();
-            var response = new TrackingResponse(operation == "GET" ? 423 : 207)
+            var response = new TrackingResponse(operation == "GET" || operation == "REJECTED-LIST" ? 423 : 207)
             {
                 Content = acquisition ? factory : new StreamContent(stalled)
             };
@@ -78,6 +79,88 @@ namespace WebDAVClient.UnitTests
             Assert.AreEqual(1, response.DisposeCount);
             Assert.IsTrue(acquisition ? factory.IsDisposed : stalled.IsDisposed);
             Assert.AreEqual(1, handler.Requests.Count, "Cancellation must not trigger automatic replay.");
+        }
+
+        [DataTestMethod]
+        [DataRow(403)]
+        [DataRow(409)]
+        [DataRow(423)]
+        [DataRow(302)]
+        public async Task Rejected_listing_preserves_error_xml_before_enumeration_and_releases_response_once(int status)
+        {
+            var response = new TrackingResponse(status)
+            {
+                Content = new StringContent("<D:error xmlns:D=\"DAV:\" xmlns:X=\"urn:detail\"><D:propfind-finite-depth>"
+                    + "<X:detail xml:lang=\"en\">Try depth one</X:detail></D:propfind-finite-depth></D:error>",
+                    Encoding.UTF8, "application/xml")
+            };
+            using var handler = new StubHttpMessageHandler(_ => response);
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            await using var listing = await client.OpenListingAsync(Target);
+            Assert.AreEqual(status, listing.StatusCode);
+            Assert.AreEqual("propfind-finite-depth", listing.Errors.Single().Name.LocalName);
+            var detail = listing.Errors[0].ToElement().Element(XName.Get("detail", "urn:detail"));
+            Assert.AreEqual("Try depth one", detail.Value);
+            Assert.AreEqual("en", detail.Attribute(XNamespace.Xml + "lang").Value);
+            Assert.AreEqual(0, response.DisposeCount);
+            await using var iterator = listing.ReadResourcesAsync().GetAsyncEnumerator();
+            if (status == 409)
+            {
+                await Assert.ThrowsExceptionAsync<WebDAVConflictException>(() => iterator.MoveNextAsync().AsTask());
+            }
+            else
+            {
+                await Assert.ThrowsExceptionAsync<WebDAVException>(() => iterator.MoveNextAsync().AsTask());
+            }
+            Assert.IsFalse(listing.IsComplete);
+            Assert.AreEqual(1, listing.Errors.Count);
+            listing.Dispose();
+            Assert.AreEqual(1, response.DisposeCount);
+        }
+
+        [DataTestMethod]
+        [DataRow("<D:error xmlns:D=\"DAV:\">", 1000)]
+        [DataRow("<D:error xmlns:D=\"DAV:\"><D:propfind-finite-depth/></D:error>", 10)]
+        public async Task Malformed_or_oversized_listing_rejection_disposes_response_before_throwing(string xml, int limit)
+        {
+            var response = new TrackingResponse(403)
+            {
+                Content = new StringContent(xml, Encoding.UTF8, "application/xml")
+            };
+            using var handler = new StubHttpMessageHandler(_ => response);
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http, new DavClientOptions
+            {
+                XmlLimits = new DavXmlLimits
+                {
+                    MaxResourceCharacters = limit
+                }
+            });
+            var exception = await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.OpenListingAsync(Target));
+            Assert.AreEqual(403, exception.ResponseStatusCode);
+            Assert.IsInstanceOfType<System.Xml.XmlException>(exception.InnerException);
+            Assert.AreEqual(1, response.DisposeCount);
+        }
+
+        [TestMethod]
+        public async Task Opening_a_successful_listing_does_not_acquire_its_body()
+        {
+            using var content = new StallingContent();
+            var response = new TrackingResponse(207)
+            {
+                Content = content
+            };
+            using var handler = new StubHttpMessageHandler(_ => response);
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            await using (var listing = await client.OpenListingAsync(Target))
+            {
+                Assert.IsFalse(content.Started.Task.IsCompleted);
+                Assert.IsFalse(listing.IsComplete);
+                Assert.AreEqual(0, listing.Errors.Count);
+            }
+            Assert.AreEqual(1, response.DisposeCount);
         }
 
         [DataTestMethod]
@@ -462,6 +545,7 @@ namespace WebDAVClient.UnitTests
                     }
                     break;
                 case "LIST":
+                case "REJECTED-LIST":
                     await using (var listing = await client.OpenListingAsync(Target, cancellationToken: token))
                     {
                         await foreach (var item in listing.ReadResourcesAsync())

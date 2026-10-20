@@ -326,6 +326,9 @@ guarantees. XML copies and read-only snapshots remain intact.
     treating property success as confirmation of a namespace mutation.
   - Reject nested XML in LOCK depth, timeout and token/root href values, including
     lock refresh responses and typed `lockdiscovery` decoding.
+  - Preserve structured DAV rejection errors when opening streamed listings.
+    Error bodies honor metadata deadlines and XML limits; successful listings
+    remain lazy and single-use.
   - Added `DavClient` with an immutable endpoint, explicit escaped `DavPath`
     references, resource-oriented operations and request-local options.
   - Added faithful XML/status/error results, typed property codecs, HTTP/DAV

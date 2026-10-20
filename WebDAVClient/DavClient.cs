@@ -153,12 +153,23 @@ namespace WebDAVClient
 
         /// <summary>
         /// Opens a response-owning, single-use listing. Enumerate to completion before treating it as a complete observation.
+        /// Rejected responses have their bounded DAV error body read before returning; successful listings remain lazy.
         /// </summary>
         public async Task<DavListing> OpenListingAsync(DavPath path, PropFindOptions? options = null, CancellationToken cancellationToken = default)
         {
             using var request = CreatePropFind(path, options ?? new PropFindOptions());
             var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
-            return new DavListing(response, request.RequestUri!, m_options.XmlLimits, m_options.MetadataTimeout, cancellationToken);
+            try
+            {
+                var document = response.IsSuccessStatusCode
+                    ? null : await ReadOptionalXmlAsync(response, request, cancellationToken).ConfigureAwait(false);
+                return new DavListing(response, request.RequestUri!, m_options.XmlLimits, m_options.MetadataTimeout, cancellationToken, Errors(document));
+            }
+            catch
+            {
+                response.Dispose();
+                throw;
+            }
         }
 
         /// <summary>
