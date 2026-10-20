@@ -168,6 +168,24 @@ namespace WebDAVClient
     }
 
     /// <summary>
+    /// Property-update options, including narrowly scoped server compatibility.
+    /// </summary>
+    public sealed record PropPatchOptions : DavRequestOptions
+    {
+        /// <summary>
+        /// Opts into servers known to report a literal '+' as an alias for '%2B' within path segments.
+        /// Default false: reserved characters are not universally equivalent under RFC 3986.
+        /// Applies only to PROPPATCH response-target confirmation, never query strings, other
+        /// reserved escapes, outbound URLs, or additional network requests.
+        /// </summary>
+        public bool AllowPathPlusEncodingAlias
+        {
+            get;
+            init;
+        }
+    }
+
+    /// <summary>
     /// Profile-defined REPORT options. The report's profile determines permitted depth values.
     /// </summary>
     public sealed record ReportOptions : DavRequestOptions

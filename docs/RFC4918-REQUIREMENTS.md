@@ -66,6 +66,17 @@ text, decode escaped separators, or recursively decode percent-encoded percent
 signs; the original returned href remains available unchanged.
 The comparison retains .NET's safe unreserved-octet canonicalization, such as
 `%41` versus `A` and `%7E` versus `~`, in both path and query.
+
+Reserved characters are different: RFC 3986 section 2.2 does not establish
+universal equivalence between literal `+` and `%2B`. Strict PROPPATCH target
+confirmation therefore rejects that alias by default. A known server profile,
+such as a verified Apache mod_dav mapping, may explicitly pass
+`PropPatchOptions { AllowPathPlusEncodingAlias = true }` to
+`UpdatePropertiesAsync`. This affects only response-target comparison inside
+the path, not query text, other reserved escapes, path case, or origin validation.
+It never rewrites the outbound URL, follows a returned href, replays the mutation,
+or recursively decodes `%25`; returned href text remains unchanged. Callers must
+not enable this policy on servers that distinguish those path forms.
 Distinct status-level aliases remain valid. A listing cannot become complete if
 a later member, singleton or document tail is invalid. Validation retains href
 identity strings for uniqueness, not prior resource/property DOMs, and remains

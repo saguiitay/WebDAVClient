@@ -127,6 +127,49 @@ namespace WebDAVClient.UnitTests
         }
 
         [DataTestMethod]
+        [DataRow("file%2B", "/dav/file+", false, false)]
+        [DataRow("file%2B", "/dav/file+", true, true)]
+        [DataRow("file+", "/dav/file%2b", true, true)]
+        [DataRow("caf%C3%A9%20%E4%B8%AD%E6%96%87%20%2B%20%25%20%23.bin",
+            "/dav/caf%c3%a9%20%e4%b8%ad%e6%96%87%20+%20%25%20%23.bin", false, false)]
+        [DataRow("caf%C3%A9%20%E4%B8%AD%E6%96%87%20%2B%20%25%20%23.bin",
+            "/dav/caf%c3%a9%20%e4%b8%ad%e6%96%87%20+%20%25%20%23.bin", true, true)]
+        [DataRow("file%2B?x=%2B", "/dav/file+?x=%2b", true, true)]
+        [DataRow("file%2B?x=%2B", "/dav/file+?x=+", true, false)]
+        [DataRow("file%2B?x=+", "/dav/file+?x=%2B", true, false)]
+        [DataRow("file%2B?x=A", "/dav/file+?x=a", true, false)]
+        [DataRow("file%2B", "/dav/file%20", true, false)]
+        [DataRow("file%252B", "/dav/file+", true, false)]
+        [DataRow("file%252B", "/dav/file%252b", true, false)]
+        [DataRow("file%2Fname", "/dav/file/name", true, false)]
+        [DataRow("file%3Bname", "/dav/file;name", true, false)]
+        [DataRow("file%3Fquery", "/dav/file?query", true, false)]
+        [DataRow("File%2B", "/dav/file+", true, false)]
+        [DataRow("file%2B", "https://other.example/dav/file+", true, false)]
+        public async Task Proppatch_plus_alias_is_explicit_path_only_and_does_not_rewrite_urls_or_other_identity(
+            string reference, string responseHref, bool compatibility, bool same)
+        {
+            using var handler = new StubHttpMessageHandler(_ => XmlResponse(Multi(Resource("<X:dead/>", href: responseHref))));
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            var path = DavPath.Parse(reference);
+            var options = new PropPatchOptions { AllowPathPlusEncodingAlias = compatibility };
+            var changes = new[] { DavPropertyChange.Set(new DavXmlValue(new XElement(XName.Get("dead", "urn:test"), "value"))) };
+            if (same)
+            {
+                var result = await client.UpdatePropertiesAsync(path, changes, options);
+                result.EnsureSucceeded();
+                Assert.AreEqual(responseHref, result.Resources.Single().Hrefs.Single());
+            }
+            else
+            {
+                await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.UpdatePropertiesAsync(path, changes, options));
+            }
+            Assert.AreEqual(1, handler.Requests.Count);
+            Assert.AreEqual(client.Resolve(path).AbsoluteUri, handler.Requests.Single().RequestUri.AbsoluteUri);
+        }
+
+        [DataTestMethod]
         [DataRow(false)]
         [DataRow(true)]
         public async Task Duplicate_hrefs_and_mixed_resource_formats_cannot_certify_core_snapshots(bool mixed)
