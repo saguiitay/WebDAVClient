@@ -132,6 +132,15 @@ namespace WebDAVClient
         /// <param name="cancellationToken">
         /// Cancels acquisition, not the later lease lifetime.
         /// </param>
+        /// <exception cref="Helpers.WebDAVException">
+        /// The server rejects acquisition or does not confirm exactly one matching token, scope and depth.
+        /// </exception>
+        /// <exception cref="System.Net.Http.HttpRequestException">
+        /// Transport acquisition fails; the server outcome may be ambiguous.
+        /// </exception>
+        /// <exception cref="OperationCanceledException">
+        /// Acquisition is canceled; the server outcome may be ambiguous.
+        /// </exception>
         public static async Task<DavLockLease> AcquireAsync(DavClient client, DavPath path, LockOptions? options = null,
             TimeProvider? timeProvider = null, CancellationToken cancellationToken = default)
         {
@@ -170,6 +179,12 @@ namespace WebDAVClient
         /// Refuses locally expired, uncertain or released leases. This local check cannot prevent server-side expiry;
         /// always submit the returned conditions with the mutation and inspect its outcome.
         /// </summary>
+        /// <param name="entityTag">
+        /// Optional quoted entity tag for the lock target, not '*'. This is a DAV If comparison, not HTTP If-Match.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The observed lease is not active.
+        /// </exception>
         public DavIfConditions CreateConditions(string? entityTag = null)
         {
             if (State != DavLockLeaseState.Active)
@@ -186,6 +201,21 @@ namespace WebDAVClient
         /// Explicitly refreshes this token without a body or depth header. Unknown or expired leases may be reconciled
         /// by an explicit refresh; failures leave State uncertain. No reacquisition or replay is performed.
         /// </summary>
+        /// <param name="timeouts">
+        /// Ordered timeout preferences, or the low-level client's default preferences when null.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// Cancels waiting and this refresh attempt; cancellation after it starts leaves the outcome uncertain.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// Release was already attempted.
+        /// </exception>
+        /// <exception cref="Helpers.WebDAVException">
+        /// The server rejects renewal or does not confirm the same lock identity, scope and depth.
+        /// </exception>
+        /// <exception cref="OperationCanceledException">
+        /// Waiting or renewal was canceled.
+        /// </exception>
         public async Task<DavLock> RenewAsync(System.Collections.Generic.IReadOnlyList<DavLockTimeout>? timeouts = null,
             CancellationToken cancellationToken = default)
         {
@@ -227,6 +257,15 @@ namespace WebDAVClient
         /// Cancellation before the attempt leaves the lease unchanged. Any unconfirmed attempt leaves it uncertain;
         /// subsequent calls do not retry, and manual server reconciliation is required.
         /// </summary>
+        /// <param name="cancellationToken">
+        /// Cancels waiting or the one release attempt.
+        /// </param>
+        /// <exception cref="Helpers.WebDAVException">
+        /// The server does not confirm release with HTTP 204.
+        /// </exception>
+        /// <exception cref="OperationCanceledException">
+        /// Waiting or release was canceled.
+        /// </exception>
         public async Task ReleaseAsync(CancellationToken cancellationToken = default)
         {
             await m_gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -265,7 +304,7 @@ namespace WebDAVClient
         private static DavLock MatchingLock(DavLockResult result, string token)
         {
             var matches = result.Locks.Where(l => string.Equals(l.Token, token, StringComparison.Ordinal)).ToArray();
-            if (matches.Length != 1 || matches[0].Type != new Model.PropertyName("DAV:", "write"))
+            if (matches.Length != 1)
             {
                 throw result.CreateException("The response did not confirm exactly one matching write lock.");
             }

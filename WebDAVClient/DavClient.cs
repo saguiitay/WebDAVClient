@@ -235,7 +235,7 @@ namespace WebDAVClient
         }
 
         /// <summary>
-        /// Downloads a full representation or validates one requested byte range. Ignored ranges are rejected,
+        /// Downloads a full representation (including a 204 empty resource) or validates one requested byte range. Ignored ranges are rejected,
         /// never returned as appendable content. Reads after return use the stream's own cancellation tokens.
         /// </summary>
         public async Task<DavDownloadResult> DownloadAsync(DavPath path, DownloadOptions? options = null, CancellationToken cancellationToken = default)
@@ -270,6 +270,14 @@ namespace WebDAVClient
                 if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
                 {
                     stream = await response.Content.ReadAsStreamAsync(cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else if (range == null && response.StatusCode == HttpStatusCode.NoContent)
+                {
+                    if (response.Content.Headers.ContentLength > 0 || response.Content.Headers.ContentRange != null)
+                    {
+                        throw ProtocolError(response, request, "A 204 empty resource cannot contain a representation or range.");
+                    }
+                    stream = Stream.Null;
                 }
                 else if (response.IsSuccessStatusCode)
                 {
@@ -392,6 +400,16 @@ namespace WebDAVClient
                             throw new ArgumentException("Use typed options or transport configuration for protected headers; CR/LF is not permitted.", nameof(options));
                         }
                         request.Headers.Add(header.Key, header.Value);
+                    }
+                }
+                if (condition != null)
+                {
+                    var cacheControl = request.Headers.CacheControl ??= new CacheControlHeaderValue();
+                    cacheControl.NoCache = true;
+                    cacheControl.NoCacheHeaders.Clear();
+                    if (!request.Headers.Pragma.Any(p => p.Value == null && string.Equals(p.Name, "no-cache", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        request.Headers.Pragma.Add(new NameValueHeaderValue("no-cache"));
                     }
                 }
                 return request;

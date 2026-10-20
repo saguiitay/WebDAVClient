@@ -382,10 +382,8 @@ namespace WebDAVClient.Protocol
             }
             return Array.AsReadOnly(discovery.Elements(Dav + "activelock").Select(e =>
             {
-                var scopes = e.Element(Dav + "lockscope")?.Elements().ToArray();
-                var types = e.Element(Dav + "locktype")?.Elements().ToArray();
-                var scope = scopes?.Length == 1 ? scopes[0] : null;
-                var type = types?.Length == 1 ? types[0] : null;
+                var scope = LockKind(e, "lockscope");
+                var type = LockKind(e, "locktype");
                 var depthElement = e.Element(Dav + "depth");
                 var depth = depthElement == null ? null : Text(depthElement);
                 if (scope == null || type == null || (depth != "0" && depth != "infinity"))
@@ -402,7 +400,7 @@ namespace WebDAVClient.Protocol
                 else if (timeout != null)
                 {
                     if (!timeout.StartsWith("Second-", StringComparison.Ordinal) || !uint.TryParse(timeout.AsSpan(7), NumberStyles.None,
-                        CultureInfo.InvariantCulture, out var seconds) || seconds == 0)
+                        CultureInfo.InvariantCulture, out var seconds))
                     {
                         throw new XmlException("Invalid granted lock timeout.");
                     }
@@ -416,6 +414,13 @@ namespace WebDAVClient.Protocol
                     e.Element(Dav + "owner") is XElement owner ? new DavXmlValue(owner) : null,
                     lockRoot == null ? null : Text(lockRoot), granted, observed);
             }).ToArray());
+        }
+
+        internal static XElement? LockKind(XElement element, string name)
+        {
+            var permitted = name == "lockscope" ? new[] { Dav + "exclusive", Dav + "shared" } : new[] { Dav + "write" };
+            var children = element.Element(Dav + name)?.Elements().Where(e => permitted.Contains(e.Name)).ToArray();
+            return children?.Length == 1 ? children[0] : null;
         }
     }
 }

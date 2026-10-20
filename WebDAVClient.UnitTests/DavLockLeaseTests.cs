@@ -45,6 +45,7 @@ namespace WebDAVClient.UnitTests
 
         [DataTestMethod]
         [DataRow("Second-10", DavLockLeaseState.Active)]
+        [DataRow("Second-0", DavLockLeaseState.Expired)]
         [DataRow("Infinite", DavLockLeaseState.Active)]
         [DataRow(null, DavLockLeaseState.Uncertain)]
         public async Task Acquisition_tracks_only_confirmed_timeouts_and_releases_once(string timeout, DavLockLeaseState expected)
@@ -59,7 +60,7 @@ namespace WebDAVClient.UnitTests
             Assert.AreEqual("urn:lock:1", lease.Token);
             Assert.AreEqual("exclusive", lease.Observation.Scope.LocalName);
             Assert.AreEqual(expected, lease.State);
-            if (expected == DavLockLeaseState.Uncertain)
+            if (expected != DavLockLeaseState.Active)
             {
                 Assert.ThrowsException<InvalidOperationException>(() => lease.CreateConditions());
             }

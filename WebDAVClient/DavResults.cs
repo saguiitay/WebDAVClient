@@ -206,8 +206,31 @@ namespace WebDAVClient
         }
 
         private IReadOnlyList<string> Split(string name) => Array.AsReadOnly(Headers.TryGetValue(name, out var values)
-            ? values.SelectMany(v => v.Split(',')).Select(v => v.Trim()).Where(v => v.Length != 0).ToArray()
+            ? values.SelectMany(SplitCodedValues).Select(v => v.Trim()).Where(v => v.Length != 0).ToArray()
             : Array.Empty<string>());
+
+        private static IEnumerable<string> SplitCodedValues(string value)
+        {
+            int start = 0;
+            bool codedUrl = false;
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (value[i] == '<')
+                {
+                    codedUrl = true;
+                }
+                else if (value[i] == '>')
+                {
+                    codedUrl = false;
+                }
+                else if (value[i] == ',' && !codedUrl)
+                {
+                    yield return value.Substring(start, i - start);
+                    start = i + 1;
+                }
+            }
+            yield return value.Substring(start);
+        }
 
         /// <summary>
         /// Time this observation was obtained.
@@ -340,7 +363,8 @@ namespace WebDAVClient
         }
 
         /// <summary>
-        /// Content only for accepted 200/206 responses; caller must dispose this result.
+        /// Content for accepted 200/206 responses, or an empty stream for a full-resource 204.
+        /// Caller must dispose this result, including for 204.
         /// </summary>
         public Stream? Content
         {
