@@ -19,6 +19,7 @@
 * Lossless XML property values, exact resource/property outcomes, typed property codecs and structured DAV errors.
 * Conditional requests, full structured DAV If expressions, ordered atomic PROPPATCH and safe namespace replacement defaults.
 * HEAD, response-owning downloads, verified byte ranges, explicit upload ownership, shared/exclusive locks and streamed listings with completion tracking.
+* Durable resumable file downloads with strong validators, verified checkpoints and atomic no-overwrite completion; no automatic retries or partial PUT.
 * Public REPORT execution seam and an explicit sync-level 1 collection synchronization batch profile; no durable sync or automatic retries.
 * Shared XML readers with legacy compatibility projections; existing Client/IClient signatures and transport ownership retained.
 * Migration guidance and contract tests for both .NET 8 and .NET 10. This release does not claim full RFC conformance.
