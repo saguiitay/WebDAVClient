@@ -417,9 +417,9 @@ and redaction tests. Real-server runs are separate from the coverage gate.
 
 | Server | Recorded evidence and limits |
 |---|---|
-| WsgiDAV 4.3.5 / Cheroot 11.1.2 | Basic: 19 passing cases; anonymous: 18, on both .NET 8 and .NET 10. REPORT unsupported; report discovery unavailable. |
+| WsgiDAV 4.3.5 / Cheroot 11.1.2 | Basic: 19 passing cases; anonymous: 18, on both .NET 8 and .NET 10. REPORT unsupported; report discovery unavailable. A bare lock-token header is accepted only when confirmed by one matching discovery token; the wire deviation is recorded. |
 | Apache mod_dav | Reproducible container fixture; see the matrix for execution evidence. |
-| nginx WebDAV | Reproducible basic-method fixture; unsupported DAV methods are not core-protocol success. |
+| nginx WebDAV | Basic-method fixture runs, but stale conditional PUT returns 204 instead of 412. This profile is incompatible with safe conditional updates; the failed observation is retained. |
 | SabreDAV | Reproducible container fixture; see the matrix for execution evidence. |
 | Nextcloud / ownCloud | Container profiles provided; no execution evidence yet. |
 | Windows IIS WebDAV | Manual setup/profile; Windows authentication and HTTPS remain unverified. |
@@ -462,6 +462,9 @@ basic transfer smoke result.
     safe empty-resource GET handling and additional lock/capability parsing.
   - Added a traceable RFC 4918 ledger and an opt-in independent-server
     compatibility harness with versioned evidence and known limitations.
+  - Real-server testing corrected combined escaped-Unicode href validation and
+    percent-escape hex-case comparison without case-folding resource paths.
+    Bare lock-token compatibility requires exactly matching discovery evidence.
   - Reject property-only DELETE/MOVE/COPY multistatus responses rather than
     treating property success as confirmation of a namespace mutation.
   - Reject nested XML in LOCK depth, timeout and token/root href values, including
