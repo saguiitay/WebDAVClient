@@ -163,8 +163,9 @@ are copied before the first await; do not mutate collections during that copy.
 Use `using`/`await using` for `DavDownloadResult` and `DavListing`. A download's
 `Content` is null on 304 and rejection; `NotModified` explicitly identifies 304.
 Range requests accept one validated bytes range, request identity encoding and
-reject ignored-range 200 responses. Resuming an existing file requires a stable
-validator (`IfRange`) and explicit caller reconciliation. Ordinary transfers
+reject ignored-range 200 responses and returned ETag/Last-Modified values that
+contradict the supplied `IfRange` validator. Resuming an existing file requires
+a stable validator and explicit caller reconciliation. Ordinary transfers
 support non-seekable input and 64-bit sizes without full buffering; the modern
 surface does not expose partial PUT or promise automatic resumability.
 
@@ -320,6 +321,12 @@ defensive branches are not forced through reflection just to reach 100%.
     ownership, lock scope/depth/timeout options and streamed listing completion.
   - Consolidated XML reading beneath modern results and legacy projections.
     Retained existing `Client`/`IClient` signatures and ownership contracts.
+  - Regression coverage includes every metadata operation's read/acquisition
+    cancellation, response and upload ownership, concurrent option snapshots,
+    Unicode XML roundtrips and real loopback HTTP transfers.
+  - Preserved inherited streaming XML language/space context within resource
+    budgets, rejected malformed HTTP status versions, honored case-insensitive
+    media/range/coding tokens and validated date-based download resumption.
   - Added the public REPORT seam and a single-batch sync-level 1 profile. No
     automatic retry, lease renewal, durable synchronization or conformance claim.
   - Included the following security, correctness and reliability improvements

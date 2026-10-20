@@ -183,7 +183,7 @@ namespace WebDAVClient
             options ??= new DownloadOptions();
             var range = options.Range == null ? null : RangeHeaderValue.Parse(options.Range.ToString());
             var ifRange = options.IfRange == null ? null : RangeConditionHeaderValue.Parse(options.IfRange.ToString());
-            if (range != null && (range.Unit != "bytes" || range.Ranges.Count != 1 || range.Ranges.Single().To == 0 && !range.Ranges.Single().From.HasValue)
+            if (range != null && (!string.Equals(range.Unit, "bytes", StringComparison.OrdinalIgnoreCase) || range.Ranges.Count != 1 || range.Ranges.Single().To == 0 && !range.Ranges.Single().From.HasValue)
                 || ifRange != null && (range == null || ifRange.EntityTag?.IsWeak == true))
             {
                 throw new ArgumentException("Use one valid bytes range and a strong If-Range validator.", nameof(options));
@@ -440,7 +440,9 @@ namespace WebDAVClient
         private async Task<XElement?> ReadOptionalXmlAsync(HttpResponseMessage response, HttpRequestMessage request, CancellationToken token, bool required = false)
         {
             var mediaType = response.Content.Headers.ContentType?.MediaType;
-            var isXml = mediaType == "application/xml" || mediaType == "text/xml" || mediaType?.EndsWith("+xml", StringComparison.OrdinalIgnoreCase) == true;
+            var isXml = string.Equals(mediaType, "application/xml", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(mediaType, "text/xml", StringComparison.OrdinalIgnoreCase)
+                || mediaType?.EndsWith("+xml", StringComparison.OrdinalIgnoreCase) == true;
             if (!required && (response.Content.Headers.ContentLength == 0 || !isXml))
             {
                 return null;
@@ -515,8 +517,8 @@ namespace WebDAVClient
         private static void ValidateRange(HttpResponseMessage response, HttpRequestMessage request, RangeItemHeaderValue requested, RangeConditionHeaderValue? validator)
         {
             var actual = response.Content.Headers.ContentRange;
-            if (response.StatusCode != HttpStatusCode.PartialContent || actual == null || actual.Unit != "bytes" || !actual.HasRange
-                || response.Content.Headers.ContentEncoding.Any(e => e != "identity"))
+            if (response.StatusCode != HttpStatusCode.PartialContent || actual == null || !string.Equals(actual.Unit, "bytes", StringComparison.OrdinalIgnoreCase) || !actual.HasRange
+                || response.Content.Headers.ContentEncoding.Any(e => !string.Equals(e, "identity", StringComparison.OrdinalIgnoreCase)))
             {
                 throw ProtocolError(response, request, "Server ignored the range or returned an encoded/invalid range.");
             }
@@ -533,9 +535,10 @@ namespace WebDAVClient
             if (!start.HasValue || !end.HasValue || actual.From != start || actual.To != end
                 || actual.Length.HasValue && actual.To >= actual.Length
                 || response.Content.Headers.ContentLength.HasValue && response.Content.Headers.ContentLength != actual.To - actual.From + 1
-                || validator?.EntityTag != null && response.Headers.ETag != null && validator.EntityTag.ToString() != response.Headers.ETag.ToString())
+                || validator?.EntityTag != null && response.Headers.ETag != null && validator.EntityTag.ToString() != response.Headers.ETag.ToString()
+                || validator?.Date != null && response.Content.Headers.LastModified != null && validator.Date != response.Content.Headers.LastModified)
             {
-                throw ProtocolError(response, request, "Content-Range or entity tag does not match the requested representation.");
+                throw ProtocolError(response, request, "Content-Range or validator does not match the requested representation.");
             }
         }
 

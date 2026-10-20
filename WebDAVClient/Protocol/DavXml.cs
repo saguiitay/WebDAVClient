@@ -163,6 +163,13 @@ namespace WebDAVClient.Protocol
                         if (reader.XmlLang.Length > 0 && element.Attribute(XNamespace.Xml + "lang") == null)
                         {
                             element.Add(new XAttribute(XNamespace.Xml + "lang", reader.XmlLang));
+                            size = checked(size + "xml:lang".Length + reader.XmlLang.Length);
+                        }
+                        if (reader.XmlSpace != XmlSpace.None && element.Attribute(XNamespace.Xml + "space") == null)
+                        {
+                            var space = reader.XmlSpace == XmlSpace.Preserve ? "preserve" : "default";
+                            element.Add(new XAttribute(XNamespace.Xml + "space", space));
+                            size = checked(size + "xml:space".Length + space.Length);
                         }
                     }
                     else
@@ -273,7 +280,8 @@ namespace WebDAVClient.Protocol
         internal static int ParseStatus(string value)
         {
             var parts = value.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 2 || !parts[0].StartsWith("HTTP/", StringComparison.Ordinal)
+            if (parts.Length < 2 || parts[0].Length != 8 || !parts[0].StartsWith("HTTP/", StringComparison.Ordinal)
+                || parts[0][5] < '0' || parts[0][5] > '9' || parts[0][6] != '.' || parts[0][7] < '0' || parts[0][7] > '9'
                 || parts[1].Length != 3 || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var status)
                 || status < 100 || status > 599)
             {
