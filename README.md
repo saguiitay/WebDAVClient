@@ -174,6 +174,15 @@ tokens, entity tags, negation and alternative lists. Tagged alternatives are not
 a universal assertion that all named resources are locked. Options collections
 are copied before the first await; do not mutate collections during that copy.
 
+### Explicit lock lifecycle
+
+`DavLockLease` provides acquisition, caller-driven renewal, conditional-write
+conditions and release around an observed lock. It has no background timer,
+automatic retries or automatic reacquisition. Treat an expired or lost lease as
+a reason to stop protected writes and reconcile, not permission to acquire a new
+lock and replay them. See the [lock lifecycle contract](docs/LOCK-LIFECYCLE.md)
+for timeout observations, state transitions and disposal behavior.
+
 ### Lifetimes, limits and transport
 
 Use `using`/`await using` for `DavDownloadResult` and `DavListing`. A download's
@@ -291,10 +300,12 @@ Recursive synchronization, rename inference and an automatic outbound queue are
 not implemented. See the [synchronization contract](plans/File-synchronization.md).
 
 The v3 package is still lightweight: no new NuGet dependencies or separate
-protocol package. Server hosting, DI adapters, managed lock renewal,
+protocol package. Server hosting, DI adapters, automatic background lock renewal,
 desktop providers, SEARCH/ACL/DeltaV and other completeness-plan milestones remain
 separate work. Unit/wire-contract coverage is not independent-server interoperability
-evidence or a full RFC conformance certification.
+evidence or a full RFC conformance certification. The
+[RFC 4918 requirement ledger](docs/RFC4918-REQUIREMENTS.md) distinguishes
+implemented client capabilities from outstanding validation and server obligations.
 
 ## Legacy API recipes
 
@@ -426,6 +437,10 @@ basic transfer smoke result.
     checkpoints, bounded streaming and atomic no-overwrite completion.
   - Added explicit durable immediate-file synchronization with journaled
     recovery, conflict detection and conditional outgoing operations.
+  - Added an explicit lock lease lifecycle, DAV `If` proxy-cache directives,
+    safe empty-resource GET handling and additional lock/capability parsing.
+  - Added a traceable RFC 4918 ledger and an opt-in independent-server
+    compatibility harness with versioned evidence and known limitations.
   - Reject property-only DELETE/MOVE/COPY multistatus responses rather than
     treating property success as confirmation of a namespace mutation.
   - Reject nested XML in LOCK depth, timeout and token/root href values, including
