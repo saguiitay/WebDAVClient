@@ -94,7 +94,11 @@ lockdiscovery body, while the refresh request remains bodyless. Missing refresh
 confirmation is no longer tolerated. Optional discovery fields remain optional;
 in particular, omission of lockroot is tolerated because section 14.12 makes its
 inclusion a SHOULD, not an unconditional MUST. When present, lockroot has exactly
-one valid href. Managed leases additionally confirm token/scope/depth identity.
+one scalar href. Its raw text is metadata, not a request target or ownership
+condition: unescaped filenames returned by servers such as SabreDAV 4.7.0 are
+retained rather than invalidating an otherwise confirmed lock. Correct escaping
+of that server-produced metadata remains a server obligation. Managed leases
+additionally confirm token/scope/depth identity.
 
 ## Resource/property model: sections 4–5
 
@@ -205,7 +209,7 @@ one valid href. Managed leases additionally confirm token/scope/depth identity.
 | R-14.9 / 14.9 location | Retain one member location with one scalar href. | Implemented singleton/cardinality validation; locations remain evidence only. | E-STRUCTURE, E-VALIDATION. Other-origin and non-HTTP redirect URI schemes are not automatically followed. |
 | R-14.10 / 14.10 lockentry | Decode supported core scope/type pairs. | Implemented; invalid entries yield typed decoding errors. | E-PROP, E-CORE. |
 | R-14.11 / 14.11 lockinfo | Generate scope/type/optional owner acquisition XML. | Implemented. | E-LOCK. |
-| R-14.12 / 14.12 lockroot | Retain lockroot without following it. | Implemented optional singleton with one valid href when present. | E-LOCK, E-LEASE, E-VALIDATION. Omission is tolerated because inclusion is a SHOULD in this clause, not an unconditional MUST. |
+| R-14.12 / 14.12 lockroot | Retain lockroot without following it. | Implemented optional singleton with one scalar href when present; raw metadata text is retained without URI reinterpretation. | E-LOCK, E-LEASE, E-VALIDATION. Correct server URI escaping is not a prerequisite for confirming the independent token grant; omission is tolerated because inclusion is a SHOULD in this clause. |
 | R-14.13 / 14.13 lockscope | Decode one known core scope, ignoring unexpected extensions. | Implemented. | E-CORE. Duplicate recognized kinds or foreign lookalikes cannot establish a core scope. |
 | R-14.14 / 14.14 locktoken | Retain optional discovery token; require matching acquisition identity for managed lifecycle. | Implemented with low-level discovery tolerance. | E-LOCK, E-LEASE. |
 | R-14.15 / 14.15 locktype | Generate/decode the core write type. | Implemented; unknown XML is not a core lock kind. | E-CORE. |

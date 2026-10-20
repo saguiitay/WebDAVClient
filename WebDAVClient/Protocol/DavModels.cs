@@ -338,6 +338,10 @@ namespace WebDAVClient.Protocol
     /// <summary>
     /// A lock observation, not a self-renewing lease or a guarantee of current exclusivity.
     /// </summary>
+    /// <remarks>
+    /// Root retains the server's scalar lockroot href as raw metadata, even if the server omits
+    /// required URI escaping. It is never followed or used to establish token ownership.
+    /// </remarks>
     public sealed record DavLock(string? Token, PropertyName Scope, PropertyName Type, string Depth,
         DavXmlValue? Owner, string? Root, DavLockTimeout Timeout, DateTimeOffset ObservedAt);
 

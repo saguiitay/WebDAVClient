@@ -32,6 +32,9 @@ LOCK acquisition requires its token header; refresh requests are bodyless but
 successful refresh responses must provide HTTP 200 with lockdiscovery XML.
 The prior low-level empty-refresh-response tolerance is removed. Optional
 lockroot omission retains the section 14.12 SHOULD applicability rationale.
+Present lockroot hrefs remain scalar, raw evidence-only metadata, including
+server-produced unescaped filenames; they are never promoted to request targets
+or used to infer lock ownership.
 
 Independent WsgiDAV 4.3.5 / cheroot 11.1.2 testing exposed a .NET URI
 well-formedness false rejection for combined escaped Unicode/reserved octets;

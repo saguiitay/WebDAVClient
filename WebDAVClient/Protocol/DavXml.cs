@@ -425,10 +425,6 @@ namespace WebDAVClient.Protocol
                     }
                 }
                 var lockRoot = LockHref(e, "lockroot");
-                if (lockRoot != null)
-                {
-                    DavCoreResponseValidator.SimpleReference(lockRoot, resource: true);
-                }
                 return new DavLock(token,
                     new Model.PropertyName(scope.Name.NamespaceName, scope.Name.LocalName),
                     new Model.PropertyName(type.Name.NamespaceName, type.Name.LocalName), depth,
