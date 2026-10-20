@@ -111,7 +111,8 @@ copy between accounts, hand-edit, or selectively delete its contents.
 4. Fully parse/validate **every** resource outcome and path before downloading.
    Missing/weak ETags, collections, denied properties, duplicate/case-aliased
    names, ambiguous hrefs and any 507 fail the whole batch.
-5. GET each changed file with `If-Match` on the reported strong ETag, require full
+5. GET each changed file with `If-Match` on the reported strong ETag and
+   `Accept-Encoding: identity`. Reject any nonidentity content encoding, require full
    HTTP 200 and the matching response ETag, stream into a unique staging file,
    flush it to disk, and hash it with SHA-256.
 6. Check every affected local file against the old committed SHA-256 or the exact
@@ -184,6 +185,9 @@ for each explicitly authorized replay.
   Disk staging must fit the entire changed batch, and the caller manages quotas.
   Supply cancellation/deadlines; there is no scheduler, background worker or cache
   eviction.
+* Injected transports must disable both redirects and automatic decompression.
+  The owned `DavClient` transport already does so. Synchronization uses the shared
+  `DownloadOptions.RequireIdentityEncoding` contract, not a separate encoding parser.
 * No recursive directories, automatic upload scan/deletion, file watching,
   native placeholder providers, vendor stable IDs, rename recognition, resumable
   transfers, sparse/partial writes, automatic token recovery, database migration,

@@ -50,6 +50,7 @@ namespace WebDAVClient.UnitTests
                     return Batch(FileMember() + FileMember("other"));
                 }
                 Assert.AreEqual("\"one\"", request.Headers.IfMatch.Single().ToString());
+                Assert.AreEqual("identity", request.Headers.AcceptEncoding.Single().Value);
                 return Download();
             };
             Assert.AreEqual("urn:sync:one", await fixture.Session.PullAsync());
@@ -323,6 +324,72 @@ namespace WebDAVClient.UnitTests
             }
             Assert.IsFalse(System.IO.File.Exists(fixture.Checkpoint));
             Assert.IsFalse(System.IO.File.Exists(fixture.Data("file")));
+        }
+
+        [DataTestMethod]
+        [DataRow("gzip", false)]
+        [DataRow("gzip", true)]
+        [DataRow("br", true)]
+        [DataRow("deflate", true)]
+        [DataRow("identity, gzip", true)]
+        public async Task Encoded_download_rejection_preserves_files_and_checkpoint(string encoding, bool initialized)
+        {
+            using var fixture = new Fixture();
+            if (initialized)
+            {
+                await fixture.SeedAsync();
+                System.IO.File.WriteAllText(fixture.Data("untouched"), "local");
+            }
+            var before = initialized ? System.IO.File.ReadAllText(fixture.Checkpoint) : null;
+            fixture.Respond = request =>
+            {
+                if (request.Method.Method == "REPORT")
+                {
+                    // A preceding staged download and an explicit deletion must not be committed
+                    // when a later member has an unacceptable encoded representation.
+                    return Batch(FileMember("first") + FileMember("second", etag: "&quot;two&quot;") +
+                        (initialized ? DavClientTests.Member(404) : ""), "urn:sync:two");
+                }
+                Assert.AreEqual("identity", request.Headers.AcceptEncoding.Single().Value);
+                if (request.RequestUri.AbsolutePath.EndsWith("/first", StringComparison.Ordinal))
+                {
+                    return Download();
+                }
+                var response = Download("encoded wire bytes", "\"two\"");
+                response.Content.Headers.Add("Content-Encoding", encoding);
+                return response;
+            };
+            await Assert.ThrowsExceptionAsync<WebDAVException>(() => fixture.Session.PullAsync());
+            Assert.AreEqual(before, System.IO.File.Exists(fixture.Checkpoint) ? System.IO.File.ReadAllText(fixture.Checkpoint) : null);
+            Assert.AreEqual(initialized ? "one" : null, System.IO.File.Exists(fixture.Data("file")) ? System.IO.File.ReadAllText(fixture.Data("file")) : null);
+            Assert.IsFalse(System.IO.File.Exists(fixture.Data("first")));
+            Assert.IsFalse(System.IO.File.Exists(fixture.Data("second")));
+            Assert.IsFalse(System.IO.File.Exists(fixture.Pending));
+            Assert.AreEqual(0, Directory.GetFiles(fixture.State, "*.stage").Length);
+            if (initialized)
+            {
+                Assert.AreEqual("local", System.IO.File.ReadAllText(fixture.Data("untouched")));
+            }
+        }
+
+        [TestMethod]
+        public async Task Explicit_identity_response_is_accepted_and_checkpointed()
+        {
+            using var fixture = new Fixture();
+            fixture.Respond = request =>
+            {
+                if (request.Method.Method == "REPORT")
+                {
+                    return Batch(FileMember());
+                }
+                Assert.AreEqual("identity", request.Headers.AcceptEncoding.Single().Value);
+                var response = Download();
+                response.Content.Headers.ContentEncoding.Add("IDENTITY");
+                return response;
+            };
+            Assert.AreEqual("urn:sync:one", await fixture.Session.PullAsync());
+            Assert.AreEqual("one", System.IO.File.ReadAllText(fixture.Data("file")));
+            Assert.AreEqual("\"one\"", await fixture.Session.GetSynchronizedETagAsync("file"));
         }
 
         [TestMethod]

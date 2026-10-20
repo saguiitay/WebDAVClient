@@ -31,7 +31,7 @@ namespace WebDAVClient.Sync
     /// <summary>
     /// Durable, explicit pull synchronization of immediate files in one RFC 6578 collection.
     /// The caller must exclusively own both local directories, prevent concurrent local edits during
-    /// each call, and disable transport redirects. Subcollections, links and automatic bidirectional
+    /// each call, and disable transport redirects and automatic decompression. Subcollections, links and automatic bidirectional
     /// synchronization are deliberately unsupported. The client remains caller-owned.
     /// </summary>
     public sealed class FileSyncSession
@@ -85,7 +85,8 @@ namespace WebDAVClient.Sync
         /// Recovers any durable pending batch, then fetches and applies one complete sync-level 1 batch.
         /// Returns its committed token. Missing files in an initial batch never imply deletion.
         /// All outcomes and paths are validated before downloads; every download is conditional on a
-        /// strong ETag. Downloads are streamed to disk and flushed before publishing the recovery journal.
+        /// strong ETag and requires an identity representation. Downloads are streamed to disk and
+        /// flushed before publishing the recovery journal.
         /// A failed/canceled batch never advances the checkpoint ahead of applied content. After journal publication, cancellation
         /// can leave partially applied files; the next call replays idempotently before making requests.
         /// </summary>
@@ -123,7 +124,11 @@ namespace WebDAVClient.Sync
                         {
                             change.Stage = Guid.NewGuid().ToString("N") + ".stage";
                             using var download = await m_client.DownloadAsync(RemotePath(change.Name),
-                                new DownloadOptions { IfMatch = change.ETag }, cancellationToken).ConfigureAwait(false);
+                                new DownloadOptions
+                                {
+                                    IfMatch = change.ETag,
+                                    RequireIdentityEncoding = true
+                                }, cancellationToken).ConfigureAwait(false);
                             download.EnsureHttpSuccess();
                             if (download.StatusCode != 200 || download.GetHeader("ETag") != change.ETag)
                             {
