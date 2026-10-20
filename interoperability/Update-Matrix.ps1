@@ -18,7 +18,7 @@ foreach ($profile in $profiles) {
         }
         $runs += [ordered]@{
             evidence = $file.Name
-            startedUtc = $run.startedUtc
+            startedUtc = ([DateTimeOffset]$run.startedUtc).ToUniversalTime().ToString('O')
             runtime = $run.runtime
             operatingSystem = $run.operatingSystem
             serverVersion = $run.serverVersion

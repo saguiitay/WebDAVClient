@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "suiteVersion": "1.0",
+  "startedUtc": "2026-10-20T21:56:43.4627112+00:00",
+  "runtime": ".NET 8.0.32",
+  "operatingSystem": "Microsoft Windows 10.0.26300",
+  "architecture": "X64",
+  "server": "wsgidav",
+  "serverVersion": "4.3.5\u002Bcheroot-11.1.2",
+  "serverVersionSource": "fixture-pin-or-operator-label",
+  "authentication": "anonymous",
+  "transport": "http",
+  "loopback": true,
+  "sourceRevision": "1c94851eeb6b0f9dd3439a7ec9aa2cb6ad9e11cd",
+  "sourceRevisionScope": "repository revision at execution; result-only commit may follow",
+  "runTree": "webdavclient-interop-eb6643a6e7a8401db909bbea7ec437e2",
+  "advertisedDav": [
+    "1",
+    "2"
+  ],
+  "advertisedMethods": [
+    "OPTIONS",
+    "HEAD",
+    "GET",
+    "PROPFIND",
+    "DELETE",
+    "COPY",
+    "MOVE",
+    "PROPPATCH",
+    "LOCK",
+    "UNLOCK"
+  ],
+  "advertisedReports": [],
+  "observations": [
+    {
+      "operation": "options",
+      "outcome": "passed",
+      "httpStatus": 200,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "isolation-preflight",
+      "outcome": "passed",
+      "httpStatus": 404,
+      "detail": "Expected HTTP 404"
+    },
+    {
+      "operation": "create-tree",
+      "outcome": "passed",
+      "httpStatus": 201,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "unicode-put",
+      "outcome": "passed",
+      "httpStatus": 201,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "unicode-get",
+      "outcome": "passed",
+      "httpStatus": 200,
+      "detail": "Byte-for-byte body and range metadata checked."
+    },
+    {
+      "operation": "head-metadata",
+      "outcome": "passed",
+      "httpStatus": 200,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "range-get",
+      "outcome": "passed",
+      "httpStatus": 206,
+      "detail": "Byte-for-byte body and range metadata checked."
+    },
+    {
+      "operation": "conditional-put",
+      "outcome": "passed",
+      "httpStatus": 412,
+      "detail": "Expected HTTP 412"
+    },
+    {
+      "operation": "conditional-integrity",
+      "outcome": "passed",
+      "httpStatus": 200,
+      "detail": "Byte-for-byte body and range metadata checked."
+    },
+    {
+      "operation": "propfind-statuses",
+      "outcome": "passed",
+      "httpStatus": 207,
+      "memberStatuses": [],
+      "propertyStatuses": [
+        200,
+        404
+      ],
+      "detail": "Requested missing property must be 404 beside valid content length."
+    },
+    {
+      "operation": "streamed-listing",
+      "outcome": "passed",
+      "httpStatus": 207,
+      "memberStatuses": [],
+      "propertyStatuses": [
+        200,
+        200
+      ],
+      "detail": "Full enumeration, document completion, member/property success, and Unicode child href checked."
+    },
+    {
+      "operation": "dead-property",
+      "outcome": "passed",
+      "httpStatus": 207,
+      "memberStatuses": [],
+      "propertyStatuses": [
+        200
+      ],
+      "detail": "Set custom property and read exact value back."
+    },
+    {
+      "operation": "lock-unlock",
+      "outcome": "passed",
+      "httpStatus": 200,
+      "memberStatuses": [],
+      "propertyStatuses": [],
+      "detail": "Exclusive lock, conflicting DELETE=423, refresh, UNLOCK confirmed."
+    },
+    {
+      "operation": "copy",
+      "outcome": "passed",
+      "httpStatus": 201,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "copy-no-overwrite",
+      "outcome": "passed",
+      "httpStatus": 412,
+      "detail": "Expected HTTP 412"
+    },
+    {
+      "operation": "move",
+      "outcome": "passed",
+      "httpStatus": 201,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "sync-discovery",
+      "outcome": "unavailable-property",
+      "httpStatus": 207,
+      "memberStatuses": [],
+      "propertyStatuses": [
+        404
+      ],
+      "detail": "404 property means discovery property unavailable, NOT proof REPORT is unsupported."
+    },
+    {
+      "operation": "sync-report",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "delete-file",
+      "outcome": "passed",
+      "httpStatus": 204,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "cleanup-tree",
+      "outcome": "passed",
+      "httpStatus": 204,
+      "memberStatuses": [],
+      "propertyStatuses": [],
+      "detail": "Only confirmed run-owned tree deleted; absence verified."
+    }
+  ],
+  "succeeded": true
+}

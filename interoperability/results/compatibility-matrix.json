@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "suiteVersion": "1.0",
+  "generatedUtc": "2026-10-20T21:57:43.610295+00:00",
+  "scope": "Independent-server observations only; not full RFC conformance, publication, or unobserved configuration support.",
+  "servers": [
+    {
+      "server": "wsgidav",
+      "configuredVersion": "4.3.5+cheroot-11.1.2",
+      "executionStatus": "observed-compatible-subset",
+      "evidenceGap": null,
+      "runs": [
+        {
+          "evidence": "wsgidav-anonymous-net10.0.json",
+          "startedUtc": "2026-10-20T21:56:46.8425191+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "1c94851eeb6b0f9dd3439a7ec9aa2cb6ad9e11cd",
+          "succeeded": true,
+          "passed": 18,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-anonymous-net8.0.json",
+          "startedUtc": "2026-10-20T21:56:43.4627112+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "1c94851eeb6b0f9dd3439a7ec9aa2cb6ad9e11cd",
+          "succeeded": true,
+          "passed": 18,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-net10.0.json",
+          "startedUtc": "2026-10-20T21:56:31.1585911+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "1c94851eeb6b0f9dd3439a7ec9aa2cb6ad9e11cd",
+          "succeeded": true,
+          "passed": 19,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-net8.0.json",
+          "startedUtc": "2026-10-20T21:56:27.8498214+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "1c94851eeb6b0f9dd3439a7ec9aa2cb6ad9e11cd",
+          "succeeded": true,
+          "passed": 19,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "server": "apache",
+      "configuredVersion": "2.4.65",
+      "executionStatus": "not-executed",
+      "evidenceGap": "No committed independent-server execution evidence. See README fixture limitations and tooling.json.",
+      "runs": []
+    },
+    {
+      "server": "nginx",
+      "configuredVersion": "1.28.0",
+      "executionStatus": "not-executed",
+      "evidenceGap": "No committed independent-server execution evidence. See README fixture limitations and tooling.json.",
+      "runs": []
+    },
+    {
+      "server": "sabredav",
+      "configuredVersion": "4.7.0+php-8.3.25",
+      "executionStatus": "not-executed",
+      "evidenceGap": "No committed independent-server execution evidence. See README fixture limitations and tooling.json.",
+      "runs": []
+    },
+    {
+      "server": "nextcloud",
+      "configuredVersion": "31.0.9",
+      "executionStatus": "not-executed",
+      "evidenceGap": "No committed independent-server execution evidence. See README fixture limitations and tooling.json.",
+      "runs": []
+    },
+    {
+      "server": "owncloud",
+      "configuredVersion": "10.15.0",
+      "executionStatus": "not-executed",
+      "evidenceGap": "No committed independent-server execution evidence. See README fixture limitations and tooling.json.",
+      "runs": []
+    },
+    {
+      "server": "iis",
+      "configuredVersion": "operator-required",
+      "executionStatus": "not-executed",
+      "evidenceGap": "No committed independent-server execution evidence. See README fixture limitations and tooling.json.",
+      "runs": []
+    }
+  ]
+}
