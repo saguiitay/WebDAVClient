@@ -223,7 +223,7 @@ MaxResponseCharacters = 0
                 }));
             Assert.ThrowsException<ArgumentNullException>(() => DavIfConditions.Tagged(null));
             Assert.ThrowsException<ArgumentNullException>(() => new DavTaggedConditions(null, new DavConditionList(DavCondition.EntityTag("\"e\""))));
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => DavLockTimeout.Finite(TimeSpan.Zero));
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => DavLockTimeout.Finite(TimeSpan.FromSeconds(-1)));
             Assert.ThrowsException<ArgumentOutOfRangeException>(() => DavLockTimeout.Finite(TimeSpan.FromMilliseconds(100)));
             Assert.ThrowsException<ArgumentOutOfRangeException>(() => DavLockTimeout.Finite(TimeSpan.FromDays(100000)));
             Assert.ThrowsException<InvalidOperationException>(() => DavLockTimeout.Unspecified.ToHeader());
@@ -435,7 +435,7 @@ MaxResponseCharacters = 0
                 valid.Replace("<D:depth>0</D:depth>", ""),
                 valid.Replace("<D:depth>0</D:depth>", "<D:depth>1</D:depth>"),
                 valid.Replace("<D:shared/>", "<D:shared/><D:exclusive/>"),
-                LockXml("garbage"), LockXml("Second-0"), LockXml("Second-bad"),
+                LockXml("garbage"), LockXml("Second--1"), LockXml("Second-bad"),
                 LockXml("Second-4294967296")
             })
             {

@@ -165,7 +165,7 @@ namespace WebDAVClient.Protocol
             new DavProperty<IReadOnlyList<DavLock>>(new PropertyName("DAV:", "lockdiscovery"), v => DavXml.ParseLocks(v.ToElement(), DateTimeOffset.UtcNow));
 
         /// <summary>
-        /// Every advertised DAV:supportedlock entry.
+        /// Advertised core write-lock entries. Unknown XML extensions are ignored, not interpreted as lock kinds.
         /// </summary>
         public static DavProperty<IReadOnlyList<DavSupportedLock>> SupportedLocks
         {
@@ -177,12 +177,12 @@ namespace WebDAVClient.Protocol
 
         private static PropertyName ChildName(XElement element, string name)
         {
-            var children = element.Element(DavXml.Dav + name)?.Elements().ToArray();
-            if (children == null || children.Length != 1)
+            var child = DavXml.LockKind(element, name);
+            if (child == null)
             {
                 throw new XmlException("A supported lock requires one scope and one type.");
             }
-            return new PropertyName(children[0].Name.NamespaceName, children[0].Name.LocalName);
+            return new PropertyName(child.Name.NamespaceName, child.Name.LocalName);
         }
 
         private static DavProperty<string> Text(string name) => new DavProperty<string>(new PropertyName("DAV:", name), TextValue);

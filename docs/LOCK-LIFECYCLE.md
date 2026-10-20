@@ -5,6 +5,7 @@ This reference describes the upcoming 3.0.0 source API, not a published package.
 `DavLockLease` adds an explicitly renewed lifecycle for one RFC 4918 write lock.
 
 ```csharp
+using System;
 using WebDAVClient;
 using WebDAVClient.Protocol;
 
@@ -53,6 +54,8 @@ Finite expiry is measured with `TimeProvider` monotonic timestamps, starting
 consume the grant conservatively. Wall-clock adjustments do not extend a lease.
 The optional `TimeProvider` supports deterministic clocks in applications/tests.
 Missing timeout values never inherit the requested preference.
+An explicit `Second-0` grant produces an immediately expired lease, not an
+infinite or unknown one.
 
 `Active` is not proof of present server-side exclusivity. A server can revoke
 locks, lose state, or reject a particular mutation. Always submit conditions and

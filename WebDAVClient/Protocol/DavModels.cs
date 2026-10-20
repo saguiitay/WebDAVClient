@@ -319,11 +319,11 @@ namespace WebDAVClient.Protocol
         } = new DavLockTimeout(null, true);
 
         /// <summary>
-        /// A positive, whole-second timeout representable on the wire.
+        /// A nonnegative, whole-second timeout representable on the wire. Zero means immediate expiration.
         /// </summary>
         public static DavLockTimeout Finite(TimeSpan duration)
         {
-            if (duration <= TimeSpan.Zero || duration.TotalSeconds > uint.MaxValue || duration.Ticks % TimeSpan.TicksPerSecond != 0)
+            if (duration < TimeSpan.Zero || duration.TotalSeconds > uint.MaxValue || duration.Ticks % TimeSpan.TicksPerSecond != 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(duration));
             }

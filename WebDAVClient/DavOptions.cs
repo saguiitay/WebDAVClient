@@ -82,7 +82,8 @@ namespace WebDAVClient
         }
 
         /// <summary>
-        /// DAV If grammar, independent of HTTP validators.
+        /// DAV If grammar, independent of HTTP validators. Conditioned requests automatically include
+        /// Cache-Control: no-cache and Pragma: no-cache to prevent non-DAV-aware proxy cache hits.
         /// </summary>
         public DavIfConditions? Conditions
         {
