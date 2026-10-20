@@ -60,6 +60,10 @@ and escaped Unicode remain opaque and are not decoded into different paths.
 Wire path/query grammar is checked directly: .NET URI IRI normalization can
 misclassify valid combined escaped Unicode, percent and hash octets, so
 `Uri.IsWellFormedOriginalString()` is not used to reject those response identities.
+PROPPATCH target confirmation also treats uppercase/lowercase escape hex digits
+as equivalent under RFC 3986 section 6.2.2.1. It does not case-fold path/query
+text, decode escaped separators, or recursively decode percent-encoded percent
+signs; the original returned href remains available unchanged.
 Distinct status-level aliases remain valid. A listing cannot become complete if
 a later member, singleton or document tail is invalid. Validation retains href
 identity strings for uniqueness, not prior resource/property DOMs, and remains
