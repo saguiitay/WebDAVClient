@@ -2,7 +2,8 @@ using System.Net;
 
 namespace WebDAVClient.InteropTests;
 
-internal sealed record Configuration(Uri Endpoint, string Server, string Version, string Auth, string? User, string? Password, string Output)
+internal sealed record Configuration(Uri Endpoint, string Server, string Version, string Auth, string? User, string? Password,
+    string Output, bool ApachePathPlusAlias = false)
 {
     internal static Configuration Read(Func<string, string?> get)
     {
@@ -23,6 +24,11 @@ internal sealed record Configuration(Uri Endpoint, string Server, string Version
         }
         string server = Label(get("WEBDAV_INTEROP_SERVER"));
         string version = Label(get("WEBDAV_INTEROP_VERSION"));
+        string? plusAlias = get("WEBDAV_INTEROP_APACHE_PATH_PLUS_ALIAS");
+        if (plusAlias is not (null or "0" or "1") || (plusAlias == "1" && server != "apache"))
+        {
+            throw new ArgumentException("Apache path-plus target aliasing requires an explicit 1 and the apache profile.");
+        }
         string auth = get("WEBDAV_INTEROP_AUTH") ?? "anonymous";
         string? user = get("WEBDAV_INTEROP_USER");
         string? password = get("WEBDAV_INTEROP_PASSWORD");
@@ -33,7 +39,8 @@ internal sealed record Configuration(Uri Endpoint, string Server, string Version
             throw new ArgumentException("Select anonymous, basic (explicit USER/PASSWORD), or windows (explicit default credentials opt-in).");
         }
         return new Configuration(endpoint, server, version, auth, user, password,
-            get("WEBDAV_INTEROP_OUTPUT") ?? $"artifacts/interop/{server}-{System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.Replace(" ", "")}.json");
+            get("WEBDAV_INTEROP_OUTPUT") ?? $"artifacts/interop/{server}-{System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.Replace(" ", "")}.json",
+            plusAlias == "1");
     }
 
     internal System.Net.Http.HttpClient CreateTransport()

@@ -4,7 +4,8 @@ param(
     [string] $Profile = 'wsgidav',
     [ValidateSet('basic', 'anonymous')]
     [string] $Authentication = 'basic',
-    [switch] $CaptureSyntheticPropertyWire
+    [switch] $CaptureSyntheticPropertyWire,
+    [switch] $ApachePathPlusAlias
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -20,6 +21,9 @@ $savedPassword = $env:WEBDAV_INTEROP_PASSWORD
 $savedEndpoint = $env:WEBDAV_INTEROP_ENDPOINT
 $savedVersion = $env:WEBDAV_INTEROP_VERSION
 try {
+    if ($ApachePathPlusAlias -and $Profile -ne 'apache') {
+        throw 'Path-plus target aliasing is an explicit Apache-only profile assumption.'
+    }
     if ($savedEndpoint -or $savedVersion) {
         throw 'Run-Fixture owns the local endpoint/version. Clear endpoint/version overrides or use Invoke-Compatibility for existing servers.'
     }
@@ -120,7 +124,7 @@ try {
         }
     }
     finally { $http.Dispose() }
-    & (Join-Path $PSScriptRoot 'Invoke-Compatibility.ps1') -Profile $Profile
+    & (Join-Path $PSScriptRoot 'Invoke-Compatibility.ps1') -Profile $Profile -ApachePathPlusAlias:$ApachePathPlusAlias
     if ($captureFailed) { throw 'Synthetic fixture capture was incomplete; compatibility results were retained separately.' }
 }
 finally {

@@ -32,6 +32,32 @@ public sealed class OfflineTests
     }
 
     [DataTestMethod]
+    [DataRow(null, false)]
+    [DataRow("0", false)]
+    [DataRow("1", true)]
+    public void ApachePathPlusAliasIsExplicitAndDefaultOff(string? value, bool enabled)
+    {
+        var env = EnvironmentFor("http://localhost/dav/");
+        env["WEBDAV_INTEROP_SERVER"] = "apache";
+        env["WEBDAV_INTEROP_APACHE_PATH_PLUS_ALIAS"] = value;
+        Assert.AreEqual(enabled, Configuration.Read(k => env.GetValueOrDefault(k)).ApachePathPlusAlias);
+    }
+
+    [DataTestMethod]
+    [DataRow("true", "apache")]
+    [DataRow("", "apache")]
+    [DataRow("1", "wsgidav")]
+    [DataRow("1", "sabredav")]
+    [DataRow("1", "nginx")]
+    public void ApacheAliasCannotSilentlyApplyToOtherProfilesOrAmbiguousFlags(string value, string server)
+    {
+        var env = EnvironmentFor("http://localhost/dav/");
+        env["WEBDAV_INTEROP_SERVER"] = server;
+        env["WEBDAV_INTEROP_APACHE_PATH_PLUS_ALIAS"] = value;
+        Assert.ThrowsException<ArgumentException>(() => Configuration.Read(k => env.GetValueOrDefault(k)));
+    }
+
+    [DataTestMethod]
     [DataRow("https://example.test/dav/", null)]
     [DataRow("http://example.test/dav/", "1")]
     [DataRow("http://user:secret@localhost/dav/", null)]

@@ -158,15 +158,19 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
             await CheckAsync("dead-property", async () =>
             {
                 string stage = "proppatch";
+                string policy = config.ApachePathPlusAlias
+                    ? " Explicit Apache path-only plus/%2B target-alias opt-in; strict default identity is unchanged."
+                    : "";
                 try
                 {
                     var response = await client.UpdatePropertiesAsync(file,
                         [DavPropertyChange.Set(new DavXmlValue(new XElement(XName.Get(s_marker.LocalName, s_marker.Namespace), "interop-v1")))],
+                        options: config.ApachePathPlusAlias ? new PropPatchOptions { AllowPathPlusEncodingAlias = true } : null,
                         cancellationToken: ct).ConfigureAwait(false);
                     var result = Response("dead-property", response, optional: true);
                     if (result.Outcome != "passed")
                     {
-                        return result;
+                        return result with { Detail = (result.Detail ?? "") + policy };
                     }
                     stage = "propfind-readback";
                     var read = await client.PropFindAsync(file, new PropFindOptions
@@ -177,11 +181,11 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
                     }, ct).ConfigureAwait(false);
                     read.EnsureSucceeded();
                     bool valid = read.Resources.Count == 1 && read.Resources[0].GetProperties(s_marker).SingleOrDefault()?.Value.ToElement().Value == "interop-v1";
-                    return result with { Outcome = valid ? "passed" : "failed", Detail = "Set custom property and read exact value back." };
+                    return result with { Outcome = valid ? "passed" : "failed", Detail = "Set custom property and read exact value back." + policy };
                 }
                 catch (Exception ex) when (ex is not OutOfMemoryException)
                 {
-                    return Failure("dead-property", ex) with { Detail = stage + ":" + DescribeFailure(ex) };
+                    return Failure("dead-property", ex) with { Detail = stage + ":" + DescribeFailure(ex) + policy };
                 }
             }).ConfigureAwait(false);
             await CheckAsync("lock-unlock", async () =>

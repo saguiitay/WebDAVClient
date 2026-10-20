@@ -63,7 +63,7 @@ jobs:
         shell: pwsh
         env:
           INTEROP_PROFILE: ${{ matrix.server }}
-        run: ./interoperability/Run-Fixture.ps1 -Profile $env:INTEROP_PROFILE -CaptureSyntheticPropertyWire:($env:INTEROP_PROFILE -in @('apache', 'sabredav'))
+        run: ./interoperability/Run-Fixture.ps1 -Profile $env:INTEROP_PROFILE -CaptureSyntheticPropertyWire:($env:INTEROP_PROFILE -in @('apache', 'sabredav')) -ApachePathPlusAlias:($env:INTEROP_PROFILE -eq 'apache')
       - name: Validate and summarize any completed observations
         if: always()
         shell: pwsh

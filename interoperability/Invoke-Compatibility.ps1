@@ -5,17 +5,22 @@ param(
     [string] $Profile,
     [ValidateSet('net8.0', 'net10.0')]
     [string[]] $Framework = @('net8.0', 'net10.0'),
-    [string] $OutputDirectory = 'artifacts\interop'
+    [string] $OutputDirectory = 'artifacts\interop',
+    [switch] $ApachePathPlusAlias
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 Push-Location $root
-$names = @('RUN', 'ENDPOINT', 'SERVER', 'VERSION', 'AUTH', 'REVISION', 'OUTPUT')
+$names = @('RUN', 'ENDPOINT', 'SERVER', 'VERSION', 'AUTH', 'REVISION', 'OUTPUT', 'APACHE_PATH_PLUS_ALIAS')
 $saved = @{}
 foreach ($name in $names) {
     $saved[$name] = [Environment]::GetEnvironmentVariable("WEBDAV_INTEROP_$name")
 }
 try {
+    if ($ApachePathPlusAlias -and $Profile -ne 'apache') {
+        throw 'Path-plus target aliasing is an explicit Apache-only profile assumption.'
+    }
+    $env:WEBDAV_INTEROP_APACHE_PATH_PLUS_ALIAS = if ($ApachePathPlusAlias) { '1' } else { $null }
     $profileData = (Get-Content (Join-Path $PSScriptRoot 'profiles.json') -Raw | ConvertFrom-Json).profiles |
         Where-Object id -EQ $Profile
     $env:WEBDAV_INTEROP_RUN = '1'

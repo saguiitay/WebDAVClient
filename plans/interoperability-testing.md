@@ -130,3 +130,13 @@ track owns any explicit profile-only compatibility option. Exact no-header,
 no-lock synthetic XML and version provenance are checked in separately from
 hosted Apache 2.4.65. The new hosted fixture probe still captures the latter's
 exact wire; no native result is relabeled as Linux/container evidence.
+
+The harness now exposes the protocol track's explicit default-off policy as
+`Run-Fixture.ps1 -Profile apache -ApachePathPlusAlias` (and the same
+`Invoke-Compatibility.ps1` switch). It selects typed
+`PropPatchOptions.AllowPathPlusEncodingAlias` before one PROPPATCH, never retries
+or changes generic URI equality. Only the Apache workflow job selects it.
+Result detail discloses the profile assumption, while default failures remain
+in the evidence ledger. Configuration tests enforce default-off, explicit flag
+values and Apache-only scope. Query, slash, percent nesting, case and origin
+distinctions remain production-core validations, not harness relaxations.

@@ -45,6 +45,8 @@ exact PR label **`run-interoperability`** to run WsgiDAV, Apache, nginx and
 SabreDAV as independent jobs. Each job exercises both TFMs, and `fail-fast: false`
 retains evidence from other fixtures when one fails. Nextcloud and ownCloud remain
 manual-only choices.
+The Apache job explicitly selects the path-plus compatibility option below;
+this is not evidence that strict default URI target matching accepts aliases.
 
 The PR trigger is unprivileged `pull_request` with `types: [labeled]`, gated to
 that exact newly applied label. It uses read-only `contents` permission, no PR
@@ -205,6 +207,34 @@ sync unavailability. The configured profile/version must also match. The 415 and
 concrete cause remain in the matrix. Missing discovery/body evidence, other 415s,
 and advertised sync failures are not accepted. No RFC 6578 behavior is covered
 by this backend.
+
+### Explicit Apache path-plus profile
+
+Apache's filesystem backend can spell a requested `%2B` as a literal `+` in a
+PROPPATCH result href. Reserved characters are not universally interchangeable
+under RFC 3986, so **strict default target identity remains unchanged**.
+For a known Apache filesystem configuration, explicitly select:
+
+```powershell
+.\interoperability\Run-Fixture.ps1 -Profile apache -ApachePathPlusAlias -CaptureSyntheticPropertyWire
+```
+
+For an existing disposable Apache endpoint use
+`Invoke-Compatibility.ps1 -Profile apache -ApachePathPlusAlias`; the same
+endpoint/authentication safeguards still apply. The executable directly uses
+`WEBDAV_INTEROP_APACHE_PATH_PLUS_ALIAS=1`. Only the exact `apache` profile accepts
+the flag; absent/`0` remains strict and ambiguous values are rejected.
+Wrappers require the switch rather than silently inheriting an environment flag.
+
+This passes `PropPatchOptions.AllowPathPlusEncodingAlias=true` to the **single
+initial** PROPPATCH call and records the explicit profile assumption in its
+result detail. There is no automatic replay or fallback after a rejection.
+It affects only path `+`/`%2B` target confirmation, never query data, encoded
+slashes, nested percent escapes, other reserved characters, path case or origin.
+Outbound URI/raw server hrefs are not rewritten. The workflow opts in only for
+its known Apache fixture; no other server or operation inherits the policy.
+Strict-default failure evidence is retained separately from configured-mode
+results. This profile requires core commit 6dbc3dc or its integrated equivalent.
 
 After reviewing new result files, retain them in `interoperability\results` and
 run `.\interoperability\Update-Matrix.ps1`. This validates each run against the JSON
