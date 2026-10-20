@@ -64,6 +64,8 @@ PROPPATCH target confirmation also treats uppercase/lowercase escape hex digits
 as equivalent under RFC 3986 section 6.2.2.1. It does not case-fold path/query
 text, decode escaped separators, or recursively decode percent-encoded percent
 signs; the original returned href remains available unchanged.
+The comparison retains .NET's safe unreserved-octet canonicalization, such as
+`%41` versus `A` and `%7E` versus `~`, in both path and query.
 Distinct status-level aliases remain valid. A listing cannot become complete if
 a later member, singleton or document tail is invalid. Validation retains href
 identity strings for uniqueness, not prior resource/property DOMs, and remains
