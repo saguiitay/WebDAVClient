@@ -182,8 +182,9 @@ Range requests accept one validated bytes range, request identity encoding and
 reject ignored-range 200 responses and returned ETag/Last-Modified values that
 contradict the supplied `IfRange` validator. Resuming an existing file requires
 a stable validator and explicit caller reconciliation. Ordinary transfers
-support non-seekable input and 64-bit sizes without full buffering; the modern
-surface does not expose partial PUT or promise automatic resumability.
+support non-seekable input and 64-bit sizes without full buffering. For durable
+file downloads, use the explicit resumable workflow below; ordinary downloads
+do not persist checkpoints. The modern surface does not expose partial PUT.
 
 `OpenListingAsync` returns a single-use enumeration. `IsComplete` becomes true
 only after every resource and the end of the document have been validated.
@@ -214,6 +215,34 @@ per-operation authorization headers. Do not configure shared default protocol
 headers on an injected client. Tagged conditions and destinations must remain
 on the configured scheme/host/port. Returned hrefs are data, never instructions
 to automatically fetch another origin.
+
+### Resumable file downloads
+
+<!-- compile-example: modern-resumable-download -->
+```csharp
+using System;
+using System.Threading;
+using WebDAVClient;
+using WebDAVClient.Transfers;
+
+using var client = new DavClient(new Uri("https://dav.example.com/dav/"));
+using var cancellation = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+await client.DownloadFileAsync(
+    DavPath.FromSegments("backup.zip"), "backup.zip", cancellation.Token);
+```
+
+`DownloadFileAsync` requires a strong ETag and a known representation length.
+It persists verified download checkpoints, detects changed representations or
+corrupted partial content, and publishes the completed file atomically without
+overwriting an existing destination. Repeat the call after interruption to
+resume; it does not automatically retry. An ignored range, mismatched validator
+or inconsistent response length is an error, never permission to append bytes.
+See the [transfer contract](plans/Reliable-resumable-file-transfers.md) for
+checkpoint recovery and filesystem durability limits.
+
+Upload recovery remains explicit: reopen content and reconcile the remote
+resource before repeating a conditional full PUT. GET range support is not
+evidence of partial PUT support.
 
 ### Extension and delivery boundaries
 
@@ -312,7 +341,7 @@ The MSTest suite runs on both .NET 8 and .NET 10 without an external WebDAV
 server. It covers protocol outcomes, XML structure, cancellation and deadlines,
 stream ownership, authentication, configuration changes, and sample CLI behavior.
 Bounded loopback tests also exercise actual HTTP transport and authentication.
-The seven complete C# examples marked `compile-example` in this README are
+The eight complete C# examples marked `compile-example` in this README are
 compiled by the test suite against each target framework. Other C# blocks are
 contextual fragments that require the surrounding client/application variables.
 
@@ -351,13 +380,15 @@ workflow dispatch **publishes to NuGet**; do not use those paths as a
 validation-only rehearsal. A local green run is not a GitHub/Linux CI result.
 
 Independent-server smoke evidence and its limits are recorded in the
-[protocol plan](docs/PROTOCOL-COMPLETENESS-PLAN.md). Keep authentication, TLS,
+[protocol plan](plans/PROTOCOL-COMPLETENESS-PLAN.md). Keep authentication, TLS,
 server-specific extensions and broader conformance checks separate from the
 basic transfer smoke result.
 
 ## Release Notes
 
 + **3.0.0** _(upcoming)_ Protocol-first API redesign:
+  - Added durable resumable file downloads with strong validators, verified
+    checkpoints, bounded streaming and atomic no-overwrite completion.
   - Reject property-only DELETE/MOVE/COPY multistatus responses rather than
     treating property success as confirmation of a namespace mutation.
   - Reject nested XML in LOCK depth, timeout and token/root href values, including

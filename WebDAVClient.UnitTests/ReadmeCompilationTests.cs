@@ -17,7 +17,7 @@ namespace WebDAVClient.UnitTests
             string readme = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "README.md"));
             var matches = Regex.Matches(readme,
                 @"(?ms)<!-- compile-example: (?<name>[\w-]+) -->\s*```csharp\r?\n(?<code>.*?)^```");
-            Assert.AreEqual(7, matches.Count, "Keep the standalone README example inventory explicit.");
+            Assert.AreEqual(8, matches.Count, "Keep the standalone README example inventory explicit.");
             foreach (Match match in matches)
             {
                 yield return new object[]
