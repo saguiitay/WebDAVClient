@@ -1,6 +1,8 @@
 name: Opt-in independent WebDAV interoperability
 
 on:
+  pull_request:
+    types: [labeled]
   workflow_dispatch:
     inputs:
       server:
@@ -14,26 +16,37 @@ permissions:
   contents: read
 
 concurrency:
-  group: interoperability-${{ github.ref }}-${{ inputs.server }}
+  group: interoperability-${{ github.event.pull_request.number || github.ref }}-${{ inputs.server || 'core' }}
   cancel-in-progress: false
 
 jobs:
   compatibility:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.action == 'labeled' &&
+       github.event.label.name == 'run-interoperability')
+    strategy:
+      fail-fast: false
+      matrix:
+        server: ${{ github.event_name == 'pull_request' && fromJSON('["wsgidav","apache","nginx","sabredav"]') || fromJSON(format('["{0}"]', inputs.server)) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: |
             8.0.x
             10.0.x
       - uses: actions/setup-python@v5
-        if: ${{ inputs.server == 'wsgidav' }}
+        if: ${{ matrix.server == 'wsgidav' }}
         with:
           python-version: '3.12'
       - name: Provision pinned independent WsgiDAV fixture
-        if: ${{ inputs.server == 'wsgidav' }}
+        if: ${{ matrix.server == 'wsgidav' }}
         shell: pwsh
         run: |
           python -m venv interoperability/.venv
@@ -47,7 +60,7 @@ jobs:
       - name: Real server compatibility on both target frameworks
         shell: pwsh
         env:
-          INTEROP_PROFILE: ${{ inputs.server }}
+          INTEROP_PROFILE: ${{ matrix.server }}
         run: ./interoperability/Run-Fixture.ps1 -Profile $env:INTEROP_PROFILE
       - name: Validate and summarize any completed observations
         if: always()
@@ -60,6 +73,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: interoperability-${{ inputs.server }}-${{ github.run_id }}
+          name: interoperability-${{ matrix.server }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/interop/*.json
           if-no-files-found: warn

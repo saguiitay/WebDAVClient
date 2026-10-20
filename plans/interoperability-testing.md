@@ -43,10 +43,13 @@ interoperability\.venv\Scripts\python.exe -m pip install -r interoperability\fix
 ```
 
 `.\interoperability\Run-Fixture.ps1 -Profile apache` (and `nginx`, `sabredav`,
-`nextcloud`, `owncloud`) selects isolated container fixtures. An explicit
-`workflow_dispatch` workflow exercises one fixture on both frameworks and retains
-JSON artifacts even after a compatibility failure. IIS requires an operator-owned
-Windows site. See [suite documentation](../interoperability/README.md) for safe
+`nextcloud`, `owncloud`) selects isolated container fixtures. The dedicated
+workflow supports explicit `workflow_dispatch` for one fixture or the
+`run-interoperability` PR label for independent WsgiDAV/Apache/nginx/SabreDAV jobs.
+Its unprivileged, read-only `pull_request: labeled` path uses no PR secrets;
+ordinary PR updates do not trigger network tests. Both frameworks are exercised,
+and JSON artifacts are retained even after a compatibility failure. IIS requires
+an operator-owned Windows site. See [suite documentation](../interoperability/README.md) for safe
 authentication/configuration, isolation, cleanup, status interpretation and
 fixture caveats.
 

@@ -34,10 +34,24 @@ and `down --volumes` removes only that Compose project's resources. A busy fixtu
 port fails before startup. No privileged containers, host networking, host
 document-directory mounts, or public destructive endpoints are used.
 
-The dedicated **Opt-in independent WebDAV interoperability** GitHub workflow is
-`workflow_dispatch` only. It is not part of publish CI. Choosing a candidate
-fixture does not establish that the fixture starts successfully: startup failures
-and missing result artifacts must not be reported as a green server.
+The dedicated **Opt-in independent WebDAV interoperability** GitHub workflow
+supports manual `workflow_dispatch` for one selected fixture, or applying the
+exact PR label **`run-interoperability`** to run WsgiDAV, Apache, nginx and
+SabreDAV as independent jobs. Each job exercises both TFMs, and `fail-fast: false`
+retains evidence from other fixtures when one fails. Nextcloud and ownCloud remain
+manual-only choices.
+
+The PR trigger is unprivileged `pull_request` with `types: [labeled]`, gated to
+that exact newly applied label. It uses read-only `contents` permission, no PR
+secrets, and checkout credential persistence is disabled. Ordinary pushes, PR
+updates, and unrelated labels do not run the suite; to rerun after an update,
+remove/reapply the label explicitly. This workflow is separate from publish CI.
+Artifacts are named
+`interoperability-<server>-<run_id>-<run_attempt>` and contain
+`artifacts/interop/*.json`, including a schema-validated compatibility summary.
+Choosing a candidate fixture does not establish that it starts successfully:
+startup failures and missing result artifacts must not be reported as a green
+server.
 
 ## Existing operator-owned servers
 
