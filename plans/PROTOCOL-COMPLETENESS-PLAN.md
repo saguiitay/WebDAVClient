@@ -1,6 +1,28 @@
 # Plan: complete WebDAV protocol support
 
-Status: proposed. Baseline: repository commit `ac0ef8a7b637b03114cf18a16a1e60d9a53396a1`, reviewed 2026-10-19.
+Status: partially implemented; not a full-conformance claim. Historical baseline:
+repository commit `ac0ef8a7b637b03114cf18a16a1e60d9a53396a1`, reviewed 2026-10-19.
+
+### Core requirement and lifecycle update (2026-10-21)
+
+The durable [RFC 4918 client requirement ledger](../docs/RFC4918-REQUIREMENTS.md)
+now maps sections 4–18 to concrete APIs, deterministic test evidence, server-only
+responsibilities and explicit unsupported/partial scope. It does not certify
+server conformance or claim every historical milestone complete.
+
+`DavLockLease` adds a dependency-free, explicitly renewed managed write-lock
+lifecycle with validated acquisition identity/scope/depth, conservative monotonic
+expiry, uncertainty on failed renewal/release, serialized operations and at most
+one release attempt. There is no timer, automatic retry, reacquisition or durable
+lease store. See [lock lifecycle reference](../docs/LOCK-LIFECYCLE.md).
+
+Core corrections also cover RFC 4918 empty-resource GET 204, no-cache directives
+for DAV If requests through non-DAV-aware proxies, coded capability URIs containing
+commas, and ignoring unexpected lock-kind XML extensions without accepting foreign
+lookalikes. Timeout requests and grants support the full unsigned seconds range,
+including immediately expired zero-second grants. Focused deterministic tests
+cover these contracts on both target frameworks; independent-server evidence
+remains a separate requirement.
 
 Implementation update (v3 source): `DavClient` now provides the immutable
 resource-oriented surface, shared bounded XML reading, rich outcomes, typed
@@ -8,10 +30,11 @@ properties/conditions, ordered PROPPATCH, metadata-rich transfers, lock options,
 and streamed listing completion. Existing `Client`/`IClient` remain compatibility
 APIs. A public REPORT seam and a single-batch sync-level 1 profile exercise the
 extension boundary. See the README's v3 migration section for current contracts.
-This is not completion of P-01 through P-10: the normative ledger, independent
-server conformance evidence, DI/resilience integration, managed leases, and
-the broader extension portfolio remain outstanding. No package publication or
-full RFC conformance is implied.
+This is not completion of P-01 through P-10: independent server conformance
+evidence, DI/resilience integration, strict receive-validation gaps recorded in
+the ledger, and the broader extension portfolio remain outstanding. The ledger
+and explicit managed lifecycle above are implemented, not automatic scheduling
+or durable leases. No package publication or full RFC conformance is implied.
 
 ### Release-hardening smoke evidence (2026-10-20)
 
