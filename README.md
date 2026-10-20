@@ -408,6 +408,27 @@ including a 100,000-resource streaming case. Use the generated reports for curre
 measurements. Coverage is a regression signal, not proof of correctness; unexecuted
 defensive branches are not forced through reflection just to reach 100%.
 
+### Independent-server compatibility
+
+The opt-in [interoperability harness](interoperability/README.md) creates only
+isolated run-owned resources and writes schema-validated JSON results. Normal
+solution tests remain offline and include the harness's configuration, outcome
+and redaction tests. Real-server runs are separate from the coverage gate.
+
+| Server | Recorded evidence and limits |
+|---|---|
+| WsgiDAV 4.3.5 / Cheroot 11.1.2 | Basic: 19 passing cases; anonymous: 18, on both .NET 8 and .NET 10. REPORT unsupported; report discovery unavailable. |
+| Apache mod_dav | Reproducible container fixture; see the matrix for execution evidence. |
+| nginx WebDAV | Reproducible basic-method fixture; unsupported DAV methods are not core-protocol success. |
+| SabreDAV | Reproducible container fixture; see the matrix for execution evidence. |
+| Nextcloud / ownCloud | Container profiles provided; no execution evidence yet. |
+| Windows IIS WebDAV | Manual setup/profile; Windows authentication and HTTPS remain unverified. |
+
+The [versioned compatibility matrix](interoperability/results/compatibility-matrix.json)
+records observations, not server certification. An advertised capability does not
+guarantee success; an unavailable property does not prove an extension is absent.
+Never use public demonstration endpoints for destructive tests.
+
 `DavProcessingPerformanceTests` records warmed allocation and timing samples for
 resource projection, property lookup and completion checks. Allocation budgets
 guard these hot paths; elapsed times are diagnostic, not CI pass/fail criteria.
