@@ -90,25 +90,18 @@ try {
         $http.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new('Basic', $encoded)
     }
     try {
-        $ready = $false
-        $until = [DateTime]::UtcNow.AddMinutes(5)
-        while ([DateTime]::UtcNow -lt $until) {
-            if ($process -and $process.HasExited) {
-                throw 'Independent server process exited before readiness.'
-            }
-            try {
-                $response = $http.GetAsync($endpoint).GetAwaiter().GetResult()
-                $ready = [int]$response.StatusCode -eq 200
-                $response.Dispose()
-            }
-            catch { }
-            if ($ready) {
-                break
-            }
-            Start-Sleep -Seconds 2
-        }
-        if (!$ready) {
-            throw 'Fixture did not become ready within five minutes; no green result is inferred.'
+        # Filesystem DAV collections need not implement GET (SabreDAV returns 501 without its optional browser plugin).
+        $method = if ($Profile -eq 'nginx') { 'GET' } else { 'OPTIONS' }
+        $readiness = & (Join-Path $PSScriptRoot 'Wait-FixtureReady.ps1') -Client $http -Endpoint $endpoint -Method $method -ServerProcess $process
+        New-Item -ItemType Directory -Path 'artifacts\interop' -Force | Out-Null
+        [ordered]@{
+            schemaVersion = 1
+            profile = $Profile
+            observedUtc = [DateTimeOffset]::UtcNow
+            readiness = $readiness
+        } | ConvertTo-Json -Depth 5 | Set-Content "artifacts\interop\$Profile-fixture-startup.json"
+        if (!$readiness.ready) {
+            throw "Fixture readiness failed (method=$method, status=$($readiness.status)); see sanitized startup artifact."
         }
     }
     finally { $http.Dispose() }

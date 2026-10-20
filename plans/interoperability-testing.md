@@ -68,3 +68,17 @@ Nextcloud/ownCloud/SabreDAV container execution and IIS/Windows authentication
 remain explicit evidence gaps. Optional production diagnostics were deferred;
 the harness writes only narrow sanitized outcome/capability data, not headers,
 credentials, endpoint URLs, bodies or tokens.
+
+### Hosted fixture evidence — run 39505211029
+
+WsgiDAV Basic passed on hosted Linux on both frameworks. Apache completed with
+18 passing checks but a property-operation protocol exception at HTTP 207;
+nginx completed with 12 passing checks but ignored conditional PUT
+(`If-None-Match: *`, observed 204 rather than required 412). Both retained
+confirmed cleanup. These failures remain failures, not “unsupported” successes.
+SabreDAV's image built, but the directory-GET readiness assumption prevented suite
+execution. Readiness now uses OPTIONS for DAV profiles (GET only for built-in
+nginx), with offline regressions and sanitized startup-status artifacts. Narrow
+property-phase/allowlisted protocol-cause diagnostics support the next Apache
+rerun without capturing response bodies or exception messages. See the refreshed
+matrix for exact preserved positive and negative evidence.

@@ -141,6 +141,17 @@ public sealed class OfflineTests
         Assert.IsFalse(result.Succeeded);
     }
 
+    [TestMethod]
+    public void ProtocolFailureCodesExposeKnownCausesButNeverArbitraryMessages()
+    {
+        var known = new WebDAVClient.Helpers.WebDAVException(207, "Malformed DAV resource response.",
+            new System.Xml.XmlException("A DAV:propstat requires one prop and one status."));
+        Assert.AreEqual("malformed-resource:propstat-shape", CompatibilitySuite.DescribeFailure(known));
+        var sensitive = new IOException("https://user:secret@example.test/private",
+            new System.Xml.XmlException("token=private-lock-token"));
+        Assert.AreEqual("IOException:XmlException", CompatibilitySuite.DescribeFailure(sensitive));
+    }
+
     private sealed class SequenceHandler(params int[] statuses) : HttpMessageHandler
     {
         private int m_index;

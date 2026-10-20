@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "suiteVersion": "1.0",
-  "generatedUtc": "2026-10-20T21:57:43.610295+00:00",
+  "generatedUtc": "2026-10-20T22:20:06.7799879+00:00",
   "scope": "Independent-server observations only; not full RFC conformance, publication, or unobserved configuration support.",
   "servers": [
     {
@@ -43,6 +43,50 @@
           "sourceRevision": "1c94851eeb6b0f9dd3439a7ec9aa2cb6ad9e11cd",
           "succeeded": true,
           "passed": 18,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-ci-39505211029-net10.0.json",
+          "startedUtc": "2026-10-20T22:04:00.4235820+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "7731b859abe2e05416f25756344a7ea3c5938b93",
+          "succeeded": true,
+          "passed": 19,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-ci-39505211029-net8.0.json",
+          "startedUtc": "2026-10-20T22:03:59.5438200+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "7731b859abe2e05416f25756344a7ea3c5938b93",
+          "succeeded": true,
+          "passed": 19,
           "unsupported": [
             "sync-report"
           ],
@@ -103,16 +147,142 @@
     {
       "server": "apache",
       "configuredVersion": "2.4.65",
-      "executionStatus": "not-executed",
-      "evidenceGap": "No committed independent-server execution evidence. See README fixture limitations and tooling.json.",
-      "runs": []
+      "executionStatus": "observed-nonpassing",
+      "evidenceGap": null,
+      "runs": [
+        {
+          "evidence": "apache-basic-ci-39505211029-net10.0.json",
+          "startedUtc": "2026-10-20T22:03:54.4221579+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "2.4.65",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "7731b859abe2e05416f25756344a7ea3c5938b93",
+          "succeeded": false,
+          "passed": 18,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "dead-property",
+              "outcome": "failed",
+              "httpStatus": 207,
+              "detail": "WebDAVException"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-ci-39505211029-net8.0.json",
+          "startedUtc": "2026-10-20T22:03:53.0790382+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "2.4.65",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "7731b859abe2e05416f25756344a7ea3c5938b93",
+          "succeeded": false,
+          "passed": 18,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "dead-property",
+              "outcome": "failed",
+              "httpStatus": 207,
+              "detail": "WebDAVException"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        }
+      ]
     },
     {
       "server": "nginx",
       "configuredVersion": "1.28.0",
-      "executionStatus": "not-executed",
-      "evidenceGap": "No committed independent-server execution evidence. See README fixture limitations and tooling.json.",
-      "runs": []
+      "executionStatus": "observed-nonpassing",
+      "evidenceGap": null,
+      "runs": [
+        {
+          "evidence": "nginx-anonymous-ci-39505211029-net10.0.json",
+          "startedUtc": "2026-10-20T22:03:56.1288614+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "1.28.0",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "7731b859abe2e05416f25756344a7ea3c5938b93",
+          "succeeded": false,
+          "passed": 12,
+          "unsupported": [
+            "options",
+            "propfind-statuses",
+            "streamed-listing",
+            "dead-property",
+            "lock-unlock",
+            "sync-discovery",
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "conditional-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "nginx-anonymous-ci-39505211029-net8.0.json",
+          "startedUtc": "2026-10-20T22:03:54.6104074+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "1.28.0",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "7731b859abe2e05416f25756344a7ea3c5938b93",
+          "succeeded": false,
+          "passed": 12,
+          "unsupported": [
+            "options",
+            "propfind-statuses",
+            "streamed-listing",
+            "dead-property",
+            "lock-unlock",
+            "sync-discovery",
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "conditional-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        }
+      ]
     },
     {
       "server": "sabredav",

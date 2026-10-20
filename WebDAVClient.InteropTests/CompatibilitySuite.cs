@@ -157,23 +157,32 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
             }).ConfigureAwait(false);
             await CheckAsync("dead-property", async () =>
             {
-                var response = await client.UpdatePropertiesAsync(file,
-                    [DavPropertyChange.Set(new DavXmlValue(new XElement(XName.Get(s_marker.LocalName, s_marker.Namespace), "interop-v1")))],
-                    cancellationToken: ct).ConfigureAwait(false);
-                var result = Response("dead-property", response, optional: true);
-                if (result.Outcome != "passed")
+                string stage = "proppatch";
+                try
                 {
-                    return result;
+                    var response = await client.UpdatePropertiesAsync(file,
+                        [DavPropertyChange.Set(new DavXmlValue(new XElement(XName.Get(s_marker.LocalName, s_marker.Namespace), "interop-v1")))],
+                        cancellationToken: ct).ConfigureAwait(false);
+                    var result = Response("dead-property", response, optional: true);
+                    if (result.Outcome != "passed")
+                    {
+                        return result;
+                    }
+                    stage = "propfind-readback";
+                    var read = await client.PropFindAsync(file, new PropFindOptions
+                    {
+                        Depth = DavDepth.Zero,
+                        Selection = DavPropertySelection.Selected,
+                        Properties = [s_marker]
+                    }, ct).ConfigureAwait(false);
+                    read.EnsureSucceeded();
+                    bool valid = read.Resources.Count == 1 && read.Resources[0].GetProperties(s_marker).SingleOrDefault()?.Value.ToElement().Value == "interop-v1";
+                    return result with { Outcome = valid ? "passed" : "failed", Detail = "Set custom property and read exact value back." };
                 }
-                var read = await client.PropFindAsync(file, new PropFindOptions
+                catch (Exception ex) when (ex is not OutOfMemoryException)
                 {
-                    Depth = DavDepth.Zero,
-                    Selection = DavPropertySelection.Selected,
-                    Properties = [s_marker]
-                }, ct).ConfigureAwait(false);
-                read.EnsureSucceeded();
-                bool valid = read.Resources.Count == 1 && read.Resources[0].GetProperties(s_marker).SingleOrDefault()?.Value.ToElement().Value == "interop-v1";
-                return result with { Outcome = valid ? "passed" : "failed", Detail = "Set custom property and read exact value back." };
+                    return Failure("dead-property", ex) with { Detail = stage + ":" + DescribeFailure(ex) };
+                }
             }).ConfigureAwait(false);
             await CheckAsync("lock-unlock", async () =>
             {
@@ -314,15 +323,40 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            // Exception messages may contain endpoints, paths, XML or tokens; only a type code is retained.
-            int? status = ex is WebDAVException dav ? dav.ResponseStatusCode : ex is HttpRequestException http ? (int?)http.StatusCode : null;
-            int? member = ex is WebDAVException failure ? failure.FailedStatusCode : null;
-            result = new Observation(name, ex is OperationCanceledException ? "timed-out" :
-                member.HasValue || status.HasValue ? Matrix.Classify(member ?? status!.Value, false, false) : "failed",
-                status, PropertyStatuses: member.HasValue ? [member.Value] : null, Detail: ex.GetType().Name);
+            result = Failure(name, ex);
         }
         m_matrix.Observations.Add(result);
         return result.Outcome == "passed";
+    }
+
+    private static Observation Failure(string name, Exception ex)
+    {
+        int? status = ex is WebDAVException dav ? dav.ResponseStatusCode : ex is HttpRequestException http ? (int?)http.StatusCode : null;
+        int? member = ex is WebDAVException failure ? failure.FailedStatusCode : null;
+        return new Observation(name, ex is OperationCanceledException ? "timed-out" :
+            member.HasValue || status.HasValue ? Matrix.Classify(member ?? status!.Value, false, false) : "failed",
+            status, PropertyStatuses: member.HasValue ? [member.Value] : null, Detail: DescribeFailure(ex));
+    }
+
+    internal static string DescribeFailure(Exception exception)
+    {
+        // Only fixed local protocol messages become codes; never persist an arbitrary exception message.
+        string Code(Exception ex) => ex.Message switch
+        {
+            "Malformed DAV XML response." => "malformed-xml",
+            "Malformed DAV resource response." => "malformed-resource",
+            "Expected DAV:multistatus." => "missing-multistatus",
+            "A DAV:response requires either a resource status or property statuses." => "resource-status-shape",
+            "A DAV:propstat requires one prop and one status." => "propstat-shape",
+            "Invalid DAV HTTP status line." => "invalid-status-line",
+            "A DAV:response requires a direct, nonempty DAV:href." => "missing-href",
+            "Duplicate DAV response status." => "duplicate-resource-status",
+            "Unexpected text in DAV:multistatus." => "multistatus-text",
+            "DAV XML nesting limit exceeded." => "xml-depth-limit",
+            "DAV resource XML size limit exceeded." => "xml-size-limit",
+            _ => ex.GetType().Name
+        };
+        return exception.InnerException == null ? Code(exception) : Code(exception) + ":" + Code(exception.InnerException);
     }
 
     private Observation Response(string name, DavResponse response, bool optional = false)

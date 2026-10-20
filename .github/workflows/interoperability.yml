@@ -57,6 +57,7 @@ jobs:
         run: |
           dotnet test WebDAVClient.InteropTests -c Release --verbosity quiet
           if ($LASTEXITCODE -ne 0) { throw 'Offline harness tests failed.' }
+          ./interoperability/Test-FixtureReadiness.ps1
       - name: Real server compatibility on both target frameworks
         shell: pwsh
         env:

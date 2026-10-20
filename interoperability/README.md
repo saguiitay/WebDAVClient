@@ -24,6 +24,11 @@ then invoke the same PowerShell script. The workflow does this automatically.
 
 `Run-Fixture.ps1` starts an independent server with ephemeral credentials, waits
 for authenticated readiness, runs **both TFMs**, and tears down in `finally`.
+Readiness uses OPTIONS=200 for DAV profiles, not a directory GET (a valid
+filesystem DAV collection need not implement GET). Built-in nginx instead uses
+GET=200 because it does not implement OPTIONS. The sanitized
+`<profile>-fixture-startup.json` artifact records method/status/attempts without
+credentials, endpoints or response bodies, including when startup fails.
 WsgiDAV also verifies its backing share is empty. Results default to
 `artifacts\interop\*.json`. No package publication is performed.
 
@@ -149,6 +154,9 @@ bodies, cookies, authentication headers, lock/sync tokens, and exception message
 Only run-generated paths and static assertion/type codes are persisted. Capability
 tokens are server-controlled data: use only a trusted operator-owned test server
 and review JSON before publishing. There is no new production diagnostics API.
+Protocol failures retain only allowlisted local error codes and exception types.
+The property probe also records whether PROPPATCH or PROPFIND readback failed;
+arbitrary exception/inner-exception messages remain redacted.
 
 After reviewing new result files, retain them in `interoperability\results` and
 run `.\interoperability\Update-Matrix.ps1`. This validates each run against the JSON
@@ -159,10 +167,10 @@ The workflow applies the same validation to its artifact directory.
 
 | Profile | Configuration | Execution evidence |
 | --- | --- | --- |
-| WsgiDAV 4.3.5 / Cheroot 11.1.2 | Python 3.12, property manager and exclusive locks; anonymous and Basic profiles | Windows, both TFMs; checked-in JSON |
-| Apache mod_dav 2.4.65 | Digest-pinned official httpd; DAV filesystem + lock DB, Basic, `/dav/` | Not run: local Docker daemon unavailable |
-| nginx 1.28.0 | Digest-pinned official nginx; built-in DAV module only, anonymous, `/` | Not run: daemon unavailable; intentionally no dav-ext module |
-| SabreDAV 4.7.0 / PHP 8.3.25 | Digest-pinned PHP/Composer, Basic, filesystem, lock/property storage, Sync plugin | Candidate, not built/run; filesystem tree does not promise RFC 6578 |
+| WsgiDAV 4.3.5 / Cheroot 11.1.2 | Python 3.12, property manager and exclusive locks; anonymous and Basic profiles | Windows anonymous/Basic and hosted Linux Basic, both TFMs; checked-in JSON |
+| Apache mod_dav 2.4.65 | Digest-pinned official httpd; DAV filesystem + lock DB, Basic, `/dav/` | Hosted Linux, both TFMs: 18 passes, two unsupported/unavailable probes, one property-protocol failure at outer 207; not a passing profile |
+| nginx 1.28.0 | Digest-pinned official nginx; built-in DAV module only, anonymous, `/` | Hosted Linux, both TFMs: 12 passes, seven unsupported probes, conditional PUT returned 204 instead of required 412; remains a failure |
+| SabreDAV 4.7.0 / PHP 8.3.25 | Digest-pinned PHP/Composer, Basic, filesystem, lock/property storage, Sync plugin | Image built on hosted Linux; old directory-GET readiness failed before suite execution. OPTIONS readiness fix awaits rerun; filesystem tree does not promise RFC 6578 |
 | Nextcloud 31.0.9 | Digest-pinned official image, disposable SQLite install, dedicated Basic account, `/remote.php/dav/files/{user}/` | Candidate, not run |
 | ownCloud 10.15.0 | Digest-pinned official server image, disposable SQLite, Redis disabled, dedicated Basic account | Candidate, not run |
 | IIS | Operator-owned Windows site, explicit Windows/Basic | Not run; no IIS/Windows-auth fixture available |
@@ -171,11 +179,20 @@ All six image tags were resolved against the registry with
 `docker buildx imagetools inspect` on 2026-10-20; the resulting immutable digests
 are in the fixtures. Registry manifest inspection is **not container execution**.
 WsgiDAV's transitive dependency versions are frozen in `requirements.txt`.
-SabreDAV pins the server package but still needs a generated Composer lockfile
-and a successful image build before claiming fully frozen transitive/PHP-build
-reproduction. These old disposable fixture versions are not deployment advice.
+SabreDAV pins the server package but still needs a committed Composer lockfile
+before claiming fully frozen transitive/PHP-build reproduction. Its image build
+succeeded in hosted run 39505211029. These old disposable fixture versions are
+not deployment advice.
 
-No successful Linux/container/HTTPS/Windows-authentication run is asserted here.
+Hosted run **39505211029** is retained as evidence, including negative outcomes:
+Apache's property protocol error is unresolved, not reclassified as unsupported;
+the stricter phase/cause codes will identify its origin on rerun. nginx's ignored
+conditional PUT is a server compatibility restriction, not made green by changing
+configuration or expectations. All completed Apache/nginx runs verified cleanup.
+
+No passing Apache/nginx/SabreDAV profile, HTTPS or Windows-authentication run is
+asserted here. The local Docker daemon remains unavailable; hosted evidence does
+not imply local container execution.
 Shared locks, lock-token conditioned writes, partial PUT, large/deep trees,
 chunking extensions, ACLs, quotas, CalDAV/CardDAV and full RFC conformance remain
 outside suite v1. Keep a failing result rather than widening “unsupported” to

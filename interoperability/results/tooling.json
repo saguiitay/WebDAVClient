@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "observedUtcDate": "2026-10-20",
+  "scope": "Historical local-tooling observation before hosted CI. Later hosted execution evidence is recorded separately in the per-run files and compatibility matrix; missingEvidence below describes only this local observation.",
   "platform": "Windows 11 build 26300 x64",
   "dotnetSdks": ["8.0.426", "10.0.402"],
   "python": "3.12.10",
