@@ -1,0 +1,65 @@
+name: Opt-in independent WebDAV interoperability
+
+on:
+  workflow_dispatch:
+    inputs:
+      server:
+        description: Isolated independent server fixture (unverified fixtures can fail)
+        required: true
+        default: wsgidav
+        type: choice
+        options: [wsgidav, apache, nginx, sabredav, nextcloud, owncloud]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: interoperability-${{ github.ref }}-${{ inputs.server }}
+  cancel-in-progress: false
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/setup-python@v5
+        if: ${{ inputs.server == 'wsgidav' }}
+        with:
+          python-version: '3.12'
+      - name: Provision pinned independent WsgiDAV fixture
+        if: ${{ inputs.server == 'wsgidav' }}
+        shell: pwsh
+        run: |
+          python -m venv interoperability/.venv
+          & interoperability/.venv/bin/python -m pip install -r interoperability/fixtures/wsgidav/requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Fixture dependency installation failed.' }
+      - name: Offline harness regressions
+        shell: pwsh
+        run: |
+          dotnet test WebDAVClient.InteropTests -c Release --verbosity quiet
+          if ($LASTEXITCODE -ne 0) { throw 'Offline harness tests failed.' }
+      - name: Real server compatibility on both target frameworks
+        shell: pwsh
+        env:
+          INTEROP_PROFILE: ${{ inputs.server }}
+        run: ./interoperability/Run-Fixture.ps1 -Profile $env:INTEROP_PROFILE
+      - name: Validate and summarize any completed observations
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path artifacts/interop) {
+            ./interoperability/Update-Matrix.ps1 -ResultsDirectory artifacts/interop
+          }
+      - name: Retain versioned result matrix even after failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interoperability-${{ inputs.server }}-${{ github.run_id }}
+          path: artifacts/interop/*.json
+          if-no-files-found: warn

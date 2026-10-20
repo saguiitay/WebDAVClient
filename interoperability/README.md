@@ -1,0 +1,168 @@
+# Independent WebDAV interoperability suite
+
+This is an **opt-in mutating compatibility suite**, not a complete RFC 4918
+conformance certification. The v3 library source is upcoming, not a published
+3.0.0 package. [Checked-in evidence](results/compatibility-matrix.json) records
+actual observations, including missing server evidence. Unit tests and loopback
+test doubles are never counted as independent-server results.
+
+## Run an isolated fixture
+
+Requires both .NET 8 and .NET 10 SDKs, PowerShell 7, and either Python 3.12 or a
+working Linux Docker daemon. From the repository root on Windows:
+
+```powershell
+py -m venv interoperability\.venv
+interoperability\.venv\Scripts\python.exe -m pip install -r interoperability\fixtures\wsgidav\requirements.txt
+.\interoperability\Run-Fixture.ps1 -Profile wsgidav
+.\interoperability\Run-Fixture.ps1 -Profile wsgidav -Authentication anonymous
+```
+
+On Linux, use `python -m venv interoperability/.venv` and
+`interoperability/.venv/bin/python -m pip install -r interoperability/fixtures/wsgidav/requirements.txt`,
+then invoke the same PowerShell script. The workflow does this automatically.
+
+`Run-Fixture.ps1` starts an independent server with ephemeral credentials, waits
+for authenticated readiness, runs **both TFMs**, and tears down in `finally`.
+WsgiDAV also verifies its backing share is empty. Results default to
+`artifacts\interop\*.json`. No package publication is performed.
+
+For Docker: `.\interoperability\Run-Fixture.ps1 -Profile apache`
+(or `nginx`, `sabredav`, `nextcloud`, `owncloud`). The Compose project name is
+unique per invocation, ports bind **only** `127.0.0.1`, storage is fixture-owned,
+and `down --volumes` removes only that Compose project's resources. A busy fixture
+port fails before startup. No privileged containers, host networking, host
+document-directory mounts, or public destructive endpoints are used.
+
+The dedicated **Opt-in independent WebDAV interoperability** GitHub workflow is
+`workflow_dispatch` only. It is not part of publish CI. Choosing a candidate
+fixture does not establish that the fixture starts successfully: startup failures
+and missing result artifacts must not be reported as a green server.
+
+## Existing operator-owned servers
+
+Use a disposable account/collection with permission to create and delete children.
+Do not use public demo servers or a valuable document tree.
+
+```powershell
+$env:WEBDAV_INTEROP_ENDPOINT = 'https://dav.example.test/isolated-test-collection/'
+$env:WEBDAV_INTEROP_ALLOW_REMOTE = '1'
+$env:WEBDAV_INTEROP_AUTH = 'basic'
+$env:WEBDAV_INTEROP_USER = 'dedicated-test-user'
+$env:WEBDAV_INTEROP_PASSWORD = '<supply securely at runtime>'
+$env:WEBDAV_INTEROP_VERSION = '31.0.9'
+.\interoperability\Invoke-Compatibility.ps1 -Profile nextcloud
+```
+
+The profiles file supplies localhost ports/paths and pinned labels only. An
+operator override is a declaration, not automatic server version detection. Record
+the actual server build/configuration separately. Endpoint URLs must end in `/`
+and may not contain user-info, queries or fragments. Remote access requires both
+HTTPS and explicit opt-in. Loopback HTTP Basic is allowed for disposable local
+fixtures only. TLS verification remains enabled. Redirects, cookies, system
+proxies and implicit/default credentials are disabled. `windows` explicitly opts
+into process-identity credentials; see [IIS.md](IIS.md).
+
+For the executable directly, set `WEBDAV_INTEROP_RUN=1`, `ENDPOINT`, `SERVER`,
+`VERSION`, and optionally `AUTH`, `USER`, `PASSWORD`, `OUTPUT`, `REVISION`
+(all with the `WEBDAV_INTEROP_` prefix), then:
+
+```powershell
+dotnet run --project WebDAVClient.InteropTests -c Release -f net8.0 -- --run
+dotnet run --project WebDAVClient.InteropTests -c Release -f net10.0 -- --run
+```
+
+Without `--run` **and** the mutation opt-in the executable makes no requests.
+`--help` and ordinary `dotnet test` are offline even when the integration
+environment variables are present. The project is nonpackable; production
+dependencies and the production-module coverage gate are unchanged.
+
+## What is checked
+
+* OPTIONS capabilities are recorded separately from verified operations.
+* HEAD confirms the random run-tree path is absent, then MKCOL must confirm
+  ownership. No mutation targets the configured collection itself.
+* Conditional full PUT, byte-exact GET and HEAD length, inclusive byte-range GET,
+  and a second conditional PUT rejected with 412 (followed by integrity GET).
+* Unicode/spaces/plus/literal-percent/hash filenames are escaped once; full streamed
+  PROPFIND must complete and return the child href.
+* Named PROPFIND must preserve a successful content-length beside a missing
+  property's 404. A 207 is not a blanket pass.
+* Dead-property set/readback, COPY byte integrity and no-overwrite rejection,
+  MOVE byte integrity and disappearance of its source, DELETE and verified absence.
+* Exclusive LOCK, conflicting unconditioned DELETE=423, refresh, and UNLOCK.
+  A failed intermediate check still attempts independent UNLOCK during cleanup.
+* For configured authentication, an unauthenticated HEAD of a run-owned file must
+  return 401 with the configured scheme. No bad-password/lockout probing is done.
+* RFC 6578 discovery is distinct from REPORT. On supported servers the suite
+  requires an initial token, incremental creation with ETag, and a 404 deletion
+  member. This is one flat collection batch, not durable synchronization.
+
+All requests have timeouts and a four-minute run deadline. Cleanup gets a separate
+20-second deadline, only deletes a **confirmed** random run-owned tree, and checks
+HEAD=404. Cleanup errors make the run nonpassing. Ambiguous MKCOL failures are not
+deleted because ownership was not confirmed; inspect the matrix's `runTree`
+manually if a network failure may have occurred after server-side creation.
+Interrupting/killing the whole process can prevent cleanup; fixture teardown is a
+second layer, not a substitute for checking remote run trees.
+
+## Matrix interpretation
+
+`result.schema.json` is the versioned machine-readable contract. JSON records
+schema/suite versions, UTC time, client source revision, runtime/OS/architecture,
+server/configured version, authentication, transport, advertisement, exact outer
+and member/property status codes, outcomes, and confirmed cleanup.
+
+| Outcome | Meaning |
+| --- | --- |
+| `passed` | The operation's semantic assertions succeeded, including expected rejection statuses. |
+| `unsupported` | Optional operation returned 405/501 **and was not advertised**, or a Range request was ignored with 200. Not a pass. |
+| `unavailable-property` | Requested `supported-report-set` property returned 404 inside 207. Does not establish REPORT support or lack thereof. |
+| `denied` | 401/403/407; never silently called unsupported. |
+| `redirected` | 3xx with following disabled; not a pass. |
+| `failed` | Unexpected status, false advertisement, malformed/incomplete XML, wrong bytes, or failed semantic/member assertions. |
+| `timed-out` / `blocked` | Incomplete observation; never supported/unsupported evidence. |
+
+Exit 0 means all **required** operations passed and optional probes were either
+verified, explicitly unsupported, or their discovery property unavailable. It
+does **not** mean all capabilities are supported. Exit 1 includes failed/denied/
+blocked/timed-out observations; exit 2 means configuration/argument rejection.
+The suite preserves an absent Allow entry as unknown and still probes operations.
+An advertised operation returning 405/501 is a failure, not unsupported.
+
+The matrix intentionally excludes endpoint host/path, usernames, request/response
+bodies, cookies, authentication headers, lock/sync tokens, and exception messages.
+Only run-generated paths and static assertion/type codes are persisted. Capability
+tokens are server-controlled data: use only a trusted operator-owned test server
+and review JSON before publishing. There is no new production diagnostics API.
+
+After reviewing new result files, retain them in `interoperability\results` and
+run `.\interoperability\Update-Matrix.ps1`. This validates each run against the JSON
+schema and regenerates the summary without turning missing server rows green.
+The workflow applies the same validation to its artifact directory.
+
+## Fixture status and limits
+
+| Profile | Configuration | Execution evidence |
+| --- | --- | --- |
+| WsgiDAV 4.3.5 / Cheroot 11.1.2 | Python 3.12, property manager and exclusive locks; anonymous and Basic profiles | Windows, both TFMs; checked-in JSON |
+| Apache mod_dav 2.4.65 | Digest-pinned official httpd; DAV filesystem + lock DB, Basic, `/dav/` | Not run: local Docker daemon unavailable |
+| nginx 1.28.0 | Digest-pinned official nginx; built-in DAV module only, anonymous, `/` | Not run: daemon unavailable; intentionally no dav-ext module |
+| SabreDAV 4.7.0 / PHP 8.3.25 | Digest-pinned PHP/Composer, Basic, filesystem, lock/property storage, Sync plugin | Candidate, not built/run; filesystem tree does not promise RFC 6578 |
+| Nextcloud 31.0.9 | Digest-pinned official image, disposable SQLite install, dedicated Basic account, `/remote.php/dav/files/{user}/` | Candidate, not run |
+| ownCloud 10.15.0 | Digest-pinned official server image, disposable SQLite, Redis disabled, dedicated Basic account | Candidate, not run |
+| IIS | Operator-owned Windows site, explicit Windows/Basic | Not run; no IIS/Windows-auth fixture available |
+
+All six image tags were resolved against the registry with
+`docker buildx imagetools inspect` on 2026-10-20; the resulting immutable digests
+are in the fixtures. Registry manifest inspection is **not container execution**.
+WsgiDAV's transitive dependency versions are frozen in `requirements.txt`.
+SabreDAV pins the server package but still needs a generated Composer lockfile
+and a successful image build before claiming fully frozen transitive/PHP-build
+reproduction. These old disposable fixture versions are not deployment advice.
+
+No successful Linux/container/HTTPS/Windows-authentication run is asserted here.
+Shared locks, lock-token conditioned writes, partial PUT, large/deep trees,
+chunking extensions, ACLs, quotas, CalDAV/CardDAV and full RFC conformance remain
+outside suite v1. Keep a failing result rather than widening “unsupported” to
+hide a real rejection or removing a server from the evidence ledger.

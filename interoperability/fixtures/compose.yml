@@ -1,0 +1,46 @@
+name: webdavclient-interop
+services:
+  apache:
+    profiles: [apache]
+    build: apache
+    ports: ["127.0.0.1:19081:80"]
+    environment:
+      DAV_USER: ${WEBDAV_INTEROP_USER:?Set fixture username}
+      DAV_PASSWORD: ${WEBDAV_INTEROP_PASSWORD:?Set fixture password}
+    tmpfs: [/usr/local/apache2/htdocs/dav, /usr/local/apache2/var]
+  nginx:
+    profiles: [nginx]
+    image: nginx:1.28.0-alpine@sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284
+    ports: ["127.0.0.1:19082:80"]
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    tmpfs: [/data]
+    command: ["sh", "-c", "chown nginx:nginx /data && exec nginx -g 'daemon off;'"]
+  sabredav:
+    profiles: [sabredav]
+    build: sabredav
+    ports: ["127.0.0.1:19083:80"]
+    environment:
+      DAV_USER: ${WEBDAV_INTEROP_USER:?Set fixture username}
+      DAV_PASSWORD: ${WEBDAV_INTEROP_PASSWORD:?Set fixture password}
+    tmpfs: [/var/www/data]
+  nextcloud:
+    profiles: [nextcloud]
+    image: nextcloud:31.0.9-apache@sha256:fdab7bfc1b35255e442ed207bca277a45495fb115f297a97711e0880167f833b
+    ports: ["127.0.0.1:19084:80"]
+    environment:
+      NEXTCLOUD_ADMIN_USER: ${WEBDAV_INTEROP_USER:?Set fixture username}
+      NEXTCLOUD_ADMIN_PASSWORD: ${WEBDAV_INTEROP_PASSWORD:?Set fixture password}
+      SQLITE_DATABASE: interop
+      NEXTCLOUD_TRUSTED_DOMAINS: 127.0.0.1 localhost
+  owncloud:
+    profiles: [owncloud]
+    image: owncloud/server:10.15.0@sha256:51d9b74fc2a81875c0ecc643d49f83e0453c83b0d039fb564b8ca40ec5d711c2
+    ports: ["127.0.0.1:19085:8080"]
+    environment:
+      OWNCLOUD_DOMAIN: localhost:19085
+      OWNCLOUD_TRUSTED_DOMAINS: localhost,127.0.0.1
+      OWNCLOUD_ADMIN_USERNAME: ${WEBDAV_INTEROP_USER:?Set fixture username}
+      OWNCLOUD_ADMIN_PASSWORD: ${WEBDAV_INTEROP_PASSWORD:?Set fixture password}
+      OWNCLOUD_DB_TYPE: sqlite
+      OWNCLOUD_REDIS_ENABLED: "false"

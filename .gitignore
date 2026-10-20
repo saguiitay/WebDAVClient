@@ -190,3 +190,4 @@ packages
 !packages/repositories.config
 /.localhistory
 /.vs
+/artifacts/interop/
