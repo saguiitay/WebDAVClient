@@ -25,13 +25,25 @@ namespace WebDAVClient.UnitTests
 
         public static IEnumerable<object[]> MetadataCases()
         {
-            foreach (var operation in new[] { "OPTIONS", "PROPFIND", "PROPPATCH", "MKCOL", "DELETE", "MOVE", "COPY", "PUT", "LOCK", "REFRESH", "UNLOCK", "REPORT", "SYNC", "GET", "LIST" })
+            foreach (var operation in new[]
             {
-                foreach (var acquisition in new[] { false, true })
+                "OPTIONS", "PROPFIND", "PROPPATCH", "MKCOL", "DELETE", "MOVE", "COPY", "PUT", "LOCK", "REFRESH", "UNLOCK", "REPORT", "SYNC", "GET", "LIST"
+            })
+            {
+                foreach (var acquisition in new[]
                 {
-                    foreach (var deadline in new[] { false, true })
+                    false, true
+                })
+                {
+                    foreach (var deadline in new[]
                     {
-                        yield return new object[] { operation, acquisition, deadline };
+                        false, true
+                    })
+                    {
+                        yield return new object[]
+                        {
+                            operation, acquisition, deadline
+                        };
                     }
                 }
             }
@@ -57,7 +69,10 @@ namespace WebDAVClient.UnitTests
             using var cancellation = new CancellationTokenSource();
             var pending = InvokeAsync(client, operation, cancellation.Token);
             await (acquisition ? factory.Started.Task : stalled.Stalled.Task).WaitAsync(TimeSpan.FromSeconds(5));
-            if (!deadline) { cancellation.Cancel(); }
+            if (!deadline)
+            {
+                cancellation.Cancel();
+            }
             await AssertCancelledAsync(pending);
             Assert.AreEqual(!deadline, cancellation.IsCancellationRequested);
             Assert.AreEqual(1, response.DisposeCount);
@@ -81,8 +96,14 @@ namespace WebDAVClient.UnitTests
             });
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            if (beforeSend) { cancellation.Cancel(); }
-            var pending = client.UploadAsync(Target, content, new UploadOptions { DisposeContent = disposeContent }, cancellation.Token);
+            if (beforeSend)
+            {
+                cancellation.Cancel();
+            }
+            var pending = client.UploadAsync(Target, content, new UploadOptions
+            {
+                DisposeContent = disposeContent
+            }, cancellation.Token);
             if (!beforeSend)
             {
                 await content.Stalled.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -102,13 +123,20 @@ namespace WebDAVClient.UnitTests
         [DataRow(true, "invalid")]
         public async Task Upload_failure_ownership_changes_only_after_argument_validation(bool disposeContent, string failure)
         {
-            using var content = new MemoryStream(new byte[] { 1 });
+            using var content = new MemoryStream(new byte[]
+                {
+                    1
+                });
             using var handler = new StubHttpMessageHandler(_ => failure == "transport"
                 ? throw new HttpRequestException("connection lost")
                 : new HttpResponseMessage(HttpStatusCode.PreconditionFailed));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            var options = new UploadOptions { DisposeContent = disposeContent, ContentType = failure == "invalid" ? "invalid media type" : "application/octet-stream" };
+            var options = new UploadOptions
+            {
+                DisposeContent = disposeContent,
+                ContentType = failure == "invalid" ? "invalid media type" : "application/octet-stream"
+            };
             if (failure == "invalid")
             {
                 Assert.ThrowsException<FormatException>(() => client.UploadAsync(Target, content, options));
@@ -129,7 +157,10 @@ namespace WebDAVClient.UnitTests
         public async Task Successful_download_stream_acquisition_remains_cancellable()
         {
             using var content = new StallingContent();
-            var response = new TrackingResponse(200) { Content = content };
+            var response = new TrackingResponse(200)
+            {
+                Content = content
+            };
             using var handler = new AsyncHttpMessageHandler((_, _) => Task.FromResult<HttpResponseMessage>(response));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
@@ -146,10 +177,16 @@ namespace WebDAVClient.UnitTests
         public async Task Download_read_tokens_and_response_lifetime_are_independent_of_completed_request_and_client()
         {
             using var body = new PrefixThenStallStream("abc");
-            var response = new TrackingResponse(200) { Content = new StreamContent(body) };
+            var response = new TrackingResponse(200)
+            {
+                Content = new StreamContent(body)
+            };
             using var handler = new AsyncHttpMessageHandler((_, _) => Task.FromResult<HttpResponseMessage>(response));
             using var http = new System.Net.Http.HttpClient(handler);
-            using var client = new DavClient(Endpoint, http, new DavClientOptions { MetadataTimeout = TimeSpan.FromMilliseconds(1) });
+            using var client = new DavClient(Endpoint, http, new DavClientOptions
+            {
+                MetadataTimeout = TimeSpan.FromMilliseconds(1)
+            });
             using var requestCancellation = new CancellationTokenSource();
             await using var download = await client.DownloadAsync(Target, cancellationToken: requestCancellation.Token);
             requestCancellation.Cancel();
@@ -174,11 +211,17 @@ namespace WebDAVClient.UnitTests
         {
             using var content = new StallingContent();
             content.Headers.ContentType = new MediaTypeHeaderValue("application/xml");
-            var response = new TrackingResponse(304) { Content = content };
+            var response = new TrackingResponse(304)
+            {
+                Content = content
+            };
             using var handler = new AsyncHttpMessageHandler((_, _) => Task.FromResult<HttpResponseMessage>(response));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            using var result = await client.DownloadAsync(Target, new DownloadOptions { IfNoneMatch = "\"known\"" }).WaitAsync(TimeSpan.FromSeconds(5));
+            using var result = await client.DownloadAsync(Target, new DownloadOptions
+            {
+                IfNoneMatch = "\"known\""
+            }).WaitAsync(TimeSpan.FromSeconds(5));
             Assert.IsTrue(result.NotModified);
             Assert.IsNull(result.Content);
             Assert.IsFalse(content.Started.Task.IsCompleted);
@@ -195,7 +238,10 @@ namespace WebDAVClient.UnitTests
         public async Task Listing_can_cancel_between_resources_and_never_certifies_partial_completion(string source)
         {
             using var stream = new PrefixThenStallStream("<D:multistatus xmlns:D=\"DAV:\">" + Resource() + "<D:response><D:href>");
-            var response = new TrackingResponse(207) { Content = new StreamContent(stream) };
+            var response = new TrackingResponse(207)
+            {
+                Content = new StreamContent(stream)
+            };
             using var handler = new AsyncHttpMessageHandler((_, _) => Task.FromResult<HttpResponseMessage>(response));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
@@ -208,9 +254,15 @@ namespace WebDAVClient.UnitTests
             await stream.Stalled.Task.WaitAsync(TimeSpan.FromSeconds(5));
             switch (source)
             {
-                case "request": requestCancellation.Cancel(); break;
-                case "enumeration": enumerationCancellation.Cancel(); break;
-                default: listing.Dispose(); break;
+                case "request":
+                    requestCancellation.Cancel();
+                    break;
+                case "enumeration":
+                    enumerationCancellation.Cancel();
+                    break;
+                default:
+                    listing.Dispose();
+                    break;
             }
             await AssertCancelledAsync(pending);
             Assert.IsFalse(listing.IsComplete);
@@ -221,10 +273,16 @@ namespace WebDAVClient.UnitTests
         [TestMethod]
         public async Task Listing_deadline_runs_while_caller_is_between_resources()
         {
-            var response = new TrackingResponse(207) { Content = new StringContent(Multi(Resource() + Resource())) };
+            var response = new TrackingResponse(207)
+            {
+                Content = new StringContent(Multi(Resource() + Resource()))
+            };
             using var handler = new AsyncHttpMessageHandler((_, _) => Task.FromResult<HttpResponseMessage>(response));
             using var http = new System.Net.Http.HttpClient(handler);
-            using var client = new DavClient(Endpoint, http, new DavClientOptions { MetadataTimeout = TimeSpan.FromMilliseconds(250) });
+            using var client = new DavClient(Endpoint, http, new DavClientOptions
+            {
+                MetadataTimeout = TimeSpan.FromMilliseconds(250)
+            });
             await using var listing = await client.OpenListingAsync(Target);
             await using var iterator = listing.ReadResourcesAsync().GetAsyncEnumerator();
             Assert.IsTrue(await iterator.MoveNextAsync());
@@ -244,7 +302,10 @@ namespace WebDAVClient.UnitTests
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             using var handler = new AsyncHttpMessageHandler(async (request, token) =>
             {
-                if (Interlocked.Increment(ref requests) == count) { entered.TrySetResult(); }
+                if (Interlocked.Increment(ref requests) == count)
+                {
+                    entered.TrySetResult();
+                }
                 await release.Task.WaitAsync(token);
                 string id = request.RequestUri.Segments.Last();
                 Assert.AreEqual(id, request.Headers.GetValues("X-Operation").Single());
@@ -262,14 +323,18 @@ namespace WebDAVClient.UnitTests
                 headers["X-Operation"] = id;
                 tasks.Add(client.DeleteAsync(DavPath.FromSegments(id), new DavRequestOptions
                 {
-                    Headers = headers, IfMatch = "\"" + id + "\"",
+                    Headers = headers,
+                    IfMatch = "\"" + id + "\"",
                     Conditions = DavIfConditions.Untagged(new DavConditionList(DavCondition.StateToken("urn:lock:" + id)))
                 }, deadline.Token));
             }
             await entered.Task.WaitAsync(deadline.Token);
             headers.Clear();
             release.TrySetResult();
-            foreach (var result in await Task.WhenAll(tasks)) { result.EnsureSucceeded(); }
+            foreach (var result in await Task.WhenAll(tasks))
+            {
+                result.EnsureSucceeded();
+            }
             Assert.AreEqual(count, handler.Requests.Count);
         }
 
@@ -294,7 +359,10 @@ namespace WebDAVClient.UnitTests
                         return XmlResponse(LockXml(), 200);
                     case "GET":
                         Assert.AreEqual("bytes=0-2", request.Headers.Range.ToString());
-                        var response = new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = new ByteArrayContent(new byte[3]) };
+                        var response = new HttpResponseMessage(HttpStatusCode.PartialContent)
+                        {
+                            Content = new ByteArrayContent(new byte[3])
+                        };
                         response.Content.Headers.ContentRange = new ContentRangeHeaderValue(0, 2, 3);
                         return response;
                     default:
@@ -303,14 +371,33 @@ namespace WebDAVClient.UnitTests
             });
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            var properties = new[] { DavProperties.DisplayName.Name };
-            var changes = new[] { DavPropertyChange.Remove(DavProperties.DisplayName.Name) };
-            var timeouts = new[] { DavLockTimeout.Finite(TimeSpan.FromSeconds(30)) };
+            var properties = new[]
+            {
+                DavProperties.DisplayName.Name
+            };
+            var changes = new[]
+            {
+                DavPropertyChange.Remove(DavProperties.DisplayName.Name)
+            };
+            var timeouts = new[]
+            {
+                DavLockTimeout.Finite(TimeSpan.FromSeconds(30))
+            };
             var range = new RangeHeaderValue(0, 2);
-            var find = client.PropFindAsync(Target, new PropFindOptions { Selection = DavPropertySelection.Selected, Properties = properties }, deadline.Token);
+            var find = client.PropFindAsync(Target, new PropFindOptions
+            {
+                Selection = DavPropertySelection.Selected,
+                Properties = properties
+            }, deadline.Token);
             var patch = client.UpdatePropertiesAsync(Target, changes, cancellationToken: deadline.Token);
-            var locking = client.AcquireLockAsync(Target, new LockOptions { Timeouts = timeouts }, deadline.Token);
-            var download = client.DownloadAsync(Target, new DownloadOptions { Range = range }, deadline.Token);
+            var locking = client.AcquireLockAsync(Target, new LockOptions
+            {
+                Timeouts = timeouts
+            }, deadline.Token);
+            var download = client.DownloadAsync(Target, new DownloadOptions
+            {
+                Range = range
+            }, deadline.Token);
             properties[0] = DavProperties.ETag.Name;
             changes[0] = DavPropertyChange.Remove(DavProperties.ETag.Name);
             timeouts[0] = DavLockTimeout.Infinite;
@@ -327,29 +414,63 @@ namespace WebDAVClient.UnitTests
         {
             switch (operation)
             {
-                case "OPTIONS": await client.GetCapabilitiesAsync(Target, cancellationToken: token); break;
-                case "PROPFIND": await client.PropFindAsync(Target, cancellationToken: token); break;
-                case "PROPPATCH": await client.UpdatePropertiesAsync(Target, new[] { DavPropertyChange.Remove(DavProperties.DisplayName.Name) }, cancellationToken: token); break;
-                case "MKCOL": await client.CreateCollectionAsync(Target, cancellationToken: token); break;
-                case "DELETE": await client.DeleteAsync(Target, cancellationToken: token); break;
-                case "MOVE": await client.MoveAsync(Target, DavPath.Parse("target"), cancellationToken: token); break;
-                case "COPY": await client.CopyAsync(Target, DavPath.Parse("target"), cancellationToken: token); break;
-                case "PUT": await client.UploadAsync(Target, Stream.Null, cancellationToken: token); break;
-                case "LOCK": await client.AcquireLockAsync(Target, cancellationToken: token); break;
-                case "REFRESH": await client.RefreshLockAsync(Target, "urn:lock", cancellationToken: token); break;
-                case "UNLOCK": await client.UnlockAsync(Target, "urn:lock", cancellationToken: token); break;
-                case "REPORT": await client.ReportAsync(Target, DavXmlValue.Text(new PropertyName("urn:report", "request"), ""), cancellationToken: token); break;
-                case "SYNC": await client.SyncCollectionAsync(Target, "urn:before", Array.Empty<PropertyName>(), cancellationToken: token); break;
+                case "OPTIONS":
+                    await client.GetCapabilitiesAsync(Target, cancellationToken: token);
+                    break;
+                case "PROPFIND":
+                    await client.PropFindAsync(Target, cancellationToken: token);
+                    break;
+                case "PROPPATCH":
+                    await client.UpdatePropertiesAsync(Target, new[]
+                        {
+                            DavPropertyChange.Remove(DavProperties.DisplayName.Name)
+                        }, cancellationToken: token);
+                    break;
+                case "MKCOL":
+                    await client.CreateCollectionAsync(Target, cancellationToken: token);
+                    break;
+                case "DELETE":
+                    await client.DeleteAsync(Target, cancellationToken: token);
+                    break;
+                case "MOVE":
+                    await client.MoveAsync(Target, DavPath.Parse("target"), cancellationToken: token);
+                    break;
+                case "COPY":
+                    await client.CopyAsync(Target, DavPath.Parse("target"), cancellationToken: token);
+                    break;
+                case "PUT":
+                    await client.UploadAsync(Target, Stream.Null, cancellationToken: token);
+                    break;
+                case "LOCK":
+                    await client.AcquireLockAsync(Target, cancellationToken: token);
+                    break;
+                case "REFRESH":
+                    await client.RefreshLockAsync(Target, "urn:lock", cancellationToken: token);
+                    break;
+                case "UNLOCK":
+                    await client.UnlockAsync(Target, "urn:lock", cancellationToken: token);
+                    break;
+                case "REPORT":
+                    await client.ReportAsync(Target, DavXmlValue.Text(new PropertyName("urn:report", "request"), ""), cancellationToken: token);
+                    break;
+                case "SYNC":
+                    await client.SyncCollectionAsync(Target, "urn:before", Array.Empty<PropertyName>(), cancellationToken: token);
+                    break;
                 case "GET":
-                    using (await client.DownloadAsync(Target, cancellationToken: token)) { }
+                    using (await client.DownloadAsync(Target, cancellationToken: token))
+                    {
+                    }
                     break;
                 case "LIST":
                     await using (var listing = await client.OpenListingAsync(Target, cancellationToken: token))
                     {
-                        await foreach (var item in listing.ReadResourcesAsync()) { }
+                        await foreach (var item in listing.ReadResourcesAsync())
+                        {
+                        }
                     }
                     break;
-                default: throw new ArgumentOutOfRangeException(nameof(operation));
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(operation));
             }
         }
 
@@ -360,35 +481,67 @@ namespace WebDAVClient.UnitTests
                 await task.WaitAsync(TimeSpan.FromSeconds(5));
                 Assert.Fail("Expected cancellation.");
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException)
+            {
+            }
         }
 
         private sealed class TrackingResponse : HttpResponseMessage
         {
-            public int DisposeCount { get; private set; }
-            public TrackingResponse(int status) : base((HttpStatusCode)status) { }
+            public int DisposeCount
+            {
+                get;
+                private set;
+            }
+
+            public TrackingResponse(int status) : base((HttpStatusCode)status)
+            {
+            }
+
             protected override void Dispose(bool disposing)
             {
-                if (disposing) { DisposeCount++; }
+                if (disposing)
+                {
+                    DisposeCount++;
+                }
                 base.Dispose(disposing);
             }
         }
 
         private sealed class StallingContent : HttpContent
         {
-            public TaskCompletionSource Started { get; } = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            public bool IsDisposed { get; private set; }
+            public TaskCompletionSource Started
+            {
+                get;
+            } = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public bool IsDisposed
+            {
+                get;
+                private set;
+            }
+
             protected override async Task<Stream> CreateContentReadStreamAsync(CancellationToken cancellationToken)
             {
                 Started.TrySetResult();
                 await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
                 throw new AssertFailedException("The content factory must be cancelled.");
             }
-            protected override bool TryComputeLength(out long length) { length = 0; return false; }
+
+            protected override bool TryComputeLength(out long length)
+            {
+                length = 0;
+                return false;
+            }
+
             protected override Task SerializeToStreamAsync(Stream stream, TransportContext context) => throw new NotSupportedException();
+
             protected override void Dispose(bool disposing)
             {
-                if (disposing) { IsDisposed = true; }
+                if (disposing)
+                {
+                    IsDisposed = true;
+                }
                 base.Dispose(disposing);
             }
         }

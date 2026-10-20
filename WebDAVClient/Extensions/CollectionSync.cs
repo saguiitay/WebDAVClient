@@ -11,20 +11,43 @@ using WebDAVClient.Protocol;
 
 namespace WebDAVClient.Extensions
 {
-    /// <summary>One RFC 6578 sync-collection response. This does not implement durable synchronization or checkpoint storage.</summary>
+    /// <summary>
+    /// One RFC 6578 sync-collection response. This does not implement durable synchronization or checkpoint storage.
+    /// </summary>
     public sealed class DavSyncResult
     {
-        internal DavSyncResult(DavReportResult response, string? token) { Response = response; SyncToken = token; }
-        /// <summary>Full outcomes. A resource-level 404 represents a deletion in this profile.</summary>
-        public DavReportResult Response { get; }
-        /// <summary>Next opaque token; commit only after all applicable changes have been durably applied.</summary>
-        public string? SyncToken { get; }
-        /// <summary>True only for a 507 on the requested collection, indicating a truncated result set.</summary>
+        internal DavSyncResult(DavReportResult response, string? token)
+        {
+            Response = response;
+            SyncToken = token;
+        }
+
+        /// <summary>
+        /// Full outcomes. A resource-level 404 represents a deletion in this profile.
+        /// </summary>
+        public DavReportResult Response
+        {
+            get;
+        }
+
+        /// <summary>
+        /// Next opaque token; commit only after all applicable changes have been durably applied.
+        /// </summary>
+        public string? SyncToken
+        {
+            get;
+        }
+
+        /// <summary>
+        /// True only for a 507 on the requested collection, indicating a truncated result set.
+        /// </summary>
         public bool HasMore => Response.Resources.Any(r => r.StatusCode == 507 &&
             r.Hrefs.Any(h => Uri.TryCreate(Response.EffectiveUri, h, out var uri) && uri == Response.EffectiveUri));
     }
 
-    /// <summary>Explicit collection synchronization REPORT profile using the public client execution seam.</summary>
+    /// <summary>
+    /// Explicit collection synchronization REPORT profile using the public client execution seam.
+    /// </summary>
     public static class CollectionSync
     {
         /// <summary>

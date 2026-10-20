@@ -14,9 +14,23 @@ namespace WebDAVClient.Helpers
     {
         public sealed class PropStatResult
         {
-            public int StatusCode { get; set; }
-            public string StatusLine { get; set; }
-            public string ResponseDescription { get; set; }
+            public int StatusCode
+            {
+                get;
+                set;
+            }
+
+            public string StatusLine
+            {
+                get;
+                set;
+            }
+
+            public string ResponseDescription
+            {
+                get;
+                set;
+            }
         }
 
         public static IList<PropStatResult> Parse(Stream stream) => ParseAsync(stream).GetAwaiter().GetResult();
@@ -37,7 +51,10 @@ namespace WebDAVClient.Helpers
                 }
                 var status = group.Element(DavXml.Dav + "status") is XElement element ? DavXml.Text(element) : null;
                 // Legacy callers use zero to represent an omitted/unparseable property status.
-                var parts = status?.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                var parts = status?.Split(new[]
+                    {
+                        ' ', '\t'
+                    }, StringSplitOptions.RemoveEmptyEntries);
                 var code = parts != null && parts.Length > 1 && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
                 results.Add(new PropStatResult
                 {

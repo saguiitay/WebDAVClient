@@ -46,7 +46,10 @@ namespace WebDAVClient.UnitTests
             var buffered = (await client.PropFindAsync(Target)).Resources.Single();
             await using var listing = await client.OpenListingAsync(Target);
             var streamed = new List<DavResourceResponse>();
-            await foreach (var resource in listing.ReadResourcesAsync()) { streamed.Add(resource); }
+            await foreach (var resource in listing.ReadResourcesAsync())
+            {
+                streamed.Add(resource);
+            }
             Assert.IsTrue(listing.IsComplete);
             var expected = buffered.PropertyStatuses.Single().Properties;
             var actual = streamed.Single().PropertyStatuses.Single().Properties;
@@ -91,14 +94,29 @@ namespace WebDAVClient.UnitTests
         {
             using var handler = new StubHttpMessageHandler(_ =>
             {
-                var response = new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = new ByteArrayContent(new byte[] { 42 }) };
-                response.Content.Headers.ContentRange = new ContentRangeHeaderValue(0, 0, 1) { Unit = responseUnit };
+                var response = new HttpResponseMessage(HttpStatusCode.PartialContent)
+                {
+                    Content = new ByteArrayContent(new byte[]
+                        {
+                            42
+                        })
+                };
+                response.Content.Headers.ContentRange = new ContentRangeHeaderValue(0, 0, 1)
+                {
+                    Unit = responseUnit
+                };
                 response.Content.Headers.ContentEncoding.Add(coding);
                 return response;
             });
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            using var result = await client.DownloadAsync(Target, new DownloadOptions { Range = new RangeHeaderValue(0, 0) { Unit = requestedUnit } });
+            using var result = await client.DownloadAsync(Target, new DownloadOptions
+            {
+                Range = new RangeHeaderValue(0, 0)
+                {
+                    Unit = requestedUnit
+                }
+            });
             Assert.AreEqual(42, result.Content.ReadByte());
         }
 
@@ -110,7 +128,10 @@ namespace WebDAVClient.UnitTests
             var validator = DateTimeOffset.UnixEpoch.AddDays(10000);
             using var handler = new StubHttpMessageHandler(_ =>
             {
-                var response = new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = new ByteArrayContent(new byte[3]) };
+                var response = new HttpResponseMessage(HttpStatusCode.PartialContent)
+                {
+                    Content = new ByteArrayContent(new byte[3])
+                };
                 response.Content.Headers.ContentRange = new ContentRangeHeaderValue(0, 2, 3);
                 response.Content.Headers.LastModified = validator.AddSeconds(change);
                 return response;
@@ -119,7 +140,8 @@ namespace WebDAVClient.UnitTests
             using var client = new DavClient(Endpoint, http);
             await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.DownloadAsync(Target, new DownloadOptions
             {
-                Range = new RangeHeaderValue(0, 2), IfRange = new RangeConditionHeaderValue(validator)
+                Range = new RangeHeaderValue(0, 2),
+                IfRange = new RangeConditionHeaderValue(validator)
             }));
         }
 
@@ -138,14 +160,18 @@ namespace WebDAVClient.UnitTests
                 };
                 response.Content.Headers.ContentRange = new ContentRangeHeaderValue(start, start + 2, start + 3);
                 response.Content.Headers.LastModified = validator;
-                if (hasLength) { response.Content.Headers.ContentLength = 3; }
+                if (hasLength)
+                {
+                    response.Content.Headers.ContentLength = 3;
+                }
                 return response;
             });
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
             using var result = await client.DownloadAsync(Target, new DownloadOptions
             {
-                Range = new RangeHeaderValue(start, start + 99), IfRange = new RangeConditionHeaderValue(validator)
+                Range = new RangeHeaderValue(start, start + 99),
+                IfRange = new RangeConditionHeaderValue(validator)
             });
             Assert.AreEqual("bytes=" + start + "-" + (start + 99), handler.Requests.Single().Headers["Range"].Single());
             var buffer = new byte[3];
@@ -206,7 +232,10 @@ namespace WebDAVClient.UnitTests
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
             var result = await client.PropFindAsync(Target);
-            CollectionAssert.AreEqual(new[] { 102, 302, 599 }, result.Resources.Select(r => r.PropertyStatuses.Single().StatusCode.Value).ToArray());
+            CollectionAssert.AreEqual(new[]
+                {
+                    102, 302, 599
+                }, result.Resources.Select(r => r.PropertyStatuses.Single().StatusCode.Value).ToArray());
             Assert.AreEqual(102, Assert.ThrowsException<WebDAVException>(result.EnsureSucceeded).FailedStatusCode);
         }
 
@@ -229,7 +258,10 @@ namespace WebDAVClient.UnitTests
             Assert.AreEqual("context", resource.Extensions.Single().Name.LocalName);
             Assert.AreEqual(2, Assert.ThrowsException<WebDAVException>(result.EnsureSucceeded).ResourceStatuses.Count);
             await using var listing = await client.OpenListingAsync(Target);
-            await foreach (var item in listing.ReadResourcesAsync()) { Assert.AreEqual(2, item.Hrefs.Count); }
+            await foreach (var item in listing.ReadResourcesAsync())
+            {
+                Assert.AreEqual(2, item.Hrefs.Count);
+            }
             Assert.AreEqual("root-extra", listing.Extensions.Single().Name.LocalName);
         }
 
@@ -254,7 +286,9 @@ namespace WebDAVClient.UnitTests
             await using var listing = await client.OpenListingAsync(Target);
             await Assert.ThrowsExceptionAsync<WebDAVException>(async () =>
             {
-                await foreach (var item in listing.ReadResourcesAsync()) { }
+                await foreach (var item in listing.ReadResourcesAsync())
+                {
+                }
             });
             Assert.IsFalse(listing.IsComplete);
         }
@@ -267,11 +301,19 @@ namespace WebDAVClient.UnitTests
             var xml = "<D:multistatus xmlns:D=\"DAV:\" " + attribute + "=\"urn:" + new string('x', 1024) + "\">" + Resource() + "</D:multistatus>";
             using var handler = new StubHttpMessageHandler(_ => XmlResponse(xml));
             using var http = new System.Net.Http.HttpClient(handler);
-            using var client = new DavClient(Endpoint, http, new DavClientOptions { XmlLimits = new DavXmlLimits { MaxResourceCharacters = 512 } });
+            using var client = new DavClient(Endpoint, http, new DavClientOptions
+            {
+                XmlLimits = new DavXmlLimits
+                {
+                    MaxResourceCharacters = 512
+                }
+            });
             await using var listing = await client.OpenListingAsync(Target);
             await Assert.ThrowsExceptionAsync<WebDAVException>(async () =>
             {
-                await foreach (var item in listing.ReadResourcesAsync()) { }
+                await foreach (var item in listing.ReadResourcesAsync())
+                {
+                }
             });
             Assert.IsFalse(listing.IsComplete);
         }
@@ -286,7 +328,10 @@ namespace WebDAVClient.UnitTests
             const string text = "caf\u00e9 \u6f22 \U0001f600";
             var xml = "<?xml version=\"1.0\" encoding=\"" + encodingName + "\"?>" + Multi(Resource("<D:displayname>" + text + "</D:displayname>"));
             var bytes = encoding.GetPreamble().Concat(encoding.GetBytes(xml)).ToArray();
-            using var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage((HttpStatusCode)207) { Content = new ByteArrayContent(bytes) });
+            using var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage((HttpStatusCode)207)
+            {
+                Content = new ByteArrayContent(bytes)
+            });
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
             Assert.AreEqual(text, DavProperties.DisplayName.Read((await client.PropFindAsync(Target)).Resources.Single()).Single().Value);
@@ -307,14 +352,25 @@ namespace WebDAVClient.UnitTests
             var xml = Multi(Resource());
             using var handler = new StubHttpMessageHandler(_ => XmlResponse(xml));
             using var http = new System.Net.Http.HttpClient(handler);
-            foreach (var budget in new[] { xml.Length, xml.Length - 1 })
+            foreach (var budget in new[]
             {
-                using var client = new DavClient(Endpoint, http, new DavClientOptions { XmlLimits = new DavXmlLimits { MaxResponseCharacters = budget } });
+                xml.Length, xml.Length - 1
+            })
+            {
+                using var client = new DavClient(Endpoint, http, new DavClientOptions
+                {
+                    XmlLimits = new DavXmlLimits
+                    {
+                        MaxResponseCharacters = budget
+                    }
+                });
                 if (budget == xml.Length)
                 {
                     (await client.PropFindAsync(Target)).EnsureSucceeded();
                     await using var listing = await client.OpenListingAsync(Target);
-                    await foreach (var item in listing.ReadResourcesAsync()) { }
+                    await foreach (var item in listing.ReadResourcesAsync())
+                    {
+                    }
                     Assert.IsTrue(listing.IsComplete);
                 }
                 else
@@ -348,7 +404,10 @@ namespace WebDAVClient.UnitTests
             using var handler = new StubHttpMessageHandler(_ =>
             {
                 var response = XmlResponse(Multi(Resource()));
-                response.Headers.Add("X-Test", new[] { "first", "second" });
+                response.Headers.Add("X-Test", new[]
+                    {
+                        "first", "second"
+                    });
                 return response;
             });
             using var http = new System.Net.Http.HttpClient(handler);

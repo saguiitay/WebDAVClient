@@ -12,7 +12,14 @@ using WebDAVClient.Protocol;
 
 namespace WebDAVClient.Helpers
 {
-    internal enum PropFindMode { AllProp, NamedProperties, PropName }
+    internal enum PropFindMode
+    {
+        AllProp,
+
+        NamedProperties,
+
+        PropName
+    }
 
     // Legacy projection only. Structural parsing is shared with the modern protocol surface.
     internal static class ResponseParser
@@ -28,11 +35,16 @@ namespace WebDAVClient.Helpers
         };
 
         public static Item ParseItem(Stream stream) => ParseItem(stream, PropFindMode.AllProp);
+
         public static Item ParseItem(Stream stream, PropFindMode mode) => ParseItemAsync(stream, mode).GetAwaiter().GetResult();
+
         public static List<Item> ParseItems(Stream stream) => ParseItems(stream, PropFindMode.AllProp);
+
         public static List<Item> ParseItems(Stream stream, PropFindMode mode) => ParseItemsAsync(stream, mode).GetAwaiter().GetResult();
+
         public static async Task<Item> ParseItemAsync(Stream stream, PropFindMode mode, CancellationToken cancellationToken = default) =>
             (await ParseCoreAsync(stream, mode, true, cancellationToken).ConfigureAwait(false)).FirstOrDefault();
+
         public static Task<List<Item>> ParseItemsAsync(Stream stream, PropFindMode mode, CancellationToken cancellationToken = default) =>
             ParseCoreAsync(stream, mode, false, cancellationToken);
 
@@ -40,7 +52,12 @@ namespace WebDAVClient.Helpers
         {
             var items = new List<Item>();
             // Existing callers have no configurable size budget. Do not impose modern defaults on large legacy listings.
-            var limits = new DavXmlLimits { MaxResponseCharacters = long.MaxValue, MaxResourceCharacters = int.MaxValue, MaxDepth = 256 };
+            var limits = new DavXmlLimits
+            {
+                MaxResponseCharacters = long.MaxValue,
+                MaxResourceCharacters = int.MaxValue,
+                MaxDepth = 256
+            };
             await foreach (var resource in DavXml.ReadMultiStatusAsync(stream, limits, legacy: true, cancellationToken: token,
                 namesOnly: mode == PropFindMode.PropName, davPropertiesOnly: mode == PropFindMode.AllProp).ConfigureAwait(false))
             {
@@ -52,7 +69,10 @@ namespace WebDAVClient.Helpers
                     }
                     throw new WebDAVException(resource.StatusCode.Value, "PROPFIND reported a failed resource.");
                 }
-                var item = new Item { Href = resource.Hrefs[0].Replace("#", "%23") };
+                var item = new Item
+                {
+                    Href = resource.Hrefs[0].Replace("#", "%23")
+                };
                 foreach (var group in resource.PropertyStatuses)
                 {
                     foreach (var property in group.Properties)
@@ -132,16 +152,25 @@ namespace WebDAVClient.Helpers
             switch (name.LocalName.ToLowerInvariant())
             {
                 case "creationdate":
-                    if (DateTime.TryParse(value, out var created)) { item.CreationDate = created; }
+                    if (DateTime.TryParse(value, out var created))
+                    {
+                        item.CreationDate = created;
+                    }
                     break;
                 case "getlastmodified":
-                    if (DateTime.TryParse(value, out var modified)) { item.LastModified = modified; }
+                    if (DateTime.TryParse(value, out var modified))
+                    {
+                        item.LastModified = modified;
+                    }
                     break;
                 case "displayname":
                     item.DisplayName = value;
                     break;
                 case "getcontentlength":
-                    if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var size)) { item.ContentLength = size; }
+                    if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var size))
+                    {
+                        item.ContentLength = size;
+                    }
                     break;
                 case "getcontenttype":
                     item.ContentType = value;

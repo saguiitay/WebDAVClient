@@ -54,9 +54,15 @@ namespace WebDAVClient.UnitTests
             try
             {
                 using var client = new DavClient(endpoint);
-                using var input = new UploadStream(payload, seekable) { Position = 3 };
+                using var input = new UploadStream(payload, seekable)
+                {
+                    Position = 3
+                };
                 var uploaded = await client.UploadAsync(DavPath.FromSegments("binary"), input,
-                    new UploadOptions { DisposeContent = disposeContent }, deadline.Token);
+                    new UploadOptions
+                    {
+                        DisposeContent = disposeContent
+                    }, deadline.Token);
                 uploaded.EnsureSucceeded();
                 Assert.AreEqual(disposeContent, input.IsDisposed);
                 using var download = await client.DownloadAsync(DavPath.FromSegments("binary"), cancellationToken: deadline.Token);
@@ -132,7 +138,10 @@ namespace WebDAVClient.UnitTests
             while (true)
             {
                 var header = await ReadLineAsync(stream, token);
-                if (header.Length == 0) { break; }
+                if (header.Length == 0)
+                {
+                    break;
+                }
                 int colon = header.IndexOf(':');
                 Assert.IsTrue(colon > 0);
                 headers.Add(header.Substring(0, colon), header.Substring(colon + 1).Trim());
@@ -195,21 +204,44 @@ namespace WebDAVClient.UnitTests
         {
             deadline.Cancel();
             listener.Stop();
-            try { await server.WaitAsync(TimeSpan.FromSeconds(5)); }
-            catch (OperationCanceledException) when (deadline.IsCancellationRequested) { }
-            catch (IOException) when (deadline.IsCancellationRequested) { }
-            catch (SocketException) when (deadline.IsCancellationRequested) { }
+            try
+            {
+                await server.WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (OperationCanceledException) when (deadline.IsCancellationRequested)
+            {
+            }
+            catch (IOException) when (deadline.IsCancellationRequested)
+            {
+            }
+            catch (SocketException) when (deadline.IsCancellationRequested)
+            {
+            }
         }
 
         private sealed class UploadStream : MemoryStream
         {
             private readonly bool m_seekable;
-            public UploadStream(byte[] bytes, bool seekable) : base(bytes) { m_seekable = seekable; }
+
+            public UploadStream(byte[] bytes, bool seekable) : base(bytes)
+            {
+                m_seekable = seekable;
+            }
+
             public override bool CanSeek => m_seekable && base.CanSeek;
-            public bool IsDisposed { get; private set; }
+
+            public bool IsDisposed
+            {
+                get;
+                private set;
+            }
+
             protected override void Dispose(bool disposing)
             {
-                if (disposing) { IsDisposed = true; }
+                if (disposing)
+                {
+                    IsDisposed = true;
+                }
                 base.Dispose(disposing);
             }
         }

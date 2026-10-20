@@ -12,7 +12,11 @@ namespace WebDAVClient.UnitTests
     [TestClass]
     public class DavProcessingPerformanceTests
     {
-        public TestContext TestContext { get; set; }
+        public TestContext TestContext
+        {
+            get;
+            set;
+        }
 
         [DataTestMethod]
         [DataRow(false)]
@@ -50,7 +54,10 @@ namespace WebDAVClient.UnitTests
             Measure("LOOKUP", () =>
             {
                 int count = 0;
-                foreach (var property in resource.GetProperties(name)) { count += property.StatusCode.Value; }
+                foreach (var property in resource.GetProperties(name))
+                {
+                    count += property.StatusCode.Value;
+                }
                 return count;
             }, expected: 803, allocationLimit: 96);
             var values = new System.Collections.Generic.List<string>();
@@ -59,7 +66,10 @@ namespace WebDAVClient.UnitTests
                 property.Value.TryGetText(out var text);
                 values.Add(text);
             }
-            CollectionAssert.AreEqual(new[] { "first", "second", "" }, values);
+            CollectionAssert.AreEqual(new[]
+                {
+                    "first", "second", ""
+                }, values);
             Assert.ThrowsException<ArgumentNullException>(() => resource.GetProperties(null));
         }
 
@@ -84,7 +94,10 @@ namespace WebDAVClient.UnitTests
 
         private void Measure(string label, Func<int> operation, int expected, long allocationLimit, int iterations = 10000)
         {
-            for (int i = 0; i < 1000; i++) { Assert.AreEqual(expected, operation()); }
+            for (int i = 0; i < 1000; i++)
+            {
+                Assert.AreEqual(expected, operation());
+            }
             var allocations = new long[5];
             var timings = new double[5];
             for (int sample = 0; sample < allocations.Length; sample++)
@@ -92,7 +105,10 @@ namespace WebDAVClient.UnitTests
                 long before = GC.GetAllocatedBytesForCurrentThread();
                 long start = Stopwatch.GetTimestamp();
                 long total = 0;
-                for (int i = 0; i < iterations; i++) { total += operation(); }
+                for (int i = 0; i < iterations; i++)
+                {
+                    total += operation();
+                }
                 timings[sample] = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
                 allocations[sample] = GC.GetAllocatedBytesForCurrentThread() - before;
                 Assert.AreEqual((long)expected * iterations, total);

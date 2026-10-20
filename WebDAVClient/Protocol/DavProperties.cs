@@ -9,18 +9,27 @@ using WebDAVClient.Model;
 
 namespace WebDAVClient.Protocol
 {
-    /// <summary>A property outcome with an optional decoded value and explicit decoding failure.</summary>
+    /// <summary>
+    /// A property outcome with an optional decoded value and explicit decoding failure.
+    /// </summary>
     public sealed record DavDecodedProperty<T>(DavPropertyResult Source, T? Value, Exception? DecodingError)
     {
-        /// <summary>True only when the server returned success and decoding completed.</summary>
+        /// <summary>
+        /// True only when the server returned success and decoding completed.
+        /// </summary>
         public bool HasValue => Source.StatusCode >= 200 && Source.StatusCode < 300 && DecodingError == null;
     }
 
-    /// <summary>A reusable typed property codec. Wire XML remains authoritative and available on every result.</summary>
+    /// <summary>
+    /// A reusable typed property codec. Wire XML remains authoritative and available on every result.
+    /// </summary>
     public sealed class DavProperty<T>
     {
         private readonly Func<DavXmlValue, T> m_decode;
-        /// <summary>Defines a qualified property and its decoder. Expected malformed values should throw FormatException or XmlException.</summary>
+
+        /// <summary>
+        /// Defines a qualified property and its decoder. Expected malformed values should throw FormatException or XmlException.
+        /// </summary>
         public DavProperty(PropertyName name, Func<DavXmlValue, T> decode)
         {
             ArgumentNullException.ThrowIfNull(name);
@@ -28,8 +37,15 @@ namespace WebDAVClient.Protocol
             Name = name;
             m_decode = decode;
         }
-        /// <summary>Property identity used in PROPFIND and typed lookups.</summary>
-        public PropertyName Name { get; }
+
+        /// <summary>
+        /// Property identity used in PROPFIND and typed lookups.
+        /// </summary>
+        public PropertyName Name
+        {
+            get;
+        }
+
         /// <summary>
         /// Decodes every matching occurrence. Missing properties produce no entries; denied properties retain their status.
         /// Invalid values carry a decoding error, never a fabricated default presented as success.
@@ -39,6 +55,7 @@ namespace WebDAVClient.Protocol
             ArgumentNullException.ThrowIfNull(resource);
             return resource.GetProperties(Name).Select(Decode);
         }
+
         private DavDecodedProperty<T> Decode(DavPropertyResult property)
         {
             if (!(property.StatusCode >= 200 && property.StatusCode < 300))
@@ -56,41 +73,104 @@ namespace WebDAVClient.Protocol
         }
     }
 
-    /// <summary>A server-advertised lock scope/type pair.</summary>
+    /// <summary>
+    /// A server-advertised lock scope/type pair.
+    /// </summary>
     public sealed record DavSupportedLock(PropertyName Scope, PropertyName Type);
 
-    /// <summary>Core DAV property codecs; unknown properties can use application-defined codecs without changing the client.</summary>
+    /// <summary>
+    /// Core DAV property codecs; unknown properties can use application-defined codecs without changing the client.
+    /// </summary>
     public static class DavProperties
     {
-        /// <summary>DAV:displayname.</summary>
-        public static DavProperty<string> DisplayName { get; } = Text("displayname");
-        /// <summary>DAV:getetag; opacity and weak/strong distinctions are retained.</summary>
-        public static DavProperty<string> ETag { get; } = Text("getetag");
-        /// <summary>DAV:getcontenttype.</summary>
-        public static DavProperty<string> ContentType { get; } = Text("getcontenttype");
-        /// <summary>DAV:getcontentlanguage.</summary>
-        public static DavProperty<string> ContentLanguage { get; } = Text("getcontentlanguage");
-        /// <summary>DAV:creationdate, including its offset.</summary>
-        public static DavProperty<DateTimeOffset> CreationDate { get; } = new DavProperty<DateTimeOffset>(new PropertyName("DAV:", "creationdate"),
+        /// <summary>
+        /// DAV:displayname.
+        /// </summary>
+        public static DavProperty<string> DisplayName
+        {
+            get;
+        } = Text("displayname");
+
+        /// <summary>
+        /// DAV:getetag; opacity and weak/strong distinctions are retained.
+        /// </summary>
+        public static DavProperty<string> ETag
+        {
+            get;
+        } = Text("getetag");
+
+        /// <summary>
+        /// DAV:getcontenttype.
+        /// </summary>
+        public static DavProperty<string> ContentType
+        {
+            get;
+        } = Text("getcontenttype");
+
+        /// <summary>
+        /// DAV:getcontentlanguage.
+        /// </summary>
+        public static DavProperty<string> ContentLanguage
+        {
+            get;
+        } = Text("getcontentlanguage");
+
+        /// <summary>
+        /// DAV:creationdate, including its offset.
+        /// </summary>
+        public static DavProperty<DateTimeOffset> CreationDate
+        {
+            get;
+        } = new DavProperty<DateTimeOffset>(new PropertyName("DAV:", "creationdate"),
             v => XmlConvert.ToDateTimeOffset(TextValue(v)));
-        /// <summary>DAV:getlastmodified, including its offset.</summary>
-        public static DavProperty<DateTimeOffset> LastModified { get; } = new DavProperty<DateTimeOffset>(new PropertyName("DAV:", "getlastmodified"),
+
+        /// <summary>
+        /// DAV:getlastmodified, including its offset.
+        /// </summary>
+        public static DavProperty<DateTimeOffset> LastModified
+        {
+            get;
+        } = new DavProperty<DateTimeOffset>(new PropertyName("DAV:", "getlastmodified"),
             v => DateTimeOffset.Parse(TextValue(v), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal));
-        /// <summary>DAV:getcontentlength; negative values are invalid, not an unknown size.</summary>
-        public static DavProperty<long> ContentLength { get; } = new DavProperty<long>(new PropertyName("DAV:", "getcontentlength"), v =>
+
+        /// <summary>
+        /// DAV:getcontentlength; negative values are invalid, not an unknown size.
+        /// </summary>
+        public static DavProperty<long> ContentLength
+        {
+            get;
+        } = new DavProperty<long>(new PropertyName("DAV:", "getcontentlength"), v =>
         {
             var length = long.Parse(TextValue(v), NumberStyles.None, CultureInfo.InvariantCulture);
             return length;
         });
-        /// <summary>DAV:resourcetype. No property result means unknown type; an empty successful value is distinct.</summary>
-        public static DavProperty<IReadOnlyList<PropertyName>> ResourceTypes { get; } =
+
+        /// <summary>
+        /// DAV:resourcetype. No property result means unknown type; an empty successful value is distinct.
+        /// </summary>
+        public static DavProperty<IReadOnlyList<PropertyName>> ResourceTypes
+        {
+            get;
+        } =
             new DavProperty<IReadOnlyList<PropertyName>>(new PropertyName("DAV:", "resourcetype"),
                 v => Array.AsReadOnly(v.ToElement().Elements().Select(e => new PropertyName(e.Name.NamespaceName, e.Name.LocalName)).ToArray()));
-        /// <summary>Every active lock in DAV:lockdiscovery.</summary>
-        public static DavProperty<IReadOnlyList<DavLock>> LockDiscovery { get; } =
+
+        /// <summary>
+        /// Every active lock in DAV:lockdiscovery.
+        /// </summary>
+        public static DavProperty<IReadOnlyList<DavLock>> LockDiscovery
+        {
+            get;
+        } =
             new DavProperty<IReadOnlyList<DavLock>>(new PropertyName("DAV:", "lockdiscovery"), v => DavXml.ParseLocks(v.ToElement(), DateTimeOffset.UtcNow));
-        /// <summary>Every advertised DAV:supportedlock entry.</summary>
-        public static DavProperty<IReadOnlyList<DavSupportedLock>> SupportedLocks { get; } =
+
+        /// <summary>
+        /// Every advertised DAV:supportedlock entry.
+        /// </summary>
+        public static DavProperty<IReadOnlyList<DavSupportedLock>> SupportedLocks
+        {
+            get;
+        } =
             new DavProperty<IReadOnlyList<DavSupportedLock>>(new PropertyName("DAV:", "supportedlock"), v =>
                 Array.AsReadOnly(v.ToElement().Elements(DavXml.Dav + "lockentry").Select(e =>
                     new DavSupportedLock(ChildName(e, "lockscope"), ChildName(e, "locktype"))).ToArray()));
@@ -104,7 +184,9 @@ namespace WebDAVClient.Protocol
             }
             return new PropertyName(children[0].Name.NamespaceName, children[0].Name.LocalName);
         }
+
         private static DavProperty<string> Text(string name) => new DavProperty<string>(new PropertyName("DAV:", name), TextValue);
+
         private static string TextValue(DavXmlValue value) => value.TryGetText(out var text) ? text! : throw new FormatException("Expected a text-only DAV property.");
     }
 }

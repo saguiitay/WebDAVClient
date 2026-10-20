@@ -50,11 +50,17 @@ namespace WebDAVClient.UnitTests
             using var handler = new StubHttpMessageHandler(_ => status == 207 ? XmlResponse(Multi(Member(200))) : new HttpResponseMessage((HttpStatusCode)status));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            using var content = new MemoryStream(new byte[] { 1 });
+            using var content = new MemoryStream(new byte[]
+                {
+                    1
+                });
             var result = method switch
             {
                 "MKCOL" => await client.CreateCollectionAsync(Target),
-                "MOVE" => await client.MoveAsync(Target, DavPath.Parse("other"), new MoveOptions { Overwrite = true }),
+                "MOVE" => await client.MoveAsync(Target, DavPath.Parse("other"), new MoveOptions
+                {
+                    Overwrite = true
+                }),
                 "COPY" => await client.CopyAsync(Target, DavPath.Parse("other")),
                 "DELETE" => await client.DeleteAsync(Target),
                 "UNLOCK" => await client.UnlockAsync(Target, "urn:lock"),
@@ -90,7 +96,10 @@ namespace WebDAVClient.UnitTests
                 await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.SyncCollectionAsync(DavPath.Root, null, Array.Empty<PropertyName>()));
             }
             await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.SyncCollectionAsync(DavPath.Root, null, Array.Empty<PropertyName>(),
-                options: new ReportOptions { Depth = DavDepth.One }));
+                options: new ReportOptions
+                {
+                    Depth = DavDepth.One
+                }));
         }
 
         [TestMethod]
@@ -120,37 +129,70 @@ namespace WebDAVClient.UnitTests
             }
             Assert.ThrowsException<ArgumentNullException>(() => new DavClient(null));
             Assert.ThrowsException<ArgumentNullException>(() => new DavClient(Endpoint, (System.Net.Http.HttpClient)null));
-            foreach (var timeout in new[] { TimeSpan.Zero, TimeSpan.FromSeconds(-2), TimeSpan.FromDays(100) })
+            foreach (var timeout in new[]
             {
-                Assert.ThrowsException<ArgumentOutOfRangeException>(() => new DavClient(Endpoint, new DavClientOptions { MetadataTimeout = timeout }));
+                TimeSpan.Zero, TimeSpan.FromSeconds(-2), TimeSpan.FromDays(100)
+            })
+            {
+                Assert.ThrowsException<ArgumentOutOfRangeException>(() => new DavClient(Endpoint, new DavClientOptions
+                {
+                    MetadataTimeout = timeout
+                }));
             }
             foreach (var limits in new[]
             {
-                new DavXmlLimits { MaxDepth = 0 }, new DavXmlLimits { MaxResourceCharacters = 0 }, new DavXmlLimits { MaxResponseCharacters = 0 }
+                new DavXmlLimits
+{
+MaxDepth = 0
+}, new DavXmlLimits
+{
+MaxResourceCharacters = 0
+}, new DavXmlLimits
+{
+MaxResponseCharacters = 0
+}
             })
             {
-                Assert.ThrowsException<ArgumentOutOfRangeException>(() => new DavClient(Endpoint, new DavClientOptions { XmlLimits = limits }));
+                Assert.ThrowsException<ArgumentOutOfRangeException>(() => new DavClient(Endpoint, new DavClientOptions
+                {
+                    XmlLimits = limits
+                }));
             }
-            using var valid = new DavClient(Endpoint, new DavClientOptions { MetadataTimeout = Timeout.InfiniteTimeSpan });
+            using var valid = new DavClient(Endpoint, new DavClientOptions
+            {
+                MetadataTimeout = Timeout.InfiniteTimeSpan
+            });
         }
 
         [TestMethod]
         public void Invalid_condition_grammar_and_timeouts_cannot_be_constructed()
         {
-            foreach (var token in new[] { "relative", "urn:a b", "urn:a>", "<urn:a>", "" })
+            foreach (var token in new[]
+            {
+                "relative", "urn:a b", "urn:a>", "<urn:a>", ""
+            })
             {
                 Assert.ThrowsException<ArgumentException>(() => DavCondition.StateToken(token));
             }
             Assert.ThrowsException<ArgumentException>(() => DavCondition.EntityTag("*"));
             Assert.ThrowsException<ArgumentNullException>(() => DavCondition.StateToken(null));
             Assert.ThrowsException<ArgumentException>(() => new DavConditionList());
-            Assert.ThrowsException<ArgumentException>(() => new DavConditionList(new DavCondition[] { null }));
+            Assert.ThrowsException<ArgumentException>(() => new DavConditionList(new DavCondition[]
+                {
+                    null
+                }));
             Assert.ThrowsException<ArgumentNullException>(() => new DavConditionList(null));
             Assert.ThrowsException<ArgumentException>(() => DavIfConditions.Untagged());
-            Assert.ThrowsException<ArgumentException>(() => DavIfConditions.Untagged(new DavConditionList[] { null }));
+            Assert.ThrowsException<ArgumentException>(() => DavIfConditions.Untagged(new DavConditionList[]
+                {
+                    null
+                }));
             Assert.ThrowsException<ArgumentNullException>(() => DavIfConditions.Untagged(null));
             Assert.ThrowsException<ArgumentException>(() => DavIfConditions.Tagged());
-            Assert.ThrowsException<ArgumentException>(() => DavIfConditions.Tagged(new DavTaggedConditions[] { null }));
+            Assert.ThrowsException<ArgumentException>(() => DavIfConditions.Tagged(new DavTaggedConditions[]
+                {
+                    null
+                }));
             Assert.ThrowsException<ArgumentNullException>(() => DavIfConditions.Tagged(null));
             Assert.ThrowsException<ArgumentNullException>(() => new DavTaggedConditions(null, new DavConditionList(DavCondition.EntityTag("\"e\""))));
             Assert.ThrowsException<ArgumentOutOfRangeException>(() => DavLockTimeout.Finite(TimeSpan.Zero));
@@ -174,25 +216,61 @@ namespace WebDAVClient.UnitTests
             using var handler = new StubHttpMessageHandler(_ => throw new AssertFailedException("Unexpected I/O"));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.PropFindAsync(Target, new PropFindOptions { Properties = new PropertyName[] { null } }));
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.UpdatePropertiesAsync(Target, new DavPropertyChange[] { null }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.PropFindAsync(Target, new PropFindOptions
+            {
+                Properties = new PropertyName[]
+                {
+                    null
+                }
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.UpdatePropertiesAsync(Target, new DavPropertyChange[]
+                {
+                    null
+                }));
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => client.UploadAsync(Target, null));
             using var unreadable = new MemoryStream();
             unreadable.Dispose();
             await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.UploadAsync(Target, unreadable));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => client.AcquireLockAsync(Target, new LockOptions { Timeouts = null }));
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.AcquireLockAsync(Target, new LockOptions { Timeouts = new DavLockTimeout[] { null } }));
-            foreach (var range in new[] { new RangeHeaderValue(null, 0), RangeHeaderValue.Parse("items=0-2"), RangeHeaderValue.Parse("bytes=0-1,3-4") })
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => client.AcquireLockAsync(Target, new LockOptions
             {
-                await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.DownloadAsync(Target, new DownloadOptions { Range = range }));
+                Timeouts = null
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.AcquireLockAsync(Target, new LockOptions
+            {
+                Timeouts = new DavLockTimeout[]
+                {
+                    null
+                }
+            }));
+            foreach (var range in new[]
+            {
+                new RangeHeaderValue(null, 0), RangeHeaderValue.Parse("items=0-2"), RangeHeaderValue.Parse("bytes=0-1,3-4")
+            })
+            {
+                await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.DownloadAsync(Target, new DownloadOptions
+                {
+                    Range = range
+                }));
             }
             foreach (var headers in new[]
             {
-                new Dictionary<string, string> { ["X-Test"] = null }, new Dictionary<string, string> { ["X-\rTest"] = "value" },
-                new Dictionary<string, string> { ["Host"] = "evil.example" }
+                new Dictionary<string, string>
+{
+["X-Test"] = null
+}, new Dictionary<string, string>
+{
+["X-\rTest"] = "value"
+},
+                new Dictionary<string, string>
+{
+["Host"] = "evil.example"
+}
             })
             {
-                await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.DeleteAsync(Target, new DavRequestOptions { Headers = headers }));
+                await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.DeleteAsync(Target, new DavRequestOptions
+                {
+                    Headers = headers
+                }));
             }
             Assert.AreEqual(0, handler.Requests.Count);
         }
@@ -200,7 +278,10 @@ namespace WebDAVClient.UnitTests
         [TestMethod]
         public async Task Well_formed_http_rejections_are_results_while_missing_confirmation_is_a_protocol_error()
         {
-            foreach (var status in new[] { 200, 204, 403 })
+            foreach (var status in new[]
+            {
+                200, 204, 403
+            })
             {
                 using var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage((HttpStatusCode)status));
                 using var http = new System.Net.Http.HttpClient(handler);
@@ -247,7 +328,9 @@ namespace WebDAVClient.UnitTests
             await using var listing = await client.OpenListingAsync(Target);
             await Assert.ThrowsExceptionAsync<WebDAVException>(async () =>
             {
-                await foreach (var resource in listing.ReadResourcesAsync()) { }
+                await foreach (var resource in listing.ReadResourcesAsync())
+                {
+                }
             });
             Assert.IsFalse(listing.IsComplete);
         }
@@ -264,7 +347,9 @@ namespace WebDAVClient.UnitTests
             await using var listing = await client.OpenListingAsync(Target);
             await Assert.ThrowsExceptionAsync<WebDAVException>(async () =>
             {
-                await foreach (var resource in listing.ReadResourcesAsync()) { }
+                await foreach (var resource in listing.ReadResourcesAsync())
+                {
+                }
             });
         }
 
@@ -275,7 +360,10 @@ namespace WebDAVClient.UnitTests
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
             await using var listing = await client.OpenListingAsync(Target);
-            await foreach (var resource in listing.ReadResourcesAsync()) { Assert.Fail("Expected no members."); }
+            await foreach (var resource in listing.ReadResourcesAsync())
+            {
+                Assert.Fail("Expected no members.");
+            }
             Assert.IsTrue(listing.IsComplete);
             await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.DeleteAsync(Target));
         }
@@ -283,7 +371,10 @@ namespace WebDAVClient.UnitTests
         [TestMethod]
         public async Task Streaming_disallows_concurrent_enumeration_and_non_multistatus_success()
         {
-            foreach (var status in new[] { 200, 207, 403 })
+            foreach (var status in new[]
+            {
+                200, 207, 403
+            })
             {
                 using var handler = new StubHttpMessageHandler(_ => XmlResponse(Multi(Resource() + Resource()), status));
                 using var http = new System.Net.Http.HttpClient(handler);
@@ -340,7 +431,10 @@ namespace WebDAVClient.UnitTests
             using var handler = new StubHttpMessageHandler(_ => XmlResponse(document.ToString(), 200));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            var result = await client.RefreshLockAsync(Target, "urn:token", new[] { DavLockTimeout.Infinite });
+            var result = await client.RefreshLockAsync(Target, "urn:token", new[]
+                {
+                    DavLockTimeout.Infinite
+                });
             Assert.AreEqual(2, result.Locks.Count);
             Assert.IsNull(result.Locks[0].Token);
             Assert.IsNull(result.Locks[0].Root);
@@ -378,11 +472,17 @@ namespace WebDAVClient.UnitTests
         [TestMethod]
         public async Task Range_validation_covers_unknown_total_open_ranges_and_unrequested_partial_content()
         {
-            foreach (var requested in new[] { (RangeHeaderValue)null, new RangeHeaderValue(0, null), new RangeHeaderValue(null, 2), new RangeHeaderValue(0, 2) })
+            foreach (var requested in new[]
+            {
+                (RangeHeaderValue)null, new RangeHeaderValue(0, null), new RangeHeaderValue(null, 2), new RangeHeaderValue(0, 2)
+            })
             {
                 using var handler = new StubHttpMessageHandler(_ =>
                 {
-                    var response = new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = new ByteArrayContent(new byte[3]) };
+                    var response = new HttpResponseMessage(HttpStatusCode.PartialContent)
+                    {
+                        Content = new ByteArrayContent(new byte[3])
+                    };
                     response.Content.Headers.ContentRange = new ContentRangeHeaderValue(0, 2);
                     return response;
                 });
@@ -390,14 +490,20 @@ namespace WebDAVClient.UnitTests
                 using var client = new DavClient(Endpoint, http);
                 if (requested?.Ranges.Single().From == 0 && requested.Ranges.Single().To == 2)
                 {
-                    using var result = await client.DownloadAsync(Target, new DownloadOptions { Range = requested });
+                    using var result = await client.DownloadAsync(Target, new DownloadOptions
+                    {
+                        Range = requested
+                    });
                     Assert.IsNotNull(result.Content);
                     result.Dispose();
                     await result.DisposeAsync();
                 }
                 else
                 {
-                    await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.DownloadAsync(Target, new DownloadOptions { Range = requested }));
+                    await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.DownloadAsync(Target, new DownloadOptions
+                    {
+                        Range = requested
+                    }));
                 }
             }
         }
@@ -405,7 +511,10 @@ namespace WebDAVClient.UnitTests
         [TestMethod]
         public async Task Download_preserves_dav_errors_and_rejects_success_without_content()
         {
-            foreach (var status in new[] { 204, 412 })
+            foreach (var status in new[]
+            {
+                204, 412
+            })
             {
                 using var handler = new StubHttpMessageHandler(_ => XmlResponse("<D:error xmlns:D=\"DAV:\"><D:condition/></D:error>", status));
                 using var http = new System.Net.Http.HttpClient(handler);

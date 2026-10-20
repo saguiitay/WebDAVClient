@@ -57,6 +57,7 @@ including improvements previously planned for 2.8.0. Do not imply feed publicati
 ## Conventions specific to this repo
 
 - **Braces**: always use `{}` for C# control-flow bodies, including single statements in library, sample, and test code. `.editorconfig` sets IDE0011 to error, and CI verifies it with the targeted formatting command above.
+- **Layout**: put braces on separate lines, including short blocks and accessors. Leave a blank line between members, including before their XML documentation or attributes. Use multiline XML documentation elements rather than inline `<summary>...</summary>` comments; self-closing `<inheritdoc/>` references remain appropriate.
 - **Path handling is opinionated**: `Server` is stored without a trailing slash; `BasePath` is normalized to `"/" + value + "/"` (or `"/"` if empty). Don't bypass these setters when constructing URLs internally — use `m_server` / `m_basePath` / `m_encodedBasePath`.
 - **Async**: public I/O methods return tasks and accept a trailing `CancellationToken cancellationToken = default`. Always add `.ConfigureAwait(false)` on awaits in library code (per release-notes 1.0.7 and existing usage). Thread tokens through discovery and body reads, not only HTTP sends.
 - **Field naming**: instance fields use `m_camelCase`, statics use `s_camelCase`, constants use `c_camelCase`. Match this when adding new members in `Client.cs` / `HttpClientWrapper.cs`.

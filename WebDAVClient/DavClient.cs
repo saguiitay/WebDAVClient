@@ -24,9 +24,13 @@ namespace WebDAVClient
     public sealed class DavClient : IDisposable
     {
         private readonly System.Net.Http.HttpClient m_transport;
+
         private readonly bool m_ownsTransport;
+
         private readonly DavClientOptions m_options;
+
         private bool m_disposed;
+
         private static readonly HashSet<string> s_reservedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "Authorization", "Proxy-Authorization", "Host", "Cookie", "Content-Length", "Transfer-Encoding",
@@ -34,18 +38,36 @@ namespace WebDAVClient
             "If-Match", "If-None-Match", "If-Modified-Since", "If-Unmodified-Since", "If-Range", "Range", "Accept-Encoding"
         };
 
-        /// <summary>Creates an anonymous owned transport with redirects and decompression disabled.</summary>
-        /// <param name="endpoint">Absolute HTTP(S) collection URI ending in '/', without query, fragment or user information.</param>
-        /// <param name="options">Immutable defaults.</param>
+        /// <summary>
+        /// Creates an anonymous owned transport with redirects and decompression disabled.
+        /// </summary>
+        /// <param name="endpoint">
+        /// Absolute HTTP(S) collection URI ending in '/', without query, fragment or user information.
+        /// </param>
+        /// <param name="options">
+        /// Immutable defaults.
+        /// </param>
         public DavClient(Uri endpoint, DavClientOptions? options = null)
-            : this(endpoint, null, options, true) { }
+            : this(endpoint, null, options, true)
+        {
+        }
 
-        /// <summary>Uses a caller-owned transport. Configure auth/TLS and disable automatic redirects on its handler before injection.</summary>
-        /// <param name="endpoint">Absolute HTTP(S) collection URI ending in '/', without query, fragment or user information.</param>
-        /// <param name="transport">Caller-owned HttpClient; must not use automatic redirects or default protocol/auth headers.</param>
-        /// <param name="options">Immutable defaults. HttpClient.Timeout still limits the send independently.</param>
+        /// <summary>
+        /// Uses a caller-owned transport. Configure auth/TLS and disable automatic redirects on its handler before injection.
+        /// </summary>
+        /// <param name="endpoint">
+        /// Absolute HTTP(S) collection URI ending in '/', without query, fragment or user information.
+        /// </param>
+        /// <param name="transport">
+        /// Caller-owned HttpClient; must not use automatic redirects or default protocol/auth headers.
+        /// </param>
+        /// <param name="options">
+        /// Immutable defaults. HttpClient.Timeout still limits the send independently.
+        /// </param>
         public DavClient(Uri endpoint, System.Net.Http.HttpClient transport, DavClientOptions? options = null)
-            : this(endpoint, transport ?? throw new ArgumentNullException(nameof(transport)), options, false) { }
+            : this(endpoint, transport ?? throw new ArgumentNullException(nameof(transport)), options, false)
+        {
+        }
 
         private DavClient(Uri endpoint, System.Net.Http.HttpClient? transport, DavClientOptions? options, bool owns)
         {
@@ -75,10 +97,17 @@ namespace WebDAVClient
             });
         }
 
-        /// <summary>The immutable base collection URI. It is not an access-control boundary.</summary>
-        public Uri Endpoint { get; }
+        /// <summary>
+        /// The immutable base collection URI. It is not an access-control boundary.
+        /// </summary>
+        public Uri Endpoint
+        {
+            get;
+        }
 
-        /// <summary>Resolves an escaped reference and enforces scheme/host/port identity without performing discovery or I/O.</summary>
+        /// <summary>
+        /// Resolves an escaped reference and enforces scheme/host/port identity without performing discovery or I/O.
+        /// </summary>
         public Uri Resolve(DavPath path)
         {
             ArgumentNullException.ThrowIfNull(path);
@@ -92,7 +121,9 @@ namespace WebDAVClient
             return uri;
         }
 
-        /// <summary>Retrieves resource-scoped OPTIONS evidence. Missing advertisements remain unknown.</summary>
+        /// <summary>
+        /// Retrieves resource-scoped OPTIONS evidence. Missing advertisements remain unknown.
+        /// </summary>
         public async Task<DavCapabilities> GetCapabilitiesAsync(DavPath path, DavRequestOptions? options = null, CancellationToken cancellationToken = default)
         {
             using var request = CreateRequest("OPTIONS", path, options);
@@ -101,7 +132,9 @@ namespace WebDAVClient
             return new DavCapabilities(response, request.RequestUri!, Errors(document));
         }
 
-        /// <summary>Retrieves HTTP HEAD metadata without downloading content.</summary>
+        /// <summary>
+        /// Retrieves HTTP HEAD metadata without downloading content.
+        /// </summary>
         public async Task<DavResponse> HeadAsync(DavPath path, DavRequestOptions? options = null, CancellationToken cancellationToken = default)
         {
             using var request = CreateRequest("HEAD", path, options);
@@ -109,14 +142,18 @@ namespace WebDAVClient
             return new DavResponse(response, request.RequestUri!, "HEAD");
         }
 
-        /// <summary>Returns every PROPFIND resource, including the addressed resource, without legacy filtering.</summary>
+        /// <summary>
+        /// Returns every PROPFIND resource, including the addressed resource, without legacy filtering.
+        /// </summary>
         public Task<DavMultiStatusResult> PropFindAsync(DavPath path, PropFindOptions? options = null, CancellationToken cancellationToken = default)
         {
             var request = CreatePropFind(path, options ?? new PropFindOptions());
             return ExecuteMultiStatusAsync(request, requireMultiStatus: true, cancellationToken);
         }
 
-        /// <summary>Opens a response-owning, single-use listing. Enumerate to completion before treating it as a complete observation.</summary>
+        /// <summary>
+        /// Opens a response-owning, single-use listing. Enumerate to completion before treating it as a complete observation.
+        /// </summary>
         public async Task<DavListing> OpenListingAsync(DavPath path, PropFindOptions? options = null, CancellationToken cancellationToken = default)
         {
             using var request = CreatePropFind(path, options ?? new PropFindOptions());
@@ -124,7 +161,9 @@ namespace WebDAVClient
             return new DavListing(response, request.RequestUri!, m_options.XmlLimits, m_options.MetadataTimeout, cancellationToken);
         }
 
-        /// <summary>Submits ordered set/remove instructions in one server-atomic PROPPATCH, including writable DAV properties.</summary>
+        /// <summary>
+        /// Submits ordered set/remove instructions in one server-atomic PROPPATCH, including writable DAV properties.
+        /// </summary>
         public Task<DavMultiStatusResult> UpdatePropertiesAsync(DavPath path, IReadOnlyList<DavPropertyChange> changes,
             DavRequestOptions? options = null, CancellationToken cancellationToken = default)
         {
@@ -142,23 +181,33 @@ namespace WebDAVClient
             return ExecuteMultiStatusAsync(request, requireMultiStatus: true, cancellationToken, expectedProperties: snapshot.Select(c => c.Name).Distinct().ToArray());
         }
 
-        /// <summary>Creates a collection with no request body. Conditions can apply to its locked parent.</summary>
+        /// <summary>
+        /// Creates a collection with no request body. Conditions can apply to its locked parent.
+        /// </summary>
         public Task<DavMultiStatusResult> CreateCollectionAsync(DavPath path, DavRequestOptions? options = null, CancellationToken cancellationToken = default) =>
             ExecuteMultiStatusAsync(CreateRequest("MKCOL", path, options), false, cancellationToken);
 
-        /// <summary>Deletes a resource; collection deletion has infinite-depth semantics and may report partial outcomes.</summary>
+        /// <summary>
+        /// Deletes a resource; collection deletion has infinite-depth semantics and may report partial outcomes.
+        /// </summary>
         public Task<DavMultiStatusResult> DeleteAsync(DavPath path, DavRequestOptions? options = null, CancellationToken cancellationToken = default) =>
             ExecuteMultiStatusAsync(CreateRequest("DELETE", path, options), false, cancellationToken);
 
-        /// <summary>Moves a resource without silently falling back to copy/delete. Replacement defaults to false.</summary>
+        /// <summary>
+        /// Moves a resource without silently falling back to copy/delete. Replacement defaults to false.
+        /// </summary>
         public Task<DavMultiStatusResult> MoveAsync(DavPath source, DavPath destination, MoveOptions? options = null, CancellationToken cancellationToken = default) =>
             ExecuteMultiStatusAsync(CreateNamespaceRequest("MOVE", source, destination, options ?? new MoveOptions()), false, cancellationToken);
 
-        /// <summary>Copies a resource at depth Zero or Infinity. Replacement defaults to false.</summary>
+        /// <summary>
+        /// Copies a resource at depth Zero or Infinity. Replacement defaults to false.
+        /// </summary>
         public Task<DavMultiStatusResult> CopyAsync(DavPath source, DavPath destination, CopyOptions? options = null, CancellationToken cancellationToken = default) =>
             ExecuteMultiStatusAsync(CreateNamespaceRequest("COPY", source, destination, options ?? new CopyOptions()), false, cancellationToken);
 
-        /// <summary>Uploads the full representation. Input remains caller-owned unless DisposeContent is explicitly selected.</summary>
+        /// <summary>
+        /// Uploads the full representation. Input remains caller-owned unless DisposeContent is explicitly selected.
+        /// </summary>
         public Task<DavMultiStatusResult> UploadAsync(DavPath path, Stream content, UploadOptions? options = null, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(content);
@@ -226,7 +275,9 @@ namespace WebDAVClient
             }
         }
 
-        /// <summary>Acquires an exclusive/shared write lock with explicit depth and ordered timeout preferences.</summary>
+        /// <summary>
+        /// Acquires an exclusive/shared write lock with explicit depth and ordered timeout preferences.
+        /// </summary>
         public Task<DavLockResult> AcquireLockAsync(DavPath path, LockOptions? options = null, CancellationToken cancellationToken = default)
         {
             options ??= new LockOptions();
@@ -250,17 +301,27 @@ namespace WebDAVClient
             return ExecuteLockAsync(request, false, cancellationToken);
         }
 
-        /// <summary>Refreshes a lock without a body. The requested timeout is not substituted for an absent granted timeout.</summary>
+        /// <summary>
+        /// Refreshes a lock without a body. The requested timeout is not substituted for an absent granted timeout.
+        /// </summary>
         public Task<DavLockResult> RefreshLockAsync(DavPath path, string token, IReadOnlyList<DavLockTimeout>? timeouts = null, CancellationToken cancellationToken = default)
         {
             var conditions = DavIfConditions.Untagged(new DavConditionList(DavCondition.StateToken(token)));
-            var timeout = TimeoutHeader(timeouts ?? new[] { DavLockTimeout.Finite(TimeSpan.FromMinutes(10)) });
-            var request = CreateRequest("LOCK", path, new DavRequestOptions { Conditions = conditions });
+            var timeout = TimeoutHeader(timeouts ?? new[]
+            {
+                DavLockTimeout.Finite(TimeSpan.FromMinutes(10))
+            });
+            var request = CreateRequest("LOCK", path, new DavRequestOptions
+            {
+                Conditions = conditions
+            });
             request.Headers.Add("Timeout", timeout);
             return ExecuteLockAsync(request, true, cancellationToken);
         }
 
-        /// <summary>Releases the identified lock; the token is opaque and must be supplied without brackets.</summary>
+        /// <summary>
+        /// Releases the identified lock; the token is opaque and must be supplied without brackets.
+        /// </summary>
         public Task<DavMultiStatusResult> UnlockAsync(DavPath path, string token, CancellationToken cancellationToken = default)
         {
             DavCondition.ValidateToken(token);
@@ -296,11 +357,20 @@ namespace WebDAVClient
             try
             {
                 request.Headers.UserAgent.ParseAdd("WebDAVClient/" + typeof(DavClient).Assembly.GetName().Version);
-                if (options?.IfMatch != null) { request.Headers.IfMatch.ParseAdd(options.IfMatch); }
-                if (options?.IfNoneMatch != null) { request.Headers.IfNoneMatch.ParseAdd(options.IfNoneMatch); }
+                if (options?.IfMatch != null)
+                {
+                    request.Headers.IfMatch.ParseAdd(options.IfMatch);
+                }
+                if (options?.IfNoneMatch != null)
+                {
+                    request.Headers.IfNoneMatch.ParseAdd(options.IfNoneMatch);
+                }
                 request.Headers.IfModifiedSince = options?.IfModifiedSince;
                 request.Headers.IfUnmodifiedSince = options?.IfUnmodifiedSince;
-                if (condition != null) { request.Headers.Add("If", condition); }
+                if (condition != null)
+                {
+                    request.Headers.Add("If", condition);
+                }
                 if (headers != null)
                 {
                     foreach (var header in headers)
@@ -356,7 +426,10 @@ namespace WebDAVClient
             var request = CreateRequest(method, source, options);
             request.Headers.Add("Destination", target.AbsoluteUri);
             request.Headers.Add("Overwrite", options.Overwrite ? "T" : "F");
-            if (depth != null) { request.Headers.Add("Depth", depth); }
+            if (depth != null)
+            {
+                request.Headers.Add("Depth", depth);
+            }
             return request;
         }
 
@@ -382,58 +455,62 @@ namespace WebDAVClient
             CancellationToken token, IReadOnlyList<PropertyName>? expectedProperties = null)
         {
             using (request)
-            using (var response = await SendAsync(request, token).ConfigureAwait(false))
             {
-                if (response.IsSuccessStatusCode && requireMultiStatus && (int)response.StatusCode != 207)
+                using (var response = await SendAsync(request, token).ConfigureAwait(false))
                 {
-                    throw ProtocolError(response, request, "This operation requires a 207 multistatus response.");
-                }
-                var document = await ReadOptionalXmlAsync(response, request, token, (int)response.StatusCode == 207).ConfigureAwait(false);
-                var resources = ParseResources(document, response, request);
-                if ((int)response.StatusCode == 207 && request.Method.Method != "PROPFIND" && resources.Count == 0)
-                {
-                    throw ProtocolError(response, request, "No resource outcomes were reported.");
-                }
-                if ((int)response.StatusCode == 207 && expectedProperties != null)
-                {
-                    if (resources.Count != 1 || new Uri(request.RequestUri!, resources[0].Hrefs[0]) != request.RequestUri
-                        || expectedProperties.Any(name => !resources[0].GetProperties(name).Any()))
+                    if (response.IsSuccessStatusCode && requireMultiStatus && (int)response.StatusCode != 207)
                     {
-                        throw ProtocolError(response, request, "PROPPATCH did not report outcomes for every requested property on the target resource.");
+                        throw ProtocolError(response, request, "This operation requires a 207 multistatus response.");
                     }
+                    var document = await ReadOptionalXmlAsync(response, request, token, (int)response.StatusCode == 207).ConfigureAwait(false);
+                    var resources = ParseResources(document, response, request);
+                    if ((int)response.StatusCode == 207 && request.Method.Method != "PROPFIND" && resources.Count == 0)
+                    {
+                        throw ProtocolError(response, request, "No resource outcomes were reported.");
+                    }
+                    if ((int)response.StatusCode == 207 && expectedProperties != null)
+                    {
+                        if (resources.Count != 1 || new Uri(request.RequestUri!, resources[0].Hrefs[0]) != request.RequestUri
+                            || expectedProperties.Any(name => !resources[0].GetProperties(name).Any()))
+                        {
+                            throw ProtocolError(response, request, "PROPPATCH did not report outcomes for every requested property on the target resource.");
+                        }
+                    }
+                    return new DavMultiStatusResult(response, request.RequestUri!, request.Method.Method, resources, Errors(document),
+                        document == null ? null : new DavXmlValue(document));
                 }
-                return new DavMultiStatusResult(response, request.RequestUri!, request.Method.Method, resources, Errors(document),
-                    document == null ? null : new DavXmlValue(document));
             }
         }
 
         private async Task<DavLockResult> ExecuteLockAsync(HttpRequestMessage request, bool refresh, CancellationToken token)
         {
             using (request)
-            using (var response = await SendAsync(request, token).ConfigureAwait(false))
             {
-                var document = await ReadOptionalXmlAsync(response, request, token, response.IsSuccessStatusCode && !refresh || (int)response.StatusCode == 207).ConfigureAwait(false);
-                IReadOnlyList<DavLock> locks = Array.Empty<DavLock>();
-                if (response.IsSuccessStatusCode && (int)response.StatusCode != 207 && document != null)
+                using (var response = await SendAsync(request, token).ConfigureAwait(false))
                 {
-                    try
+                    var document = await ReadOptionalXmlAsync(response, request, token, response.IsSuccessStatusCode && !refresh || (int)response.StatusCode == 207).ConfigureAwait(false);
+                    IReadOnlyList<DavLock> locks = Array.Empty<DavLock>();
+                    if (response.IsSuccessStatusCode && (int)response.StatusCode != 207 && document != null)
                     {
-                        if (document.Name != DavXml.Dav + "prop")
+                        try
                         {
-                            throw new XmlException("LOCK requires a DAV:prop root.");
+                            if (document.Name != DavXml.Dav + "prop")
+                            {
+                                throw new XmlException("LOCK requires a DAV:prop root.");
+                            }
+                            locks = DavXml.ParseLocks(document, DateTimeOffset.UtcNow);
+                            if (locks.Count == 0)
+                            {
+                                throw new XmlException("No active locks were reported.");
+                            }
                         }
-                        locks = DavXml.ParseLocks(document, DateTimeOffset.UtcNow);
-                        if (locks.Count == 0)
+                        catch (XmlException exception)
                         {
-                            throw new XmlException("No active locks were reported.");
+                            throw ProtocolError(response, request, "Malformed LOCK response.", exception);
                         }
                     }
-                    catch (XmlException exception)
-                    {
-                        throw ProtocolError(response, request, "Malformed LOCK response.", exception);
-                    }
+                    return new DavLockResult(response, request.RequestUri!, locks, ParseResources(document, response, request), Errors(document));
                 }
-                return new DavLockResult(response, request.RequestUri!, locks, ParseResources(document, response, request), Errors(document));
             }
         }
 
@@ -542,23 +619,35 @@ namespace WebDAVClient
             }
         }
 
-        /// <summary>Disposes only a transport created by this client. Existing response owners remain independently disposable.</summary>
+        /// <summary>
+        /// Disposes only a transport created by this client. Existing response owners remain independently disposable.
+        /// </summary>
         public void Dispose()
         {
             if (!m_disposed)
             {
                 m_disposed = true;
-                if (m_ownsTransport) { m_transport.Dispose(); }
+                if (m_ownsTransport)
+                {
+                    m_transport.Dispose();
+                }
             }
         }
 
         private sealed class BorrowedContent : HttpContent
         {
             private readonly Stream m_content;
-            internal BorrowedContent(Stream content) { m_content = content; }
+
+            internal BorrowedContent(Stream content)
+            {
+                m_content = content;
+            }
+
             protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) => m_content.CopyToAsync(stream);
+
             protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context, CancellationToken cancellationToken) =>
                 m_content.CopyToAsync(stream, cancellationToken);
+
             protected override bool TryComputeLength(out long length)
             {
                 length = m_content.CanSeek ? m_content.Length - m_content.Position : 0;

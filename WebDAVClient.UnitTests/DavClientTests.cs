@@ -23,12 +23,17 @@ namespace WebDAVClient.UnitTests
     public class DavClientTests
     {
         internal static readonly Uri Endpoint = new Uri("https://example.com/dav/");
+
         internal static readonly DavPath File = DavPath.FromSegments("file");
+
         internal static string Multi(string members) => "<D:multistatus xmlns:D=\"DAV:\" xmlns:X=\"urn:test\">" + members + "</D:multistatus>";
+
         internal static string Resource(string properties = "<D:displayname>file</D:displayname>", int status = 200, string href = "/dav/file") =>
             "<D:response><D:href>" + href + "</D:href><D:propstat><D:prop>" + properties + "</D:prop><D:status>HTTP/1.1 " + status + " Result</D:status></D:propstat></D:response>";
+
         internal static string Member(int status, string href = "/dav/file") =>
             "<D:response><D:href>" + href + "</D:href><D:status>HTTP/1.1 " + status + " Result</D:status></D:response>";
+
         internal static HttpResponseMessage XmlResponse(string xml, int code = 207) => new HttpResponseMessage((HttpStatusCode)code)
         {
             Content = new StringContent(xml, Encoding.UTF8, "application/xml")
@@ -62,8 +67,12 @@ namespace WebDAVClient.UnitTests
             using var client = new DavClient(Endpoint, http);
             var result = await client.PropFindAsync(DavPath.Root, new PropFindOptions
             {
-                Selection = selection, Depth = depth,
-                Properties = selection == DavPropertySelection.Names ? null : new[] { new PropertyName("urn:test", "a") }
+                Selection = selection,
+                Depth = depth,
+                Properties = selection == DavPropertySelection.Names ? null : new[]
+                {
+                    new PropertyName("urn:test", "a")
+                }
             });
             var request = handler.Requests.Single();
             var body = XElement.Parse(request.BodyAsString());
@@ -86,11 +95,18 @@ namespace WebDAVClient.UnitTests
             using var client = new DavClient(Endpoint, http);
             var name = new PropertyName("DAV:", "displayname");
             var result = await client.UpdatePropertiesAsync(File, new[]
-            {
-                DavPropertyChange.Remove(name), DavPropertyChange.Set(DavXmlValue.Text(name, "new & name")), DavPropertyChange.Remove(name)
-            }, new DavRequestOptions { IfMatch = "\"etag\"", Conditions = DavIfConditions.Untagged(new DavConditionList(DavCondition.StateToken("urn:lock:1"))) });
+                {
+                    DavPropertyChange.Remove(name), DavPropertyChange.Set(DavXmlValue.Text(name, "new & name")), DavPropertyChange.Remove(name)
+                }, new DavRequestOptions
+                {
+                    IfMatch = "\"etag\"",
+                    Conditions = DavIfConditions.Untagged(new DavConditionList(DavCondition.StateToken("urn:lock:1")))
+                });
             result.EnsureSucceeded();
-            CollectionAssert.AreEqual(new[] { "remove", "set", "remove" }, XElement.Parse(handler.Requests.Single().BodyAsString()).Elements().Select(e => e.Name.LocalName).ToArray());
+            CollectionAssert.AreEqual(new[]
+                {
+                    "remove", "set", "remove"
+                }, XElement.Parse(handler.Requests.Single().BodyAsString()).Elements().Select(e => e.Name.LocalName).ToArray());
             Assert.AreEqual("\"etag\"", handler.Requests[0].Headers["If-Match"].Single());
             Assert.AreEqual("(<urn:lock:1>)", handler.Requests[0].Headers["If"].Single());
         }
@@ -112,7 +128,11 @@ namespace WebDAVClient.UnitTests
                 "MKCOL" => await client.CreateCollectionAsync(File),
                 "DELETE" => await client.DeleteAsync(File),
                 "MOVE" => await client.MoveAsync(File, destination),
-                "COPY" => await client.CopyAsync(File, destination, new CopyOptions { Depth = DavDepth.Zero, Overwrite = true }),
+                "COPY" => await client.CopyAsync(File, destination, new CopyOptions
+                {
+                    Depth = DavDepth.Zero,
+                    Overwrite = true
+                }),
                 _ => await client.UnlockAsync(File, "urn:lock:1")
             };
             var captured = handler.Requests.Single();
@@ -154,7 +174,12 @@ namespace WebDAVClient.UnitTests
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
             using var content = new NonSeekableStream();
-            var result = await client.UploadAsync(File, content, new UploadOptions { DisposeContent = transferOwnership, IfNoneMatch = "*", ContentType = "text/plain" });
+            var result = await client.UploadAsync(File, content, new UploadOptions
+            {
+                DisposeContent = transferOwnership,
+                IfNoneMatch = "*",
+                ContentType = "text/plain"
+            });
             result.EnsureSucceeded();
             Assert.AreEqual(transferOwnership, content.Disposed);
             Assert.AreEqual("payload", handler.Requests.Single().BodyAsString());
@@ -181,7 +206,10 @@ namespace WebDAVClient.UnitTests
             using var handler = new StubHttpMessageHandler(_ =>
             {
                 var response = new HttpResponseMessage(HttpStatusCode.NoContent);
-                response.Headers.Add("DAV", new[] { "1, 3", "<urn:unknown>" });
+                response.Headers.Add("DAV", new[]
+                    {
+                        "1, 3", "<urn:unknown>"
+                    });
                 response.Content.Headers.Add("Allow", "GET, PROPFIND");
                 response.Headers.Add("DASL", "<DAV:basicsearch>");
                 return response;
@@ -190,7 +218,10 @@ namespace WebDAVClient.UnitTests
             using var client = new DavClient(Endpoint, http);
             var result = await client.GetCapabilitiesAsync(DavPath.Root);
             result.EnsureHttpSuccess();
-            CollectionAssert.AreEqual(new[] { "1", "3", "<urn:unknown>" }, result.DavTokens.ToArray());
+            CollectionAssert.AreEqual(new[]
+                {
+                    "1", "3", "<urn:unknown>"
+                }, result.DavTokens.ToArray());
             Assert.AreEqual(2, result.AllowedMethods.Count);
             Assert.AreEqual("<DAV:basicsearch>", result.SearchGrammars.Single());
             Assert.IsTrue(result.ObservedAt <= DateTimeOffset.UtcNow);
@@ -207,7 +238,10 @@ namespace WebDAVClient.UnitTests
             using var content = new MemoryStream(Encoding.UTF8.GetBytes("payload"));
             using var handler = new StubHttpMessageHandler(_ =>
             {
-                var response = new HttpResponseMessage((HttpStatusCode)status) { Content = new StreamContent(content) };
+                var response = new HttpResponseMessage((HttpStatusCode)status)
+                {
+                    Content = new StreamContent(content)
+                };
                 response.Headers.ETag = new EntityTagHeaderValue("\"tag\"");
                 response.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
                 response.Content.Headers.LastModified = DateTimeOffset.UnixEpoch;
@@ -215,7 +249,10 @@ namespace WebDAVClient.UnitTests
             });
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            var result = await client.DownloadAsync(File, new DownloadOptions { IfNoneMatch = "\"tag\"" });
+            var result = await client.DownloadAsync(File, new DownloadOptions
+            {
+                IfNoneMatch = "\"tag\""
+            });
             Assert.AreEqual(status == 304, result.NotModified);
             Assert.AreEqual(status == 200, result.Content != null);
             Assert.AreEqual("\"tag\"", result.ETag);
@@ -236,7 +273,10 @@ namespace WebDAVClient.UnitTests
         {
             using var handler = new StubHttpMessageHandler(_ =>
             {
-                var response = new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = new ByteArrayContent(new byte[3]) };
+                var response = new HttpResponseMessage(HttpStatusCode.PartialContent)
+                {
+                    Content = new ByteArrayContent(new byte[3])
+                };
                 response.Content.Headers.ContentRange = new ContentRangeHeaderValue(0, 2, 3);
                 response.Headers.ETag = new EntityTagHeaderValue("\"tag\"");
                 return response;
@@ -245,7 +285,8 @@ namespace WebDAVClient.UnitTests
             using var client = new DavClient(Endpoint, http);
             using var result = await client.DownloadAsync(File, new DownloadOptions
             {
-                Range = new RangeHeaderValue(from, to), IfRange = new RangeConditionHeaderValue(new EntityTagHeaderValue("\"tag\""))
+                Range = new RangeHeaderValue(from, to),
+                IfRange = new RangeConditionHeaderValue(new EntityTagHeaderValue("\"tag\""))
             });
             Assert.AreEqual("bytes 0-2/3", result.ContentRange);
             Assert.AreEqual("identity", handler.Requests.Single().Headers["Accept-Encoding"].Single());
@@ -264,20 +305,36 @@ namespace WebDAVClient.UnitTests
             using var payload = new MemoryStream(new byte[3]);
             using var handler = new StubHttpMessageHandler(_ =>
             {
-                var response = new HttpResponseMessage(problem == "ignored" ? HttpStatusCode.OK : HttpStatusCode.PartialContent) { Content = new StreamContent(payload) };
+                var response = new HttpResponseMessage(problem == "ignored" ? HttpStatusCode.OK : HttpStatusCode.PartialContent)
+                {
+                    Content = new StreamContent(payload)
+                };
                 if (problem != "missing")
                 {
                     response.Content.Headers.ContentRange = new ContentRangeHeaderValue(problem == "wrong-start" ? 1 : 0, 2, 3);
                 }
-                if (problem == "wrong-length") { response.Content.Headers.ContentLength = 4; }
-                if (problem == "changed") { response.Headers.ETag = new EntityTagHeaderValue("\"other\""); }
-                if (problem == "encoded") { response.Content.Headers.ContentEncoding.Add("gzip"); }
+                if (problem == "wrong-length")
+                {
+                    response.Content.Headers.ContentLength = 4;
+                }
+                if (problem == "changed")
+                {
+                    response.Headers.ETag = new EntityTagHeaderValue("\"other\"");
+                }
+                if (problem == "encoded")
+                {
+                    response.Content.Headers.ContentEncoding.Add("gzip");
+                }
                 return response;
             });
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
             await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.DownloadAsync(File,
-                new DownloadOptions { Range = new RangeHeaderValue(0, 2), IfRange = new RangeConditionHeaderValue(new EntityTagHeaderValue("\"tag\"")) }));
+                new DownloadOptions
+                {
+                    Range = new RangeHeaderValue(0, 2),
+                    IfRange = new RangeConditionHeaderValue(new EntityTagHeaderValue("\"tag\""))
+                }));
             Assert.IsFalse(payload.CanRead);
         }
 
@@ -304,9 +361,13 @@ namespace WebDAVClient.UnitTests
             using var client = new DavClient(Endpoint, http);
             var result = await client.AcquireLockAsync(File, new LockOptions
             {
-                Scope = DavLockScope.Shared, Depth = DavDepth.Infinity,
+                Scope = DavLockScope.Shared,
+                Depth = DavDepth.Infinity,
                 Owner = new DavXmlValue(new XElement(XName.Get("owner", "DAV:"), "owner")),
-                Timeouts = new[] { DavLockTimeout.Infinite, DavLockTimeout.Finite(TimeSpan.FromSeconds(30)) }
+                Timeouts = new[]
+                {
+                    DavLockTimeout.Infinite, DavLockTimeout.Finite(TimeSpan.FromSeconds(30))
+                }
             });
             result.EnsureSucceeded();
             var granted = result.Locks.Single();
@@ -351,7 +412,10 @@ namespace WebDAVClient.UnitTests
             using var handler = new StubHttpMessageHandler(_ => XmlResponse(Multi(Member(404) + Member(507, "/dav/") + "<D:sync-token>urn:sync:next</D:sync-token>")));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            var result = await client.SyncCollectionAsync(DavPath.Root, "urn:sync:previous", new[] { DavProperties.ETag.Name }, limit: 10);
+            var result = await client.SyncCollectionAsync(DavPath.Root, "urn:sync:previous", new[]
+                {
+                    DavProperties.ETag.Name
+                }, limit: 10);
             Assert.AreEqual("urn:sync:next", result.SyncToken);
             Assert.IsTrue(result.HasMore);
             Assert.AreEqual(404, result.Response.Resources[0].StatusCode);
@@ -365,7 +429,10 @@ namespace WebDAVClient.UnitTests
         [TestMethod]
         public async Task Streaming_completion_requires_full_enumeration_and_error_tail_cannot_certify_a_snapshot()
         {
-            foreach (var suffix in new[] { "</D:multistatus>", "<broken>" })
+            foreach (var suffix in new[]
+            {
+                "</D:multistatus>", "<broken>"
+            })
             {
                 using var handler = new StubHttpMessageHandler(_ => XmlResponse("<D:multistatus xmlns:D=\"DAV:\">" + Resource() + Resource() + suffix));
                 using var http = new System.Net.Http.HttpClient(handler);
@@ -409,7 +476,9 @@ namespace WebDAVClient.UnitTests
             Assert.IsFalse(listing.IsComplete);
             await Assert.ThrowsExceptionAsync<ObjectDisposedException>(async () =>
             {
-                await foreach (var resource in listing.ReadResourcesAsync()) { }
+                await foreach (var resource in listing.ReadResourcesAsync())
+                {
+                }
             });
         }
 
@@ -426,7 +495,10 @@ namespace WebDAVClient.UnitTests
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http, new DavClientOptions
             {
-                XmlLimits = new DavXmlLimits { MaxResponseCharacters = 32 * 1024 * 1024 }
+                XmlLimits = new DavXmlLimits
+                {
+                    MaxResponseCharacters = 32 * 1024 * 1024
+                }
             });
             await using var listing = await client.OpenListingAsync(DavPath.Root);
             WeakReference first = null;
@@ -446,10 +518,23 @@ namespace WebDAVClient.UnitTests
 
         private sealed class NonSeekableStream : MemoryStream
         {
-            public NonSeekableStream() : base(Encoding.UTF8.GetBytes("payload")) { }
+            public NonSeekableStream() : base(Encoding.UTF8.GetBytes("payload"))
+            {
+            }
+
             public override bool CanSeek => false;
-            public bool Disposed { get; private set; }
-            protected override void Dispose(bool disposing) { Disposed = true; base.Dispose(disposing); }
+
+            public bool Disposed
+            {
+                get;
+                private set;
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                Disposed = true;
+                base.Dispose(disposing);
+            }
         }
     }
 }

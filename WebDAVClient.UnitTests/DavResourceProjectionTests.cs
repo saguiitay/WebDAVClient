@@ -58,10 +58,19 @@ namespace WebDAVClient.UnitTests
             Assert.IsNull(resource.StatusCode);
             Assert.AreEqual("", resource.Description);
             Assert.AreEqual("/dav/destination", resource.Location);
-            CollectionAssert.AreEqual(new[] { "outer-one", "outer-two" }, resource.Errors.Select(e => e.Name.LocalName).ToArray());
-            CollectionAssert.AreEqual(new[] { "href", "extension" }, resource.Extensions.Select(e => e.Name.LocalName).ToArray());
+            CollectionAssert.AreEqual(new[]
+                {
+                    "outer-one", "outer-two"
+                }, resource.Errors.Select(e => e.Name.LocalName).ToArray());
+            CollectionAssert.AreEqual(new[]
+                {
+                    "href", "extension"
+                }, resource.Extensions.Select(e => e.Name.LocalName).ToArray());
             Assert.AreEqual("first description", resource.PropertyStatuses[0].Description);
-            CollectionAssert.AreEqual(new[] { "one", "two" }, resource.PropertyStatuses[0].Errors.Select(e => e.Name.LocalName).ToArray());
+            CollectionAssert.AreEqual(new[]
+                {
+                    "one", "two"
+                }, resource.PropertyStatuses[0].Errors.Select(e => e.Name.LocalName).ToArray());
 
             var properties = resource.GetProperties(new PropertyName("urn:test", "a"));
             using (var iterator = properties.GetEnumerator())
@@ -69,8 +78,14 @@ namespace WebDAVClient.UnitTests
                 Assert.IsTrue(iterator.MoveNext());
                 Assert.AreEqual("first", iterator.Current.Value.ToElement().Value);
             }
-            CollectionAssert.AreEqual(new[] { 200, 200, 404 }, properties.Select(p => p.StatusCode.Value).ToArray());
-            CollectionAssert.AreEqual(new[] { "first", "second", "" }, properties.Select(p => p.Value.ToElement().Value).ToArray());
+            CollectionAssert.AreEqual(new[]
+                {
+                    200, 200, 404
+                }, properties.Select(p => p.StatusCode.Value).ToArray());
+            CollectionAssert.AreEqual(new[]
+                {
+                    "first", "second", ""
+                }, properties.Select(p => p.Value.ToElement().Value).ToArray());
             Assert.AreEqual(0, resource.GetProperties(new PropertyName("other:namespace", "a")).Count());
             element.RemoveNodes();
             Assert.AreEqual("first", properties.First().Value.ToElement().Value, "Projection must remain detached from its source XML.");
@@ -96,7 +111,10 @@ namespace WebDAVClient.UnitTests
                 """);
             var resource = DavXml.ParseResponse(element, true);
             Assert.IsNull(resource.PropertyStatuses[0].StatusCode);
-            CollectionAssert.AreEqual(new[] { "a", "b" }, resource.PropertyStatuses[0].Properties.Select(p => p.Name.LocalName).ToArray());
+            CollectionAssert.AreEqual(new[]
+                {
+                    "a", "b"
+                }, resource.PropertyStatuses[0].Properties.Select(p => p.Name.LocalName).ToArray());
             Assert.AreEqual(0, resource.PropertyStatuses[1].Properties.Count);
             Assert.ThrowsException<XmlException>(() => DavXml.ParseResponse(element, false));
         }
@@ -115,7 +133,10 @@ namespace WebDAVClient.UnitTests
                 "<D:response xmlns:D=\"DAV:\"><D:href>/dav/second</D:href><D:href>/dav/alias</D:href>"
                 + "<D:status>HTTP/1.1 " + resourceStatus + " Result</D:status></D:response>"), false);
             using var response = new HttpResponseMessage((HttpStatusCode)207);
-            var result = new DavMultiStatusResult(response, DavClientTests.Endpoint, "PROPFIND", Array.AsReadOnly(new[] { first, second }));
+            var result = new DavMultiStatusResult(response, DavClientTests.Endpoint, "PROPFIND", Array.AsReadOnly(new[]
+                {
+                    first, second
+                }));
             int expected = propertyStatus == 200 ? resourceStatus : propertyStatus;
             WebDAVException error;
             if (expected == 409)
@@ -128,7 +149,10 @@ namespace WebDAVClient.UnitTests
             }
             Assert.AreEqual(expected, error.FailedStatusCode);
             Assert.AreEqual(207, error.ResponseStatusCode);
-            CollectionAssert.AreEqual(new[] { "/dav/second", "/dav/alias" }, error.ResourceStatuses.Select(s => s.Href).ToArray());
+            CollectionAssert.AreEqual(new[]
+                {
+                    "/dav/second", "/dav/alias"
+                }, error.ResourceStatuses.Select(s => s.Href).ToArray());
             Assert.IsTrue(error.ResourceStatuses.All(s => s.StatusCode == resourceStatus));
         }
     }

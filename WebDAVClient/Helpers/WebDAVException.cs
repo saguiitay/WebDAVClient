@@ -15,16 +15,35 @@ namespace WebDAVClient.Helpers
     public class WebDAVException : Exception
     {
         private readonly int m_httpCode;
+
         internal static readonly HttpRequestOptionsKey<string> s_operationKey = new HttpRequestOptionsKey<string>("WebDAVClient.Operation");
 
-        /// <summary>Operation that failed, or null for an exception constructed without request context.</summary>
-        public string Operation { get; private set; }
+        /// <summary>
+        /// Operation that failed, or null for an exception constructed without request context.
+        /// </summary>
+        public string Operation
+        {
+            get;
+            private set;
+        }
 
-        /// <summary>HTTP method of the failed request, or null when unavailable.</summary>
-        public string Method { get; private set; }
+        /// <summary>
+        /// HTTP method of the failed request, or null when unavailable.
+        /// </summary>
+        public string Method
+        {
+            get;
+            private set;
+        }
 
-        /// <summary>Failed request URI without user information, query or fragment; null when unavailable. Paths may still contain application-sensitive names.</summary>
-        public Uri ResourceUri { get; private set; }
+        /// <summary>
+        /// Failed request URI without user information, query or fragment; null when unavailable. Paths may still contain application-sensitive names.
+        /// </summary>
+        public Uri ResourceUri
+        {
+            get;
+            private set;
+        }
 
         internal WebDAVException WithRequestContext(HttpRequestMessage request)
         {
@@ -53,20 +72,39 @@ namespace WebDAVClient.Helpers
         /// Optional implementation-defined error code (HRESULT-style).
         /// <c>0</c> when not set.
         /// </summary>
-        public int ErrorCode { get; }
+        public int ErrorCode
+        {
+            get;
+        }
 
-        /// <summary>Actual outer HTTP response status when available, distinct from legacy GetHttpCode mappings.</summary>
-        public int? ResponseStatusCode { get; internal set; }
+        /// <summary>
+        /// Actual outer HTTP response status when available, distinct from legacy GetHttpCode mappings.
+        /// </summary>
+        public int? ResponseStatusCode
+        {
+            get;
+            internal set;
+        }
 
-        /// <summary>Member/property status that caused a modern EnsureSucceeded failure, when applicable.</summary>
-        public int? FailedStatusCode { get; internal set; }
+        /// <summary>
+        /// Member/property status that caused a modern EnsureSucceeded failure, when applicable.
+        /// </summary>
+        public int? FailedStatusCode
+        {
+            get;
+            internal set;
+        }
 
         /// <summary>
         /// Resource outcomes reported by a DELETE, MOVE, or COPY HTTP 207 response.
         /// Includes successful and failed members for reconciliation; empty when
         /// unavailable. If parsing failed, InnerException describes the error.
         /// </summary>
-        public IReadOnlyList<ResourceStatus> ResourceStatuses { get; internal set; } = Array.Empty<ResourceStatus>();
+        public IReadOnlyList<ResourceStatus> ResourceStatuses
+        {
+            get;
+            internal set;
+        } = Array.Empty<ResourceStatus>();
 
         /// <summary>
         /// Initialises a new <see cref="WebDAVException"/> with no message.
@@ -79,17 +117,24 @@ namespace WebDAVClient.Helpers
         /// Initialises a new <see cref="WebDAVException"/> with the specified
         /// error message.
         /// </summary>
-        /// <param name="message">A description of the error.</param>
+        /// <param name="message">
+        /// A description of the error.
+        /// </param>
         public WebDAVException(string message)
             : base(message)
-        {}
+        {
+        }
 
         /// <summary>
         /// Initialises a new <see cref="WebDAVException"/> with the specified
         /// error message and an implementation-defined error code.
         /// </summary>
-        /// <param name="message">A description of the error.</param>
-        /// <param name="hr">An implementation-defined error code, exposed via <see cref="ErrorCode"/>.</param>
+        /// <param name="message">
+        /// A description of the error.
+        /// </param>
+        /// <param name="hr">
+        /// An implementation-defined error code, exposed via <see cref="ErrorCode"/>.
+        /// </param>
         public WebDAVException(string message, int hr)
             : base(message)
         {
@@ -100,20 +145,31 @@ namespace WebDAVClient.Helpers
         /// Initialises a new <see cref="WebDAVException"/> with the specified
         /// error message and inner exception.
         /// </summary>
-        /// <param name="message">A description of the error.</param>
-        /// <param name="innerException">The exception that caused this error, or <c>null</c>.</param>
+        /// <param name="message">
+        /// A description of the error.
+        /// </param>
+        /// <param name="innerException">
+        /// The exception that caused this error, or <c>null</c>.
+        /// </param>
         public WebDAVException(string message, Exception innerException)
             : base(message, innerException)
-        {}
+        {
+        }
 
         /// <summary>
         /// Initialises a new <see cref="WebDAVException"/> with the HTTP status
         /// code returned by the server, an error message, and an inner
         /// exception.
         /// </summary>
-        /// <param name="httpCode">The HTTP status code returned by the server, exposed via <see cref="GetHttpCode"/>.</param>
-        /// <param name="message">A description of the error.</param>
-        /// <param name="innerException">The exception that caused this error, or <c>null</c>.</param>
+        /// <param name="httpCode">
+        /// The HTTP status code returned by the server, exposed via <see cref="GetHttpCode"/>.
+        /// </param>
+        /// <param name="message">
+        /// A description of the error.
+        /// </param>
+        /// <param name="innerException">
+        /// The exception that caused this error, or <c>null</c>.
+        /// </param>
         public WebDAVException(int httpCode, string message, Exception innerException)
             : base(message, innerException)
         {
@@ -124,8 +180,12 @@ namespace WebDAVClient.Helpers
         /// Initialises a new <see cref="WebDAVException"/> with the HTTP status
         /// code returned by the server and an error message.
         /// </summary>
-        /// <param name="httpCode">The HTTP status code returned by the server, exposed via <see cref="GetHttpCode"/>.</param>
-        /// <param name="message">A description of the error.</param>
+        /// <param name="httpCode">
+        /// The HTTP status code returned by the server, exposed via <see cref="GetHttpCode"/>.
+        /// </param>
+        /// <param name="message">
+        /// A description of the error.
+        /// </param>
         public WebDAVException(int httpCode, string message)
             : base(message)
         {
@@ -137,9 +197,15 @@ namespace WebDAVClient.Helpers
         /// code returned by the server, an error message, and an
         /// implementation-defined error code.
         /// </summary>
-        /// <param name="httpCode">The HTTP status code returned by the server, exposed via <see cref="GetHttpCode"/>.</param>
-        /// <param name="message">A description of the error.</param>
-        /// <param name="hr">An implementation-defined error code, exposed via <see cref="ErrorCode"/>.</param>
+        /// <param name="httpCode">
+        /// The HTTP status code returned by the server, exposed via <see cref="GetHttpCode"/>.
+        /// </param>
+        /// <param name="message">
+        /// A description of the error.
+        /// </param>
+        /// <param name="hr">
+        /// An implementation-defined error code, exposed via <see cref="ErrorCode"/>.
+        /// </param>
         public WebDAVException(int httpCode, string message, int hr)
             : base(message)
         {

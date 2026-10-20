@@ -150,15 +150,24 @@ namespace WebDAVClient.UnitTests
             Assert.AreNotEqual(client.Resolve(DavPath.Parse("A.txt")), client.Resolve(DavPath.Parse("a.txt")));
             Assert.AreEqual("literal%2Fslash", DavPath.Parse("literal%2Fslash").ToString());
             Assert.AreEqual("https://example.com/dav/literal%2Fslash", client.Resolve(DavPath.Parse("literal%2Fslash")).AbsoluteUri);
-            foreach (var path in new[] { "https://evil.example/file", "http://example.com/file", "https://example.com:444/file", "https://user:pass@example.com/file" })
+            foreach (var path in new[]
+            {
+                "https://evil.example/file", "http://example.com/file", "https://example.com:444/file", "https://user:pass@example.com/file"
+            })
             {
                 Assert.ThrowsException<ArgumentException>(() => client.Resolve(DavPath.Parse(path)));
             }
-            foreach (var path in new[] { "//evil/file", "a b", "a\\b", "a#b", "bad%", "bad%xy" })
+            foreach (var path in new[]
+            {
+                "//evil/file", "a b", "a\\b", "a#b", "bad%", "bad%xy"
+            })
             {
                 Assert.ThrowsException<ArgumentException>(() => DavPath.Parse(path));
             }
-            foreach (var segment in new[] { ".", "..", "", "a/b", "a\\b" })
+            foreach (var segment in new[]
+            {
+                ".", "..", "", "a/b", "a\\b"
+            })
             {
                 Assert.ThrowsException<ArgumentException>(() => DavPath.FromSegments(segment));
             }
@@ -173,10 +182,16 @@ namespace WebDAVClient.UnitTests
             using var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            var lists = new[] { new DavConditionList(DavCondition.StateToken("urn:lock:1"), DavCondition.EntityTag("\"etag\"", true)), new DavConditionList(DavCondition.StateToken("urn:lock:2", true)) };
+            var lists = new[]
+            {
+                new DavConditionList(DavCondition.StateToken("urn:lock:1"), DavCondition.EntityTag("\"etag\"", true)), new DavConditionList(DavCondition.StateToken("urn:lock:2", true))
+            };
             var conditions = DavIfConditions.Tagged(new DavTaggedConditions(File, lists), new DavTaggedConditions(DavPath.Parse("/dav/target"), lists[1]));
             lists[0] = null;
-            var result = await client.DeleteAsync(File, new DavRequestOptions { Conditions = conditions });
+            var result = await client.DeleteAsync(File, new DavRequestOptions
+            {
+                Conditions = conditions
+            });
             result.EnsureSucceeded();
             Assert.AreEqual("<https://example.com/dav/file> (<urn:lock:1> Not [\"etag\"]) (Not <urn:lock:2>) <https://example.com/dav/target> (Not <urn:lock:2>)",
                 handler.Requests.Single().Headers["If"].Single());
@@ -201,8 +216,14 @@ namespace WebDAVClient.UnitTests
             });
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            var headers = new Dictionary<string, string> { ["X-Test"] = "before" };
-            var task = client.DeleteAsync(File, new DavRequestOptions { Headers = headers });
+            var headers = new Dictionary<string, string>
+            {
+                ["X-Test"] = "before"
+            };
+            var task = client.DeleteAsync(File, new DavRequestOptions
+            {
+                Headers = headers
+            });
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
             headers["X-Test"] = "after";
             release.TrySetResult();
@@ -215,21 +236,69 @@ namespace WebDAVClient.UnitTests
             using var handler = new StubHttpMessageHandler(_ => throw new AssertFailedException("Unexpected I/O"));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.PropFindAsync(File, new PropFindOptions { Selection = DavPropertySelection.Selected }));
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.PropFindAsync(File, new PropFindOptions { Selection = DavPropertySelection.Names, Properties = new[] { DavProperties.ETag.Name } }));
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.PropFindAsync(File, new PropFindOptions { Selection = (DavPropertySelection)50 }));
-            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(() => client.PropFindAsync(File, new PropFindOptions { Depth = (DavDepth)50 }));
-            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(() => client.CopyAsync(File, DavPath.Parse("other"), new CopyOptions { Depth = DavDepth.One }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.PropFindAsync(File, new PropFindOptions
+            {
+                Selection = DavPropertySelection.Selected
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.PropFindAsync(File, new PropFindOptions
+            {
+                Selection = DavPropertySelection.Names,
+                Properties = new[]
+                {
+                    DavProperties.ETag.Name
+                }
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.PropFindAsync(File, new PropFindOptions
+            {
+                Selection = (DavPropertySelection)50
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(() => client.PropFindAsync(File, new PropFindOptions
+            {
+                Depth = (DavDepth)50
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(() => client.CopyAsync(File, DavPath.Parse("other"), new CopyOptions
+            {
+                Depth = DavDepth.One
+            }));
             await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.MoveAsync(File, File));
             await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.UpdatePropertiesAsync(File, Array.Empty<DavPropertyChange>()));
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => client.UpdatePropertiesAsync(File, null));
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.UploadAsync(File, Stream.Null, new UploadOptions { ContentType = "text/plain", Headers = new Dictionary<string, string> { ["Depth"] = "1" } }));
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.HeadAsync(File, new DavRequestOptions { Headers = new Dictionary<string, string> { ["X-Test"] = "a\r\nb" } }));
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.DownloadAsync(File, new DownloadOptions { IfRange = new RangeConditionHeaderValue(DateTimeOffset.UtcNow) }));
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.DownloadAsync(File, new DownloadOptions { Range = new RangeHeaderValue(0, 1), IfRange = new RangeConditionHeaderValue(new EntityTagHeaderValue("\"tag\"", true)) }));
-            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(() => client.AcquireLockAsync(File, new LockOptions { Scope = (DavLockScope)50 }));
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.AcquireLockAsync(File, new LockOptions { Owner = DavXmlValue.Text(new PropertyName("urn:test", "wrong"), "") }));
-            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.AcquireLockAsync(File, new LockOptions { Timeouts = Array.Empty<DavLockTimeout>() }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.UploadAsync(File, Stream.Null, new UploadOptions
+            {
+                ContentType = "text/plain",
+                Headers = new Dictionary<string, string>
+                {
+                    ["Depth"] = "1"
+                }
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.HeadAsync(File, new DavRequestOptions
+            {
+                Headers = new Dictionary<string, string>
+                {
+                    ["X-Test"] = "a\r\nb"
+                }
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.DownloadAsync(File, new DownloadOptions
+            {
+                IfRange = new RangeConditionHeaderValue(DateTimeOffset.UtcNow)
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.DownloadAsync(File, new DownloadOptions
+            {
+                Range = new RangeHeaderValue(0, 1),
+                IfRange = new RangeConditionHeaderValue(new EntityTagHeaderValue("\"tag\"", true))
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(() => client.AcquireLockAsync(File, new LockOptions
+            {
+                Scope = (DavLockScope)50
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.AcquireLockAsync(File, new LockOptions
+            {
+                Owner = DavXmlValue.Text(new PropertyName("urn:test", "wrong"), "")
+            }));
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.AcquireLockAsync(File, new LockOptions
+            {
+                Timeouts = Array.Empty<DavLockTimeout>()
+            }));
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => client.ReportAsync(File, null));
             await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.SyncCollectionAsync(File, null, Array.Empty<PropertyName>(), 0));
             Assert.AreEqual(0, handler.Requests.Count);
@@ -268,27 +337,44 @@ namespace WebDAVClient.UnitTests
             using var handler = new StubHttpMessageHandler(_ => XmlResponse(Multi(Resource())));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.UpdatePropertiesAsync(File, new[] { DavPropertyChange.Remove(new PropertyName("urn:test", "missing")) }));
+            await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.UpdatePropertiesAsync(File, new[]
+                {
+                    DavPropertyChange.Remove(new PropertyName("urn:test", "missing"))
+                }));
             await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.SyncCollectionAsync(DavPath.Root, "urn:previous", Array.Empty<PropertyName>()));
         }
 
         [TestMethod]
         public async Task Cancellation_and_metadata_deadline_cover_async_xml_reads()
         {
-            foreach (var callerCancellation in new[] { false, true })
+            foreach (var callerCancellation in new[]
+            {
+                false, true
+            })
             {
                 using var stalled = new PrefixThenStallStream("<D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>");
-                using var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage((HttpStatusCode)207) { Content = new StreamContent(stalled) });
+                using var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage((HttpStatusCode)207)
+                {
+                    Content = new StreamContent(stalled)
+                });
                 using var http = new System.Net.Http.HttpClient(handler);
-                using var client = new DavClient(Endpoint, http, new DavClientOptions { MetadataTimeout = callerCancellation ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(100) });
+                using var client = new DavClient(Endpoint, http, new DavClientOptions
+                {
+                    MetadataTimeout = callerCancellation ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(100)
+                });
                 using var cancellation = new CancellationTokenSource();
-                if (callerCancellation) { cancellation.CancelAfter(100); }
+                if (callerCancellation)
+                {
+                    cancellation.CancelAfter(100);
+                }
                 try
                 {
                     await client.PropFindAsync(File, cancellationToken: cancellation.Token).WaitAsync(TimeSpan.FromSeconds(5));
                     Assert.Fail("The read should have been cancelled.");
                 }
-                catch (OperationCanceledException) { }
+                catch (OperationCanceledException)
+                {
+                }
             }
         }
     }
