@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "suiteVersion": "1.0",
-  "generatedUtc": "2026-10-20T23:24:51.4463989+00:00",
+  "generatedUtc": "2026-10-20T23:30:57.9590951+00:00",
   "scope": "Independent-server observations only; not full RFC conformance, publication, or unobserved configuration support.",
   "servers": [
     {
@@ -173,6 +173,50 @@
           "authentication": "basic",
           "transport": "http",
           "sourceRevision": "ed92da20368b2bddd548e3d64b06f5f2023409c6",
+          "succeeded": true,
+          "passed": 19,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-ci-39514944772-net10.0.json",
+          "startedUtc": "2026-10-20T23:26:44.3303890+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "348b16f8c9b4d9c289ad5b0c761adf6eb0aeb0e7",
+          "succeeded": true,
+          "passed": 19,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-ci-39514944772-net8.0.json",
+          "startedUtc": "2026-10-20T23:26:43.4733835+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "348b16f8c9b4d9c289ad5b0c761adf6eb0aeb0e7",
           "succeeded": true,
           "passed": 19,
           "unsupported": [
@@ -408,6 +452,50 @@
               "detail": "proppatch:WebDAVException"
             }
           ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-ci-39514944772-net10.0.json",
+          "startedUtc": "2026-10-20T23:26:38.5778750+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "2.4.65",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "348b16f8c9b4d9c289ad5b0c761adf6eb0aeb0e7",
+          "succeeded": true,
+          "passed": 19,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-ci-39514944772-net8.0.json",
+          "startedUtc": "2026-10-20T23:26:37.4838921+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "2.4.65",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "348b16f8c9b4d9c289ad5b0c761adf6eb0aeb0e7",
+          "succeeded": true,
+          "passed": 19,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
           "cleanup": [
             "passed"
           ]
@@ -777,6 +865,72 @@
           "cleanup": [
             "passed"
           ]
+        },
+        {
+          "evidence": "nginx-anonymous-ci-39514944772-net10.0.json",
+          "startedUtc": "2026-10-20T23:26:32.4349633+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "1.28.0",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "348b16f8c9b4d9c289ad5b0c761adf6eb0aeb0e7",
+          "succeeded": false,
+          "passed": 12,
+          "unsupported": [
+            "options",
+            "propfind-statuses",
+            "streamed-listing",
+            "dead-property",
+            "lock-unlock",
+            "sync-discovery",
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "conditional-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "nginx-anonymous-ci-39514944772-net8.0.json",
+          "startedUtc": "2026-10-20T23:26:31.8654746+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "1.28.0",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "348b16f8c9b4d9c289ad5b0c761adf6eb0aeb0e7",
+          "succeeded": false,
+          "passed": 12,
+          "unsupported": [
+            "options",
+            "propfind-statuses",
+            "streamed-listing",
+            "dead-property",
+            "lock-unlock",
+            "sync-discovery",
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "conditional-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
         }
       ]
     },
@@ -984,6 +1138,46 @@
           ],
           "cleanup": [
             "failed"
+          ]
+        },
+        {
+          "evidence": "sabredav-basic-ci-39514944772-net10.0.json",
+          "startedUtc": "2026-10-20T23:27:25.0250078+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "348b16f8c9b4d9c289ad5b0c761adf6eb0aeb0e7",
+          "succeeded": true,
+          "passed": 20,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "sabredav-basic-ci-39514944772-net8.0.json",
+          "startedUtc": "2026-10-20T23:27:23.4222311+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "348b16f8c9b4d9c289ad5b0c761adf6eb0aeb0e7",
+          "succeeded": true,
+          "passed": 20,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
           ]
         },
         {
