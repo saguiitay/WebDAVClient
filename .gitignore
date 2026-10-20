@@ -191,3 +191,4 @@ packages
 /.localhistory
 /.vs
 /artifacts/interop/
+/artifacts/interop-ci/
