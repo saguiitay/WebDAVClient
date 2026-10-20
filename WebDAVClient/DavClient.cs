@@ -468,6 +468,16 @@ namespace WebDAVClient
                     {
                         throw ProtocolError(response, request, "No resource outcomes were reported.");
                     }
+                    if ((int)response.StatusCode == 207 && request.Method.Method is "DELETE" or "MOVE" or "COPY")
+                    {
+                        foreach (var resource in resources)
+                        {
+                            if (!resource.StatusCode.HasValue)
+                            {
+                                throw ProtocolError(response, request, "A namespace mutation requires resource-level outcomes, not property statuses.");
+                            }
+                        }
+                    }
                     if ((int)response.StatusCode == 207 && expectedProperties != null)
                     {
                         if (resources.Count != 1 || new Uri(request.RequestUri!, resources[0].Hrefs[0]) != request.RequestUri

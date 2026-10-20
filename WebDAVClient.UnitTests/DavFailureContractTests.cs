@@ -25,6 +25,34 @@ namespace WebDAVClient.UnitTests
         private static DavPath Target => DavClientTests.File;
 
         [DataTestMethod]
+        [DataRow("DELETE", false)]
+        [DataRow("DELETE", true)]
+        [DataRow("MOVE", false)]
+        [DataRow("MOVE", true)]
+        [DataRow("COPY", false)]
+        [DataRow("COPY", true)]
+        public async Task Namespace_mutations_reject_property_only_outcomes_even_after_successful_members(string method, bool mixed)
+        {
+            using var handler = new StubHttpMessageHandler(_ => XmlResponse(Multi(
+                (mixed ? Member(204, "/dav/done") : "") + Resource())));
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            var exception = await Assert.ThrowsExceptionAsync<WebDAVException>(async () =>
+            {
+                var result = method switch
+                {
+                    "DELETE" => await client.DeleteAsync(Target),
+                    "MOVE" => await client.MoveAsync(Target, DavPath.Parse("other")),
+                    _ => await client.CopyAsync(Target, DavPath.Parse("other"))
+                };
+                result.EnsureSucceeded();
+            });
+            Assert.AreEqual(207, exception.ResponseStatusCode);
+            StringAssert.Contains(exception.Message, "resource-level outcomes");
+            Assert.AreEqual(1, handler.Requests.Count);
+        }
+
+        [DataTestMethod]
         [DataRow("MKCOL", 201, true)]
         [DataRow("MKCOL", 202, false)]
         [DataRow("MOVE", 201, true)]

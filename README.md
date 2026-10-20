@@ -322,6 +322,8 @@ guarantees. XML copies and read-only snapshots remain intact.
 ## Release Notes
 
 + **3.0.0** _(upcoming)_ Protocol-first API redesign:
+  - Reject property-only DELETE/MOVE/COPY multistatus responses rather than
+    treating property success as confirmation of a namespace mutation.
   - Added `DavClient` with an immutable endpoint, explicit escaped `DavPath`
     references, resource-oriented operations and request-local options.
   - Added faithful XML/status/error results, typed property codecs, HTTP/DAV
