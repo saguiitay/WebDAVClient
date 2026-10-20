@@ -336,12 +336,49 @@ namespace WebDAVClient.UnitTests
         [DataRow("locktoken", "urn:lock:%zz")]
         [DataRow("locktoken", "urn:lock:token#fragment")]
         [DataRow("locktoken", "urn:lock:café")]
-        [DataRow("lockroot", "not-a-uri")]
-        public async Task Lock_discovery_rejects_invalid_token_uris_and_relative_roots(string field, string value)
+        public async Task Lock_discovery_rejects_invalid_token_uris(string field, string value)
         {
             var document = XElement.Parse(LockXml());
             document.Descendants(XName.Get(field, "DAV:")).Single().Elements().Single().Value = value;
             await RejectLockAsync(document);
+        }
+
+        [DataTestMethod]
+        [DataRow("/dav/café 中文 + % #.bin")]
+        [DataRow("not-a-uri")]
+        [DataRow("https://other.example/root#metadata")]
+        public async Task Lockroot_is_scalar_metadata_not_an_implicit_resource_target_or_ownership_condition(string root)
+        {
+            var document = XElement.Parse(LockXml("Second-10").Replace("<D:shared/>", "<D:exclusive/>"));
+            document.Descendants(XName.Get("lockroot", "DAV:")).Single().Elements().Single().Value = root;
+            using var handler = new StubHttpMessageHandler(request =>
+            {
+                if (request.Method.Method == "UNLOCK")
+                {
+                    return new HttpResponseMessage(HttpStatusCode.NoContent);
+                }
+                if (request.Method.Method == "PROPFIND")
+                {
+                    return XmlResponse(Multi(Resource(document.Elements().Single().ToString())));
+                }
+                var response = XmlResponse(document.ToString(), 200);
+                response.Headers.TryAddWithoutValidation("Lock-Token", "<urn:lock:1>");
+                return response;
+            });
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            var result = await client.AcquireLockAsync(DavClientTests.File);
+            result.EnsureSucceeded();
+            Assert.AreEqual(root, result.Locks.Single().Root);
+            Assert.AreEqual(TimeSpan.FromSeconds(10), result.Locks.Single().Timeout.Duration);
+            var resource = (await client.PropFindAsync(DavClientTests.File)).Resources.Single();
+            Assert.AreEqual(root, DavProperties.LockDiscovery.Read(resource).Single().Value.Single().Root);
+            var lease = await DavLockLease.AcquireAsync(client, DavClientTests.File);
+            Assert.AreEqual(DavLockLeaseState.Active, lease.State);
+            Assert.AreEqual(root, (await lease.RenewAsync()).Root);
+            await lease.ReleaseAsync();
+            Assert.AreEqual(5, handler.Requests.Count);
+            Assert.IsTrue(handler.Requests.All(r => r.RequestUri == client.Resolve(DavClientTests.File)));
         }
 
         [TestMethod]

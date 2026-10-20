@@ -41,6 +41,11 @@ Acquisition requires a successful 200/201 result, exactly one valid
 `DAV:lockdiscovery`. Granted scope and depth must match the request. Additional
 shared-lock observations are not treated as ownership of those locks.
 Server-provided lockroot/owner URLs are data and are never followed.
+`DavLock.Root` preserves the scalar lockroot href verbatim, including unescaped
+filenames emitted by servers such as SabreDAV 4.7.0. Correct URI escaping remains
+a server obligation; this optional metadata is not used to establish
+ownership or manufacture a request target. Its container/href cardinality still
+must be valid; token identity, scope, depth and granted timeout checks are unchanged.
 
 | State | Meaning |
 | --- | --- |
