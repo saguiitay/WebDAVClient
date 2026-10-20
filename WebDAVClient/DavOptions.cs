@@ -217,6 +217,16 @@ namespace WebDAVClient
     public sealed record DownloadOptions : DavRequestOptions
     {
         /// <summary>
+        /// Requests an identity representation and rejects encoded successful responses.
+        /// Injected transports must also have automatic decompression disabled.
+        /// </summary>
+        public bool RequireIdentityEncoding
+        {
+            get;
+            init;
+        }
+
+        /// <summary>
         /// One bytes range. A missing start specifies a suffix; a missing end specifies an open-ended range.
         /// </summary>
         public RangeHeaderValue? Range
