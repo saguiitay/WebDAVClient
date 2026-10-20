@@ -46,6 +46,10 @@ extension observations on each target framework, with confirmed clean teardown.
 This narrow evidence does not certify other servers or all RFC server invariants.
 PROPPATCH target validation additionally recognizes equivalent escape-hex digit
 case without weakening case-sensitive path/query or escaped-separator identity.
+Reserved-plus aliases remain distinct by default. Known server mappings may
+explicitly select `PropPatchOptions.AllowPathPlusEncodingAlias` for path-only
+response-target compatibility; queries, other reserved escapes, outbound URLs,
+origin checks and mutation replay behavior are unchanged.
 
 Implementation update (v3 source): `DavClient` now provides the immutable
 resource-oriented surface, shared bounded XML reading, rich outcomes, typed

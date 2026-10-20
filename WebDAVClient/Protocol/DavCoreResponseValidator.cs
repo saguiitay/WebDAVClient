@@ -128,10 +128,15 @@ namespace WebDAVClient.Protocol
             }
         }
 
-        internal static bool SameEscapedPathAndQuery(Uri left, Uri right)
+        internal static bool SameEscapedPathAndQuery(Uri left, Uri right, bool allowPathPlusEncodingAlias)
         {
             var first = left.GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped);
             var second = right.GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped);
+            if (allowPathPlusEncodingAlias)
+            {
+                first = PathPlusAlias(first);
+                second = PathPlusAlias(second);
+            }
             if (first.Length != second.Length)
             {
                 return false;
@@ -153,6 +158,17 @@ namespace WebDAVClient.Protocol
                 }
             }
             return true;
+        }
+
+        private static string PathPlusAlias(string pathAndQuery)
+        {
+            int query = pathAndQuery.IndexOf('?');
+            if (query < 0)
+            {
+                return pathAndQuery.Replace("%2B", "+", StringComparison.OrdinalIgnoreCase);
+            }
+            return pathAndQuery.Substring(0, query).Replace("%2B", "+", StringComparison.OrdinalIgnoreCase)
+                + pathAndQuery.Substring(query);
         }
 
         internal static bool SimpleReference(string value, bool resource)

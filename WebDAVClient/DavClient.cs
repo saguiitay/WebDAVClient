@@ -175,6 +175,7 @@ namespace WebDAVClient
 
         /// <summary>
         /// Submits ordered set/remove instructions in one server-atomic PROPPATCH, including writable DAV properties.
+        /// Pass <see cref="PropPatchOptions"/> only when explicit server-specific response-target compatibility is needed.
         /// </summary>
         public Task<DavMultiStatusResult> UpdatePropertiesAsync(DavPath path, IReadOnlyList<DavPropertyChange> changes,
             DavRequestOptions? options = null, CancellationToken cancellationToken = default)
@@ -190,7 +191,9 @@ namespace WebDAVClient
                     new XElement(DavXml.Dav + "prop", c.Value?.ToElement() ?? new XElement(XName.Get(c.Name.LocalName, c.Name.Namespace))))));
             var request = CreateRequest("PROPPATCH", path, options);
             request.Content = XmlContent(body);
-            return ExecuteMultiStatusAsync(request, requireMultiStatus: true, cancellationToken, expectedProperties: snapshot.Select(c => c.Name).Distinct().ToArray());
+            return ExecuteMultiStatusAsync(request, requireMultiStatus: true, cancellationToken,
+                expectedProperties: snapshot.Select(c => c.Name).Distinct().ToArray(),
+                allowPathPlusEncodingAlias: options is PropPatchOptions { AllowPathPlusEncodingAlias: true });
         }
 
         /// <summary>
@@ -484,7 +487,7 @@ namespace WebDAVClient
         }
 
         private async Task<DavMultiStatusResult> ExecuteMultiStatusAsync(HttpRequestMessage request, bool requireMultiStatus,
-            CancellationToken token, IReadOnlyList<PropertyName>? expectedProperties = null)
+            CancellationToken token, IReadOnlyList<PropertyName>? expectedProperties = null, bool allowPathPlusEncodingAlias = false)
         {
             using (request)
             {
@@ -514,7 +517,7 @@ namespace WebDAVClient
                     {
                         // ParseResources has checked origins; escape hex case must not change target identity.
                         if (resources.Count != 1 || !DavCoreResponseValidator.SameEscapedPathAndQuery(
-                            new Uri(request.RequestUri!, resources[0].Hrefs[0]), request.RequestUri!)
+                            new Uri(request.RequestUri!, resources[0].Hrefs[0]), request.RequestUri!, allowPathPlusEncodingAlias)
                             || expectedProperties.Any(name => !resources[0].GetProperties(name).Any()))
                         {
                             throw ProtocolError(response, request, "PROPPATCH did not report outcomes for every requested property on the target resource.");
