@@ -174,6 +174,12 @@ tokens, entity tags, negation and alternative lists. Tagged alternatives are not
 a universal assertion that all named resources are locked. Options collections
 are copied before the first await; do not mutate collections during that copy.
 
+For explicitly configured servers that equate a literal path `+` with `%2B`,
+`PropPatchOptions.AllowPathPlusEncodingAlias` permits that alias when checking a
+PROPPATCH response target. It is off by default: reserved-character equivalence
+cannot be assumed for arbitrary servers. It never rewrites requests or relaxes
+query-string, origin, case-sensitive path or other reserved-character checks.
+
 ### Explicit lock lifecycle
 
 `DavLockLease` provides acquisition, caller-driven renewal, conditional-write
@@ -465,6 +471,8 @@ basic transfer smoke result.
   - Real-server testing corrected combined escaped-Unicode href validation and
     percent-escape hex-case comparison without case-folding resource paths.
     Bare lock-token compatibility requires exactly matching discovery evidence.
+    Known servers can explicitly opt into PROPPATCH path-plus alias comparison;
+    default resource identity remains strict.
   - Reject property-only DELETE/MOVE/COPY multistatus responses rather than
     treating property success as confirmation of a namespace mutation.
   - Reject nested XML in LOCK depth, timeout and token/root href values, including
