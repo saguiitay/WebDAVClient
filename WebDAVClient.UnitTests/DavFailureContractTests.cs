@@ -470,6 +470,40 @@ MaxResponseCharacters = 0
             Assert.AreEqual("write", result.Locks[0].Type.LocalName);
         }
 
+        [DataTestMethod]
+        [DataRow("depth")]
+        [DataRow("timeout")]
+        [DataRow("locktoken")]
+        [DataRow("lockroot")]
+        public async Task Lock_scalar_markup_is_rejected_by_acquisition_refresh_and_property_decoding(string field)
+        {
+            XNamespace dav = "DAV:";
+            var document = XElement.Parse(LockXml());
+            var element = document.Descendants(dav + field).Single();
+            if (field == "locktoken" || field == "lockroot")
+            {
+                element = element.Element(dav + "href");
+            }
+            element.ReplaceNodes(new XElement(XName.Get("nested", "urn:test"), element.Value));
+            bool propertyResponse = false;
+            using var handler = new StubHttpMessageHandler(_ => propertyResponse
+                ? XmlResponse(Multi(Resource(document.Element(dav + "lockdiscovery").ToString())))
+                : XmlResponse(document.ToString(), 200));
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            var acquisition = await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.AcquireLockAsync(Target));
+            var refresh = await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.RefreshLockAsync(Target, "urn:lock:1"));
+            Assert.IsInstanceOfType<XmlException>(acquisition.InnerException);
+            Assert.IsInstanceOfType<XmlException>(refresh.InnerException);
+            Assert.AreEqual(200, acquisition.ResponseStatusCode);
+            propertyResponse = true;
+            var response = await client.PropFindAsync(Target);
+            var decoded = DavProperties.LockDiscovery.Read(response.Resources.Single()).Single();
+            Assert.IsFalse(decoded.HasValue);
+            Assert.IsInstanceOfType<XmlException>(decoded.DecodingError);
+            Assert.IsTrue(decoded.Source.Value.ToElement().Descendants(XName.Get("nested", "urn:test")).Any());
+        }
+
         [TestMethod]
         public async Task Report_profile_interprets_only_its_own_valid_response_shape()
         {

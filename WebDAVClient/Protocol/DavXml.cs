@@ -386,12 +386,14 @@ namespace WebDAVClient.Protocol
                 var types = e.Element(Dav + "locktype")?.Elements().ToArray();
                 var scope = scopes?.Length == 1 ? scopes[0] : null;
                 var type = types?.Length == 1 ? types[0] : null;
-                var depth = e.Element(Dav + "depth");
-                if (scope == null || type == null || depth == null || (depth.Value != "0" && depth.Value != "infinity"))
+                var depthElement = e.Element(Dav + "depth");
+                var depth = depthElement == null ? null : Text(depthElement);
+                if (scope == null || type == null || (depth != "0" && depth != "infinity"))
                 {
                     throw new XmlException("Invalid active lock scope, type or depth.");
                 }
-                var timeout = e.Element(Dav + "timeout")?.Value;
+                var timeoutElement = e.Element(Dav + "timeout");
+                var timeout = timeoutElement == null ? null : Text(timeoutElement);
                 var granted = DavLockTimeout.Unspecified;
                 if (timeout == "Infinite")
                 {
@@ -406,11 +408,13 @@ namespace WebDAVClient.Protocol
                     }
                     granted = DavLockTimeout.Finite(TimeSpan.FromSeconds(seconds));
                 }
-                return new DavLock(e.Element(Dav + "locktoken")?.Element(Dav + "href")?.Value,
+                var token = e.Element(Dav + "locktoken")?.Element(Dav + "href");
+                var lockRoot = e.Element(Dav + "lockroot")?.Element(Dav + "href");
+                return new DavLock(token == null ? null : Text(token),
                     new Model.PropertyName(scope.Name.NamespaceName, scope.Name.LocalName),
-                    new Model.PropertyName(type.Name.NamespaceName, type.Name.LocalName), depth.Value,
+                    new Model.PropertyName(type.Name.NamespaceName, type.Name.LocalName), depth,
                     e.Element(Dav + "owner") is XElement owner ? new DavXmlValue(owner) : null,
-                    e.Element(Dav + "lockroot")?.Element(Dav + "href")?.Value, granted, observed);
+                    lockRoot == null ? null : Text(lockRoot), granted, observed);
             }).ToArray());
         }
     }
