@@ -301,11 +301,12 @@ namespace WebDAVClient
     public sealed class DavLockResult : DavResponse
     {
         internal DavLockResult(HttpResponseMessage response, Uri uri, IReadOnlyList<DavLock> locks,
-            IReadOnlyList<DavResourceResponse> resources, IReadOnlyList<DavXmlValue> errors)
+            IReadOnlyList<DavResourceResponse> resources, IReadOnlyList<DavXmlValue> errors, string? acquiredToken = null)
             : base(response, uri, "LOCK", errors)
         {
             Locks = locks;
             Resources = resources;
+            LockToken = acquiredToken ?? GetHeader("Lock-Token");
         }
 
         /// <summary>
@@ -325,9 +326,14 @@ namespace WebDAVClient
         }
 
         /// <summary>
-        /// Token header value, including wire brackets and any retained field whitespace, when present.
+        /// Confirmed acquisition token with wire brackets, or the raw header on other responses.
+        /// A single valid bare acquisition token is tolerated only when lockdiscovery confirms it;
+        /// <see cref="DavResponse.GetHeader"/> retains the original server header, including that deviation.
         /// </summary>
-        public string? LockToken => GetHeader("Lock-Token");
+        public string? LockToken
+        {
+            get;
+        }
 
         /// <summary>
         /// Requires a successful non-multistatus LOCK response.

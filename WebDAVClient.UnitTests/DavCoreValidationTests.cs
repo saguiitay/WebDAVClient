@@ -57,6 +57,9 @@ namespace WebDAVClient.UnitTests
         [DataRow("/dav/a%2Fb")]
         [DataRow("/dav/a%252Fb")]
         [DataRow("/dav/caf%C3%A9")]
+        [DataRow("/dav/caf%C3%A9%20%E4%B8%AD%E6%96%87%20%2B%20%25%20%23.bin")]
+        [DataRow("https://example.com/dav/caf%C3%A9%20%E4%B8%AD%E6%96%87%20%2B%20%25%20%23.bin")]
+        [DataRow("/dav/file?name=caf%C3%A9%20%25%20%23")]
         [DataRow("/dav/file?x=/../")]
         [DataRow("/dav/.hidden")]
         [DataRow("https://EXAMPLE.com:443/dav/file")]
@@ -332,6 +335,105 @@ namespace WebDAVClient.UnitTests
             using var client = new DavClient(Endpoint, http);
             var lease = await DavLockLease.AcquireAsync(client, DavClientTests.File);
             Assert.AreEqual("urn:lock:1", lease.Token);
+        }
+
+        [DataTestMethod]
+        [DataRow("urn:lock:1", false)]
+        [DataRow("urn:lock:1", true)]
+        [DataRow("opaquelocktoken:0x123456789abcdef", true)]
+        [DataRow("urn:lock:caf%C3%A9%20%25%20%23", true)]
+        [DataRow("https://tokens.example/caf%C3%A9%20%E4%B8%AD%20%25%20%23", false)]
+        public async Task Confirmed_bare_tokens_preserve_opaque_identity_and_produce_bracketed_unlock_headers(string token, bool bare)
+        {
+            var wireHeader = " \t" + (bare ? token : "<" + token + ">") + "\t ";
+            using var handler = new StubHttpMessageHandler(request =>
+            {
+                if (request.Method.Method == "UNLOCK")
+                {
+                    return new HttpResponseMessage(HttpStatusCode.NoContent);
+                }
+                var response = XmlResponse(LockXml().Replace("<D:shared/>", "<D:exclusive/>")
+                    .Replace("urn:lock:1", token), 200);
+                response.Headers.TryAddWithoutValidation("Lock-Token", wireHeader);
+                return response;
+            });
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            var result = await client.AcquireLockAsync(DavClientTests.File);
+            result.EnsureSucceeded();
+            Assert.AreEqual("<" + token + ">", result.LockToken);
+            Assert.AreEqual(wireHeader, result.GetHeader("Lock-Token"));
+            Assert.AreEqual(token, result.Locks.Single().Token);
+            var lease = await DavLockLease.AcquireAsync(client, DavClientTests.File);
+            Assert.AreEqual(token, lease.Token);
+            await lease.ReleaseAsync();
+            Assert.AreEqual("<" + token + ">", handler.Requests.Last().Headers["Lock-Token"].Single());
+            Assert.AreEqual(3, handler.Requests.Count);
+        }
+
+        [DataTestMethod]
+        [DataRow(null)]
+        [DataRow("")]
+        [DataRow(" \t")]
+        [DataRow("<>")]
+        [DataRow("urn:lock:1>")]
+        [DataRow("<urn:lock:1")]
+        [DataRow("relative")]
+        [DataRow("/dav/file")]
+        [DataRow("urn:lock:other")]
+        [DataRow("<urn:lock:other>")]
+        [DataRow("urn:lock:bad%zz")]
+        [DataRow("urn:lock:1#fragment")]
+        [DataRow("<urn:lock:1>, <urn:lock:other>")]
+        [DataRow("urn:lock:1, urn:lock:other")]
+        public async Task Acquisition_does_not_guess_missing_invalid_or_contradictory_header_tokens(string header)
+        {
+            using var handler = new StubHttpMessageHandler(_ =>
+            {
+                var response = XmlResponse(LockXml(), 200);
+                if (header != null)
+                {
+                    response.Headers.TryAddWithoutValidation("Lock-Token", header);
+                }
+                return response;
+            });
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            var error = await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.AcquireLockAsync(DavClientTests.File));
+            Assert.IsInstanceOfType<XmlException>(error.InnerException);
+            Assert.AreEqual(1, handler.Requests.Count);
+        }
+
+        [DataTestMethod]
+        [DataRow("multiple-headers")]
+        [DataRow("missing-body-token")]
+        [DataRow("duplicate-body-token")]
+        public async Task Acquisition_requires_one_header_and_one_unambiguous_matching_discovery_token(string problem)
+        {
+            var document = XElement.Parse(LockXml());
+            var active = document.Descendants(XName.Get("activelock", "DAV:")).Single();
+            if (problem == "missing-body-token")
+            {
+                active.Element(XName.Get("locktoken", "DAV:")).Remove();
+            }
+            else if (problem == "duplicate-body-token")
+            {
+                active.AddAfterSelf(new XElement(active));
+            }
+            using var handler = new StubHttpMessageHandler(_ =>
+            {
+                var response = XmlResponse(document.ToString(), 200);
+                response.Headers.TryAddWithoutValidation("Lock-Token", "urn:lock:1");
+                if (problem == "multiple-headers")
+                {
+                    response.Headers.TryAddWithoutValidation("Lock-Token", "urn:lock:1");
+                }
+                return response;
+            });
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            var error = await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.AcquireLockAsync(DavClientTests.File));
+            Assert.IsInstanceOfType<XmlException>(error.InnerException);
         }
 
         private static async Task RejectBothAsync(string xml)

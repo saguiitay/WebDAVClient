@@ -36,7 +36,7 @@ the complete multi-resource `DavIfConditions` yourself.
 
 ## Confirmation and state
 
-Acquisition requires a successful 200/201 result, exactly one bracketed
+Acquisition requires a successful 200/201 result, exactly one valid
 `Lock-Token` header, and exactly one matching write-lock observation in
 `DAV:lockdiscovery`. Granted scope and depth must match the request. Additional
 shared-lock observations are not treated as ownership of those locks.
@@ -62,6 +62,15 @@ locks, lose state, or reject a particular mutation. Always submit conditions and
 inspect the operation result. `CreateConditions` refuses non-active local states.
 
 ## Explicit renewal, release and failure
+
+RFC 4918 section 10.5 requires servers to bracket the `Lock-Token` header.
+For interoperability with servers such as WsgiDAV 4.3.5 that omit those brackets,
+the client accepts a single syntactically valid bare absolute token **only**
+when exactly one validated lockdiscovery observation confirms the same opaque
+token. Missing, multiple, invalid, contradictory or ambiguous tokens still fail.
+`DavLockResult.LockToken` provides the confirmed token with brackets; raw
+`GetHeader("Lock-Token")` and `Headers` preserve the server's wire deviation.
+This tolerance neither fabricates a grant/timeout nor follows the token URI.
 
 `RenewAsync` issues exactly one bodyless refresh request with one untagged token,
 as required by RFC 4918 section 9.10.2. There is no acquisition fallback, background
@@ -101,3 +110,11 @@ reconciliation, tagged validators, rejection/transport/cancellation outcomes,
 serialization, and one-attempt cleanup on both target frameworks.
 These deterministic handler tests do not establish independent-server lock
 interoperability or prove server-side atomicity.
+
+A bounded local run against pinned WsgiDAV 4.3.5 / cheroot 11.1.2 exercised the
+independent interoperability harness on both target frameworks: basic
+authentication yielded 19 passing observations and two unavailable/unsupported
+extension observations per framework, with zero nonpassing outcomes and an empty
+fixture share after cleanup. Anonymous runs yielded 18 passing observations
+without the basic-authentication boundary probe. This is narrow interoperability
+evidence, not server certification or evidence for other server implementations.

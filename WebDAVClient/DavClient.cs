@@ -543,6 +543,7 @@ namespace WebDAVClient
                     }
                     var document = await ReadOptionalXmlAsync(response, request, token, response.IsSuccessStatusCode).ConfigureAwait(false);
                     IReadOnlyList<DavLock> locks = Array.Empty<DavLock>();
+                    string? acquiredToken = null;
                     if (response.IsSuccessStatusCode && (int)response.StatusCode != 207 && document != null)
                     {
                         try
@@ -558,7 +559,7 @@ namespace WebDAVClient
                             }
                             if (!refresh)
                             {
-                                ValidateAcquisitionToken(response);
+                                acquiredToken = ValidateAcquisitionToken(response, locks);
                             }
                         }
                         catch (XmlException exception)
@@ -571,27 +572,34 @@ namespace WebDAVClient
                     {
                         throw ProtocolError(response, request, "Recursive LOCK failure requires resource-level outcomes.");
                     }
-                    return new DavLockResult(response, request.RequestUri!, locks, resources, Errors(document));
+                    return new DavLockResult(response, request.RequestUri!, locks, resources, Errors(document), acquiredToken);
                 }
             }
         }
 
-        private static void ValidateAcquisitionToken(HttpResponseMessage response)
+        private static string ValidateAcquisitionToken(HttpResponseMessage response, IReadOnlyList<DavLock> locks)
         {
             var values = response.Headers.TryGetValues("Lock-Token", out var tokens) ? tokens.ToArray() : Array.Empty<string>();
-            var value = values.Length == 1 ? values[0].Trim(' ', '\t') : "";
-            if (values.Length != 1 || value.Length < 3 || value[0] != '<' || value[^1] != '>')
+            if (values.Length != 1)
             {
-                throw new XmlException("A successful lock acquisition requires exactly one bracketed Lock-Token header.");
+                throw new XmlException("A successful lock acquisition requires exactly one Lock-Token header.");
             }
+            var value = values[0].Trim(' ', '\t');
+            var token = value.Length >= 2 && value[0] == '<' && value[^1] == '>'
+                ? value.Substring(1, value.Length - 2) : value;
             try
             {
-                DavCondition.ValidateToken(value.Substring(1, value.Length - 2));
+                DavCondition.ValidateToken(token);
             }
             catch (ArgumentException exception)
             {
                 throw new XmlException("Invalid acquired lock token URI.", exception);
             }
+            if (locks.Count(l => string.Equals(l.Token, token, StringComparison.Ordinal)) != 1)
+            {
+                throw new XmlException("The acquired Lock-Token must match exactly one active lock.");
+            }
+            return "<" + token + ">";
         }
 
         private async Task<XElement?> ReadOptionalXmlAsync(HttpResponseMessage response, HttpRequestMessage request, CancellationToken token, bool required = false)
