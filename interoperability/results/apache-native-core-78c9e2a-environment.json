@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Independent native Apache exact-wire reproduction, not hosted2.4.65 or container execution",
+  "server": "Apache2.4.66 Win64",
+  "publisher": "Apache Lounge",
+  "archiveUrl": "https://www.apachelounge.com/download/VS17/binaries/httpd-2.4.66-251206-Win64-VS17.zip",
+  "archiveSha256": "2cd1f349b6705e43e784e876a233eeb1a859fa6b8abc693a91f87b35a368f7f9",
+  "archiveVerification": "SHA256 matches publisher HTTPS checksum document",
+  "built": "2025-12-06T07:20:52",
+  "authentication": "explicit fixture-only Basic",
+  "modules": [
+    "authn_core",
+    "authn_file",
+    "authz_core",
+    "authz_user",
+    "auth_basic",
+    "dav",
+    "dav_fs",
+    "alias",
+    "dir",
+    "autoindex",
+    "mime"
+  ],
+  "mpm": "static mpm_winnt, single tracked debug instance",
+  "binding": "127.0.0.1 only; no service installation",
+  "storage": "fresh private directory and DAV lock DB owned by this process fixture",
+  "coreSourceRevision": "78c9e2a282c3d83c2894cb9ad9bdbccb9ff43bd5",
+  "coreBinaries": [
+    {
+      "framework": "net8.0",
+      "sha256": "cb404c4b25236b83750553bcc6dc8dd2d555e69c8829a9629bab3a0bdba64efe"
+    },
+    {
+      "framework": "net10.0",
+      "sha256": "ab6f27dd00423ea53f065d25153b569c475c0a3cabc5ca74d5c8b43726662962"
+    }
+  ],
+  "harnessSourceFiles": [
+    {
+      "file": "CompatibilitySuite.cs",
+      "sha256": "2e2eb7c6d64de1c45c37c5e7bd166b9556c9cb9ff77133789012bb8427699088"
+    },
+    {
+      "file": "Configuration.cs",
+      "sha256": "b75170043053b3e401570079b7038d2364d2d3a7a3261ff6c96c3138f0d58807"
+    },
+    {
+      "file": "Matrix.cs",
+      "sha256": "e626c91a573e24a7ba0a39612bb732def8ae3ba5b6b53676922a05f2c812d3b3"
+    },
+    {
+      "file": "OfflineTests.cs",
+      "sha256": "2736600a174e1b988ee8bc6cfa17f58884cd63a1faccacb0244bca1a790656ea"
+    },
+    {
+      "file": "Program.cs",
+      "sha256": "2aaff20ac4d60f4c9773fb49aeaded9428e99b1dc3386de3621deea98f63f6b5"
+    },
+    {
+      "file": "SyncReportEvidence.cs",
+      "sha256": "4450176f2e6ab9b3d68b21d23a0de2e96bb621a1e0415e65f4ac4d3eee252845"
+    },
+    {
+      "file": "SyncReportEvidenceTests.cs",
+      "sha256": "41f8b5ad0bd4dcdd625fbb892ef6acd834936b226a1fc2dd2853d8912435600a"
+    },
+    {
+      "file": "WebDAVClient.InteropTests.csproj",
+      "sha256": "434d8093801e1234f661a02eabd397e178f033142f0cc2bdf9ea7ba547442bc6"
+    }
+  ],
+  "wireFixture": "fixtures/regressions/apache-2.4.66-native",
+  "observedCause": "PROPPATCH href represents plus as a literal path character whereas request percent-escapes it as %2B; percent-hex-case correction alone does not match target. Requested property has200 inside207.",
+  "probeCleanupConfirmed": true,
+  "allRunTreesCleaned": true,
+  "composeExecuted": false,
+  "originalHostedVersion": "2.4.65",
+  "originalHostedExactWireCaptured": false
+}

@@ -54,6 +54,8 @@ remove/reapply the label explicitly. This workflow is separate from publish CI.
 Artifacts are named
 `interoperability-<server>-<run_id>-<run_attempt>` and contain
 `artifacts/interop/*.json`, including a schema-validated compatibility summary.
+Apache/SabreDAV jobs also retain `artifacts/interop/synthetic-wire/**`, the
+explicit fixture-only diagnostic described below.
 Choosing a candidate fixture does not establish that it starts successfully:
 startup failures and missing result artifacts must not be reported as a green
 server.
@@ -117,7 +119,8 @@ dependencies and the production-module coverage gate are unchanged.
   observation does not relax or replace the library's lock validation.
 * For configured authentication, an unauthenticated HEAD of a run-owned file must
   return 401 with the configured scheme. No bad-password/lockout probing is done.
-* RFC 6578 discovery is distinct from REPORT. On supported servers the suite
+* RFC 6578 discovery is distinct from REPORT. An advertised REPORT method does
+  not establish support for the sync-collection report. On supported servers the suite
   requires an initial token, incremental creation with ETag, and a 404 deletion
   member. This is one flat collection batch, not durable synchronization.
 
@@ -139,7 +142,7 @@ and member/property status codes, outcomes, and confirmed cleanup.
 | Outcome | Meaning |
 | --- | --- |
 | `passed` | The operation's semantic assertions succeeded, including expected rejection statuses. |
-| `unsupported` | Optional operation returned 405/501 **and was not advertised**, or a Range request was ignored with 200. Not a pass. |
+| `unsupported` | Optional operation returned 405/501 **and was not advertised**, a Range request was ignored with 200, or the narrowly evidenced Sabre filesystem rejection below applies. Not a pass. |
 | `unavailable-property` | Requested `supported-report-set` property returned 404 inside 207. Does not establish REPORT support or lack thereof. |
 | `denied` | 401/403/407; never silently called unsupported. |
 | `redirected` | 3xx with following disabled; not a pass. |
@@ -162,10 +165,55 @@ Protocol failures retain only allowlisted local error codes and exception types.
 The property probe also records whether PROPPATCH or PROPFIND readback failed;
 arbitrary exception/inner-exception messages remain redacted.
 
+### Explicit synthetic wire diagnostic
+
+For an exact raw reproduction of a fixture protocol error, opt in with:
+
+```powershell
+.\interoperability\Run-Fixture.ps1 -Profile apache -CaptureSyntheticPropertyWire
+.\interoperability\Run-Fixture.ps1 -Profile sabredav -CaptureSyntheticPropertyWire
+```
+
+The switch is accepted only for these two profiles and only after this invocation
+has started its own isolated Compose fixture and passed readiness. It never
+applies to `Invoke-Compatibility.ps1` or an operator-owned endpoint. The probe
+additionally requires the exact fixture `127.0.0.1` HTTP port/path, confirms
+HEAD=404 then MKCOL=201, and creates fresh ASCII/Unicode files under a separate
+random tree. It captures only synthetic PROPPATCH XML bodies and generated
+request paths, never headers, credentials, cookies or lock tokens; it cannot
+issue LOCK/UNLOCK. Responses are bounded to 65,536 bytes each, with a 30-second
+overall deadline and an independent 10-second cleanup requiring DELETE=204 and
+HEAD=404. An incomplete capture or cleanup fails explicitly. Raw diagnostics
+are **not** a compatibility pass. The ordinary suite still runs if the diagnostic
+fails; a diagnostic failure remains nonpassing even if the ordinary suite passes.
+
+The PR-label workflow enables this probe for Apache/SabreDAV before the normal
+suite, so another run yields exact wire evidence rather than just exception
+types. Reviewed native Sabre examples live in
+[`fixtures/regressions/sabredav-4.7.0`](fixtures/regressions/sabredav-4.7.0).
+This explicitly scoped exception does not enable raw diagnostics for real
+operator endpoints; their normal result JSON remains sanitized.
+
+### SabreDAV filesystem sync rejection
+
+The pinned 4.7.0/PHP 8.3.25 profile installs the Sync plugin, but its filesystem
+directory does **not** implement `ISyncCollection`. Only an observed HTTP 415
+with a successful **empty** supported-report-set, no advertised sync-collection,
+and a DAV error body containing exactly the expected `DAV:supported-report`
+marker and `Sabre\DAV\Exception\ReportNotSupported` is classified as optional
+sync unavailability. The configured profile/version must also match. The 415 and
+concrete cause remain in the matrix. Missing discovery/body evidence, other 415s,
+and advertised sync failures are not accepted. No RFC 6578 behavior is covered
+by this backend.
+
 After reviewing new result files, retain them in `interoperability\results` and
 run `.\interoperability\Update-Matrix.ps1`. This validates each run against the JSON
 schema and regenerates the summary without turning missing server rows green.
 The workflow applies the same validation to its artifact directory.
+The summary is an all-history ledger: **any retained failed run** leaves that
+server's summary `observed-nonpassing`, even when a later corrected/configured
+run succeeds. Inspect individual run timestamps, versions and provenance rather
+than deleting negative history to make the summary green.
 
 ## Fixture status and limits
 
@@ -174,7 +222,7 @@ The workflow applies the same validation to its artifact directory.
 | WsgiDAV 4.3.5 / Cheroot 11.1.2 | Python 3.12, property manager and exclusive locks; anonymous and Basic profiles | Windows anonymous/Basic and hosted Linux Basic, both TFMs; checked-in JSON |
 | Apache mod_dav 2.4.65 | Digest-pinned official httpd; DAV filesystem + lock DB, Basic, `/dav/` | Hosted Linux, both TFMs: 18 passes, two unsupported/unavailable probes, one property-protocol failure at outer 207; not a passing profile |
 | nginx 1.28.0 | Digest-pinned official nginx; built-in DAV module only, anonymous, `/` | Hosted Linux, both TFMs: 12 passes, seven unsupported probes, conditional PUT returned 204 instead of required 412; remains a failure |
-| SabreDAV 4.7.0 / PHP 8.3.25 | Digest-pinned PHP/Composer, Basic, filesystem, lock/property storage, Sync plugin | Image built on hosted Linux; old directory-GET readiness failed before suite execution. OPTIONS readiness fix awaits rerun; filesystem tree does not promise RFC 6578 |
+| SabreDAV 4.7.0 / PHP 8.3.25 | Digest-pinned PHP/Composer, frozen Composer dependencies, Basic, filesystem, lock/property storage, Sync plugin | Hosted OPTIONS readiness confirmed; retained container runs fail. Native Windows with corrected core 78c9e2a: 20 passes/1 evidenced sync-unavailable/0 nonpassing, both TFMs and confirmed cleanup; not a corrected Linux-container run |
 | Nextcloud 31.0.9 | Digest-pinned official image, disposable SQLite install, dedicated Basic account, `/remote.php/dav/files/{user}/` | Candidate, not run |
 | ownCloud 10.15.0 | Digest-pinned official server image, disposable SQLite, Redis disabled, dedicated Basic account | Candidate, not run |
 | IIS | Operator-owned Windows site, explicit Windows/Basic | Not run; no IIS/Windows-auth fixture available |
@@ -183,14 +231,40 @@ All six image tags were resolved against the registry with
 `docker buildx imagetools inspect` on 2026-10-20; the resulting immutable digests
 are in the fixtures. Registry manifest inspection is **not container execution**.
 WsgiDAV's transitive dependency versions are frozen in `requirements.txt`.
-SabreDAV pins the server package but still needs a committed Composer lockfile
-before claiming fully frozen transitive/PHP-build reproduction. Its image build
+SabreDAV's Composer lockfile freezes its seven PHP dependencies; PHP and Composer
+images are digest-pinned. Its image build
 succeeded in hosted run 39505211029. These old disposable fixture versions are
 not deployment advice.
 
-Hosted run **39505211029** is retained as evidence, including negative outcomes:
-Apache's property protocol error is unresolved, not reclassified as unsupported;
-the stricter phase/cause codes will identify its origin on rerun. nginx's ignored
+Hosted runs **39505211029**, **39509017232** and **39511504385** are retained as evidence,
+including negative outcomes. Apache's remaining failure is specifically
+PROPPATCH target/property validation at HTTP 207; no raw Apache XML is yet
+available from that exact Linux build. Native Sabre XML identifies a real client target-comparison
+bug (percent-escape hex case), corrected separately in core ce37580 and verified
+with actual PROPPATCH/readback on both TFMs. This is not yet proof of Apache's
+exact cause or correction. A separately versioned, publisher-checksum-verified
+**native Apache 2.4.66 Win64** now reproduces the same remaining failure on both
+frameworks: its exact successful property XML spells the request's `%2B` as a
+literal path `+`, in addition to lowercase percent escapes. This is a reserved
+character alias, not universally equivalent URI syntax, and strict default
+target matching still rejects it. The
+[exact synthetic wire](fixtures/regressions/apache-2.4.66-native) makes the
+additional mismatch concrete; a safe explicit profile decision belongs in core,
+not a blanket decoded-URI comparison or an “unsupported” harness workaround.
+The new fixture-only capture obtains the still-missing exact Linux 2.4.65 wire.
+Sabre LOCK still failed on ce37580 and caused DELETE/cleanup 423; those native
+failures are retained. The server supplies a **raw decoded, unescaped** optional
+lockroot (including spaces, Unicode, literal percent and hash), not a usable URI.
+Core correction 78c9e2a preserves that scalar only as evidence and never follows
+it; token/header/body identity, grant scope/depth/timeout and metadata cardinality
+remain validated. With that core, native Sabre passes **20 checks, one evidenced
+optional sync rejection, zero nonpassing**, on both TFMs. Exclusive LOCK,
+conflicting DELETE=423, refresh, UNLOCK, final DELETE=204 and cleanup HEAD=404
+were actually verified. Environment companions record exact core revisions and
+DLL/source hashes, since these retests combined this harness with separately
+built corrected core DLLs rather than claiming an integrated repository revision.
+They do not replace the retained failed hosted results.
+nginx's ignored
 conditional PUT is a server compatibility restriction, not made green by changing
 configuration or expectations. All completed Apache/nginx runs verified cleanup.
 
@@ -201,8 +275,8 @@ that enforces the required `If-Match`/`If-None-Match` behavior. A preliminary HE
 or ETag comparison cannot close the race before an unconditional PUT, and this
 suite does not retry without the condition or silently skip these assertions.
 
-No passing Apache/nginx/SabreDAV profile, HTTPS or Windows-authentication run is
-asserted here. The local Docker daemon remains unavailable; hosted evidence does
+No passing Apache/nginx or corrected SabreDAV **Linux-container** profile, HTTPS
+or Windows-authentication run is asserted here. The local Docker daemon remains unavailable; hosted evidence does
 not imply local container execution.
 Shared locks, lock-token conditioned writes, partial PUT, large/deep trees,
 chunking extensions, ACLs, quotas, CalDAV/CardDAV and full RFC conformance remain

@@ -1,0 +1,2 @@
+<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns"><d:response><d:href>/synthetic-wire-e128a66b8cc34563b92e7af949b6f409/caf%c3%a9%20%e4%b8%ad%e6%96%87%20%2b%20%25%20%23.bin</d:href><d:propstat><d:prop><x1:marker xmlns:x1="urn:webdavclient:interop:v1"/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>

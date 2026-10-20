@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libonig-dev unz
     && docker-php-ext-install mbstring \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /var/www
-COPY composer.json ./
+COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --prefer-dist
 RUN printf '<Directory /var/www/html>\nFallbackResource /index.php\n</Directory>\n' > /etc/apache2/conf-available/interop.conf \
     && a2enconf interop

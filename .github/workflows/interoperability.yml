@@ -58,11 +58,12 @@ jobs:
           dotnet test WebDAVClient.InteropTests -c Release --verbosity quiet
           if ($LASTEXITCODE -ne 0) { throw 'Offline harness tests failed.' }
           ./interoperability/Test-FixtureReadiness.ps1
+          ./interoperability/Test-SyntheticPropertyWire.ps1
       - name: Real server compatibility on both target frameworks
         shell: pwsh
         env:
           INTEROP_PROFILE: ${{ matrix.server }}
-        run: ./interoperability/Run-Fixture.ps1 -Profile $env:INTEROP_PROFILE
+        run: ./interoperability/Run-Fixture.ps1 -Profile $env:INTEROP_PROFILE -CaptureSyntheticPropertyWire:($env:INTEROP_PROFILE -in @('apache', 'sabredav'))
       - name: Validate and summarize any completed observations
         if: always()
         shell: pwsh
@@ -75,5 +76,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: interoperability-${{ matrix.server }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/interop/*.json
+          path: |
+            artifacts/interop/*.json
+            artifacts/interop/synthetic-wire/**
           if-no-files-found: warn

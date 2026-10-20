@@ -3,13 +3,15 @@ param(
     [ValidateSet('wsgidav', 'apache', 'nginx', 'sabredav', 'nextcloud', 'owncloud')]
     [string] $Profile = 'wsgidav',
     [ValidateSet('basic', 'anonymous')]
-    [string] $Authentication = 'basic'
+    [string] $Authentication = 'basic',
+    [switch] $CaptureSyntheticPropertyWire
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 Push-Location $root
 $process = $null
 $composeStarted = $false
+$captureFailed = $false
 $compose = Join-Path $PSScriptRoot 'fixtures\compose.yml'
 $projectName = 'webdavclient-interop-' + [Guid]::NewGuid().ToString('N')
 $savedAuth = $env:WEBDAV_INTEROP_AUTH
@@ -20,6 +22,9 @@ $savedVersion = $env:WEBDAV_INTEROP_VERSION
 try {
     if ($savedEndpoint -or $savedVersion) {
         throw 'Run-Fixture owns the local endpoint/version. Clear endpoint/version overrides or use Invoke-Compatibility for existing servers.'
+    }
+    if ($CaptureSyntheticPropertyWire -and $Profile -notin @('apache', 'sabredav')) {
+        throw 'Synthetic wire capture is restricted to runner-owned Apache/SabreDAV loopback containers.'
     }
     if ($Authentication -eq 'anonymous' -and $Profile -notin @('wsgidav', 'nginx')) {
         throw 'Anonymous fixture mode is available only for WsgiDAV and built-in nginx DAV.'
@@ -103,9 +108,20 @@ try {
         if (!$readiness.ready) {
             throw "Fixture readiness failed (method=$method, status=$($readiness.status)); see sanitized startup artifact."
         }
+        if ($CaptureSyntheticPropertyWire) {
+            if (!$composeStarted) { throw 'Synthetic capture requires a container started by this invocation.' }
+            try {
+                & (Join-Path $PSScriptRoot 'Capture-SyntheticPropertyWire.ps1') -Client $http -Endpoint $endpoint -Profile $Profile -FixtureProject $projectName
+            }
+            catch {
+                $captureFailed = $true
+                Write-Warning 'Synthetic fixture capture was incomplete; ordinary compatibility checks still run. Inspect its bounded artifact.'
+            }
+        }
     }
     finally { $http.Dispose() }
     & (Join-Path $PSScriptRoot 'Invoke-Compatibility.ps1') -Profile $Profile
+    if ($captureFailed) { throw 'Synthetic fixture capture was incomplete; compatibility results were retained separately.' }
 }
 finally {
     $teardownFailure = $null

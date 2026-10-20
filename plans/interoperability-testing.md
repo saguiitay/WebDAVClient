@@ -64,10 +64,10 @@ The [versioned matrix](../interoperability/results/compatibility-matrix.json)
 and per-run schema-v1 JSON files are evidence, not a promise of universal server
 support. Docker CLI and registry inspection are available, but the local Linux
 daemon is unavailable; **no container-server green results are claimed**.
-Nextcloud/ownCloud/SabreDAV container execution and IIS/Windows authentication
-remain explicit evidence gaps. Optional production diagnostics were deferred;
-the harness writes only narrow sanitized outcome/capability data, not headers,
-credentials, endpoint URLs, bodies or tokens.
+Nextcloud/ownCloud execution, corrected Sabre Linux-container verification and
+IIS/Windows authentication remain explicit evidence gaps. General production
+diagnostics were deferred; normal result JSON remains sanitized. The explicitly
+scoped synthetic fixture-only body capture is described below.
 
 ### Hosted fixture evidence — run 39505211029
 
@@ -82,3 +82,51 @@ nginx), with offline regressions and sanitized startup-status artifacts. Narrow
 property-phase/allowlisted protocol-cause diagnostics support the next Apache
 rerun without capturing response bodies or exception messages. See the refreshed
 matrix for exact preserved positive and negative evidence.
+
+### Post-strict-core investigation and reproducible diagnostics
+
+Hosted run 39509017232 confirms OPTIONS readiness and actual Sabre execution.
+WsgiDAV remains passing; Apache PROPPATCH 207, nginx conditional PUT 204 and
+Sabre property/lock/cleanup failures remain recorded, not silently unsupported.
+An independent native SabreDAV 4.7.0/PHP 8.3.25 fixture produced exact synthetic
+PROPPATCH XML: lowercase percent escapes identify the same target bytes as the
+client's uppercase escapes. The protocol track corrected its target comparison
+in ce37580; actual retests on both TFMs confirm property/readback now passes.
+No Apache raw XML is yet available, so the same cause there remains unproven.
+
+Sabre's Sync plugin is installed but its filesystem backend is not
+`ISyncCollection`. Empty report discovery plus actual DAV:supported-report and
+Sabre ReportNotSupported XML establish unavailable optional sync at HTTP 415,
+not a malformed media/body request. Only this exact version/profile/evidence
+combination is classified unsupported; the status/cause remain, advertised sync
+failures still fail, and no RFC 6578 coverage is claimed. Actual response fixtures
+and their environment are retained under `interoperability\fixtures\regressions`.
+Composer dependencies are now frozen with a checked-in lockfile.
+
+`Run-Fixture.ps1 -Profile apache -CaptureSyntheticPropertyWire` (or `sabredav`)
+adds a narrowly bounded raw synthetic PROPPATCH capture only after starting its
+own loopback Compose fixture. The opt-in workflow enables it for these jobs and
+uploads `artifacts/interop/synthetic-wire/**`. No headers or LOCKs are captured;
+fresh run-owned trees, a byte cap, deadlines and independently confirmed cleanup
+bound the probe. Operator endpoint results remain sanitized. Offline script tests
+cover endpoint guards, unconfirmed ownership, byte caps and cleanup.
+
+The same native Sabre fixture with core 78c9e2a now verifies **20 passed, one
+evidenced optional sync rejection, zero nonpassing**, on each framework.
+That second core correction retains Sabre's unescaped optional lockroot scalar
+as metadata only, never a URI to follow; strict acquired lock identity and grant
+validation remain. LOCK/conflict/refresh/UNLOCK, DELETE and cleanup actually
+pass. The preceding ce37580 native failures and all hosted negative results are
+retained, not rewritten. Core DLL hashes and harness source hashes distinguish
+these native retests from a future integrated Linux-container execution.
+
+Run 39511504385 still fails Apache after the percent-hex correction. A
+publisher-checksum-verified native Apache 2.4.66 Win64 fixture now provides
+concrete additional wire evidence: successful PROPPATCH returns a literal `+`
+where the request uses `%2B`. Core 78c9e2a reproduces 18 passes/two optional
+unavailable/one target-confirmation failure on both TFMs, with clean run trees.
+This reserved-character alias is not generic RFC URI equivalence; the protocol
+track owns any explicit profile-only compatibility option. Exact no-header,
+no-lock synthetic XML and version provenance are checked in separately from
+hosted Apache 2.4.65. The new hosted fixture probe still captures the latter's
+exact wire; no native result is relabeled as Linux/container evidence.

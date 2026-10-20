@@ -233,6 +233,7 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
                     return result;
                 }).ConfigureAwait(false);
             }
+            bool emptyReportSetConfirmed = false;
             await CheckAsync("sync-discovery", async () =>
             {
                 var name = new PropertyName("DAV:", "supported-report-set");
@@ -247,6 +248,8 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
                     return Snapshot("sync-discovery", response, optional: true);
                 }
                 var values = response.Resources.SelectMany(r => r.GetProperties(name)).ToArray();
+                emptyReportSetConfirmed = values.Length == 1 && values[0].StatusCode == 200 &&
+                    SyncReportEvidence.IsConfirmedEmptyReportSet(values[0].Value.ToElement());
                 foreach (var property in values.Where(p => p.StatusCode == 200))
                 {
                     m_matrix.AdvertisedReports.AddRange(property.Value.ToElement().Descendants(XName.Get("report", "DAV:"))
@@ -265,7 +268,8 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
                 var result = Snapshot("sync-report", initial.Response, optional: true);
                 if (initial.Response.StatusCode != 207)
                 {
-                    return result;
+                    return SyncReportEvidence.Classify(result, config.Server, config.Version, emptyReportSetConfirmed,
+                        m_matrix.AdvertisedReports, initial.Response.Document?.ToElement());
                 }
                 Require(initial.SyncToken != null && !initial.HasMore);
                 Require(SyncMembersSucceeded(initial.Response, allowDeletion: false));
@@ -361,6 +365,16 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
             "DAV resource XML size limit exceeded." => "xml-size-limit",
             "A DAV resource href requires an HTTP(S) URI or an absolute path." => "invalid-resource-href",
             "Invalid character in DAV href path or query." => "invalid-href-character",
+            "PROPPATCH did not report outcomes for every requested property on the target resource." => "proppatch-target-or-property-outcomes",
+            "Malformed LOCK response." => "malformed-lock",
+            "A successful lock acquisition requires exactly one Lock-Token header." => "lock-header-count",
+            "Invalid acquired lock token URI." => "lock-token-uri",
+            "The acquired Lock-Token must match exactly one active lock." => "lock-token-discovery-mismatch",
+            "Invalid granted lock timeout." => "invalid-lock-timeout",
+            "Invalid active lock scope, type or depth." => "invalid-lock-shape",
+            "LOCK requires a DAV:prop root." => "lock-prop-root",
+            "LOCK requires DAV:lockdiscovery." => "missing-lock-discovery",
+            "No active locks were reported." => "empty-lock-discovery",
             _ => ex.GetType().Name
         };
         return exception.InnerException == null ? Code(exception) : Code(exception) + ":" + Code(exception.InnerException);

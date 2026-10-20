@@ -154,6 +154,10 @@ public sealed class OfflineTests
             new System.Xml.XmlException("A DAV resource href requires an HTTP(S) URI or an absolute path.")));
         Assert.AreEqual("invalid-href-character", CompatibilitySuite.DescribeFailure(
             new System.Xml.XmlException("Invalid character in DAV href path or query.")));
+        Assert.AreEqual("proppatch-target-or-property-outcomes", CompatibilitySuite.DescribeFailure(
+            new IOException("PROPPATCH did not report outcomes for every requested property on the target resource.")));
+        Assert.AreEqual("lock-token-discovery-mismatch", CompatibilitySuite.DescribeFailure(
+            new System.Xml.XmlException("The acquired Lock-Token must match exactly one active lock.")));
     }
 
     [TestMethod]
