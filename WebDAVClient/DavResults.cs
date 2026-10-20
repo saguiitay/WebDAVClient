@@ -93,13 +93,41 @@ namespace WebDAVClient
             {
                 throw CreateException("The response does not confirm completion of this operation.");
             }
-            var failed = Resources.SelectMany(r => r.PropertyStatuses.Select(p => p.StatusCode).Prepend(r.StatusCode))
-                .FirstOrDefault(s => s.HasValue && (s < 200 || s >= 300));
+            int? failed = null;
+            for (int i = 0; i < Resources.Count && !failed.HasValue; i++)
+            {
+                var resource = Resources[i];
+                if (resource.StatusCode < 200 || resource.StatusCode >= 300)
+                {
+                    failed = resource.StatusCode;
+                    break;
+                }
+                for (int j = 0; j < resource.PropertyStatuses.Count; j++)
+                {
+                    var status = resource.PropertyStatuses[j].StatusCode;
+                    if (status < 200 || status >= 300)
+                    {
+                        failed = status;
+                        break;
+                    }
+                }
+            }
             if (failed.HasValue)
             {
                 var exception = CreateException("A DAV resource or property failed.", failedStatus: failed);
-                exception.ResourceStatuses = Array.AsReadOnly(Resources.Where(r => r.StatusCode.HasValue)
-                    .SelectMany(r => r.Hrefs.Select(h => new ResourceStatus(h, r.StatusCode!.Value, r.Description!))).ToArray());
+                var statuses = new List<ResourceStatus>();
+                for (int i = 0; i < Resources.Count; i++)
+                {
+                    var resource = Resources[i];
+                    if (resource.StatusCode.HasValue)
+                    {
+                        for (int j = 0; j < resource.Hrefs.Count; j++)
+                        {
+                            statuses.Add(new ResourceStatus(resource.Hrefs[j], resource.StatusCode.Value, resource.Description!));
+                        }
+                    }
+                }
+                exception.ResourceStatuses = statuses.AsReadOnly();
                 throw exception;
             }
         }

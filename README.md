@@ -310,6 +310,15 @@ including a 100,000-resource streaming case. Use the generated reports for curre
 measurements. Coverage is a regression signal, not proof of correctness; unexecuted
 defensive branches are not forced through reflection just to reach 100%.
 
+`DavProcessingPerformanceTests` records warmed allocation and timing samples for
+resource projection, property lookup and completion checks. Allocation budgets
+guard these hot paths; elapsed times are diagnostic, not CI pass/fail criteria.
+The v3 LINQ reduction lowered allocation for the six-property projection fixture
+from 10,304-10,872 to 3,328 bytes, duplicate-preserving lookup from 304 to 72 bytes,
+and a successful 1,000-resource completion check from 152,096 bytes to zero on
+.NET 8/10. These are in-process fixture measurements, not network throughput
+guarantees. XML copies and read-only snapshots remain intact.
+
 ## Release Notes
 
 + **3.0.0** _(upcoming)_ Protocol-first API redesign:
@@ -327,6 +336,9 @@ defensive branches are not forced through reflection just to reach 100%.
   - Preserved inherited streaming XML language/space context within resource
     budgets, rejected malformed HTTP status versions, honored case-insensitive
     media/range/coding tokens and validated date-based download resumption.
+  - Reduced per-resource LINQ allocations with single-pass response projection,
+    direct XML-context traversal, ordered property iteration and allocation-free
+    successful completion checks. Preserved legacy parsing and immutable results.
   - Added the public REPORT seam and a single-batch sync-level 1 profile. No
     automatic retry, lease renewal, durable synchronization or conformance claim.
   - Included the following security, correctness and reliability improvements

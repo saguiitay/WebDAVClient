@@ -119,7 +119,7 @@ namespace WebDAVClient.Protocol
                 {
                     var element = new XElement(XName.Get(reader.LocalName, reader.NamespaceURI));
                     if (stack.Count == 3 && stack.Peek().Name == Dav + "prop"
-                        && stack.ElementAt(1).Name == Dav + "propstat" && stack.ElementAt(2).Name == Dav + "response"
+                        && stack.Peek().Parent!.Name == Dav + "propstat" && root!.Name == Dav + "response"
                         && (namesOnly || davPropertiesOnly && reader.NamespaceURI != "DAV:"))
                     {
                         if (namesOnly)
@@ -226,46 +226,126 @@ namespace WebDAVClient.Protocol
         private static bool Is(XmlReader reader, string name, bool legacy) =>
             reader.NamespaceURI == "DAV:" && string.Equals(reader.LocalName, name, legacy ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
-        private static IEnumerable<XElement> Children(XElement element, string name, bool legacy) =>
-            element.Elements().Where(e => e.Name.Namespace == Dav &&
-                string.Equals(e.Name.LocalName, name, legacy ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal));
-
         internal static DavResourceResponse ParseResponse(XElement element, bool legacy)
         {
-            var hrefs = Children(element, "href", legacy).Select(e => Text(e)).ToArray();
-            if (hrefs.Length == 0 || hrefs.Any(string.IsNullOrWhiteSpace))
+            var hrefs = new List<string>();
+            var propstats = new List<DavPropertyStatus>();
+            var errors = new List<DavXmlValue>();
+            var extensions = new List<DavXmlValue>();
+            int? status = null;
+            string? description = null;
+            string? location = null;
+            foreach (var child in element.Elements())
+            {
+                if (child.Name.Namespace != Dav)
+                {
+                    extensions.Add(new DavXmlValue(child));
+                    continue;
+                }
+                var name = legacy ? child.Name.LocalName.ToLowerInvariant() : child.Name.LocalName;
+                switch (name)
+                {
+                    case "href":
+                        var href = Text(child);
+                        if (string.IsNullOrWhiteSpace(href))
+                        {
+                            throw new XmlException("A DAV:response requires a direct, nonempty DAV:href.");
+                        }
+                        hrefs.Add(href);
+                        break;
+                    case "status":
+                        if (status.HasValue)
+                        {
+                            throw new XmlException("Duplicate DAV response status.");
+                        }
+                        status = ParseStatus(Text(child));
+                        break;
+                    case "propstat":
+                        propstats.Add(ParsePropertyStatus(child, legacy));
+                        break;
+                    case "responsedescription":
+                        description ??= Text(child);
+                        break;
+                    case "location":
+                        if (location == null)
+                        {
+                            foreach (var candidate in child.Elements())
+                            {
+                                if (candidate.Name.Namespace == Dav && string.Equals(candidate.Name.LocalName, "href",
+                                    legacy ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+                                {
+                                    location = Text(candidate);
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    case "error":
+                        foreach (var error in child.Elements())
+                        {
+                            errors.Add(new DavXmlValue(error));
+                        }
+                        break;
+                }
+            }
+            if (hrefs.Count == 0)
             {
                 throw new XmlException("A DAV:response requires a direct, nonempty DAV:href.");
             }
-            var statusElements = Children(element, "status", legacy).ToArray();
-            if (statusElements.Length > 1)
-            {
-                throw new XmlException("Duplicate DAV response status.");
-            }
-            int? status = statusElements.Length == 0 ? null : ParseStatus(Text(statusElements[0]));
-            var propstats = Children(element, "propstat", legacy).Select(p =>
-            {
-                var statuses = Children(p, "status", legacy).ToArray();
-                var props = Children(p, "prop", legacy).ToArray();
-                if (statuses.Length > 1 || (!legacy && (statuses.Length != 1 || props.Length != 1)))
-                {
-                    throw new XmlException("A DAV:propstat requires one prop and one status.");
-                }
-                return new DavPropertyStatus(statuses.Length == 0 ? null : ParseStatus(Text(statuses[0])),
-                    props.SelectMany(e => e.Elements()).Select(e => new DavXmlValue(e)),
-                    Children(p, "responsedescription", legacy).Select(Text).FirstOrDefault(),
-                    Children(p, "error", legacy).SelectMany(e => e.Elements()).Select(e => new DavXmlValue(e)));
-            }).ToArray();
-            if (!legacy && ((status.HasValue && propstats.Length != 0) || (!status.HasValue && propstats.Length == 0)
-                || (propstats.Length != 0 && hrefs.Length != 1)))
+            if (!legacy && ((status.HasValue && propstats.Count != 0) || (!status.HasValue && propstats.Count == 0)
+                || (propstats.Count != 0 && hrefs.Count != 1)))
             {
                 throw new XmlException("A DAV:response requires either a resource status or property statuses.");
             }
-            return new DavResourceResponse(hrefs, status, propstats,
-                Children(element, "responsedescription", legacy).Select(Text).FirstOrDefault(),
-                Children(element, "location", legacy).SelectMany(e => Children(e, "href", legacy)).Select(Text).FirstOrDefault(),
-                Children(element, "error", legacy).SelectMany(e => e.Elements()).Select(e => new DavXmlValue(e)),
-                element.Elements().Where(e => e.Name.Namespace != Dav).Select(e => new DavXmlValue(e)));
+            return new DavResourceResponse(hrefs, status, propstats, description, location, errors, extensions);
+        }
+
+        private static DavPropertyStatus ParsePropertyStatus(XElement element, bool legacy)
+        {
+            int? status = null;
+            int propCount = 0;
+            string? description = null;
+            var properties = new List<DavXmlValue>();
+            var errors = new List<DavXmlValue>();
+            foreach (var child in element.Elements())
+            {
+                if (child.Name.Namespace != Dav)
+                {
+                    continue;
+                }
+                var name = legacy ? child.Name.LocalName.ToLowerInvariant() : child.Name.LocalName;
+                switch (name)
+                {
+                    case "status":
+                        if (status.HasValue)
+                        {
+                            throw new XmlException("A DAV:propstat requires one prop and one status.");
+                        }
+                        status = ParseStatus(Text(child));
+                        break;
+                    case "prop":
+                        propCount++;
+                        foreach (var property in child.Elements())
+                        {
+                            properties.Add(new DavXmlValue(property));
+                        }
+                        break;
+                    case "responsedescription":
+                        description ??= Text(child);
+                        break;
+                    case "error":
+                        foreach (var error in child.Elements())
+                        {
+                            errors.Add(new DavXmlValue(error));
+                        }
+                        break;
+                }
+            }
+            if (!legacy && (!status.HasValue || propCount != 1))
+            {
+                throw new XmlException("A DAV:propstat requires one prop and one status.");
+            }
+            return new DavPropertyStatus(status, properties, description, errors);
         }
 
         internal static string Text(XElement element)

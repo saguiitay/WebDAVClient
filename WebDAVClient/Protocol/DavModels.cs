@@ -18,11 +18,11 @@ namespace WebDAVClient.Protocol
         {
             ArgumentNullException.ThrowIfNull(element);
             m_element = new XElement(element);
-            foreach (var ancestor in element.Ancestors())
+            for (var ancestor = element.Parent; ancestor != null; ancestor = ancestor.Parent)
             {
-                foreach (var attribute in ancestor.Attributes().Where(a => a.IsNamespaceDeclaration))
+                for (var attribute = ancestor.FirstAttribute; attribute != null; attribute = attribute.NextAttribute)
                 {
-                    if (m_element.Attribute(attribute.Name) == null)
+                    if (attribute.IsNamespaceDeclaration && m_element.Attribute(attribute.Name) == null)
                     {
                         m_element.Add(new XAttribute(attribute));
                     }
@@ -67,10 +67,16 @@ namespace WebDAVClient.Protocol
     /// <summary>A wire propstat group, retaining property order and error XML.</summary>
     public sealed class DavPropertyStatus
     {
-        internal DavPropertyStatus(int? status, IEnumerable<DavXmlValue> properties, string? description, IEnumerable<DavXmlValue> errors)
+        internal DavPropertyStatus(int? status, IReadOnlyList<DavXmlValue> properties, string? description, IEnumerable<DavXmlValue> errors)
         {
             StatusCode = status;
-            Properties = Array.AsReadOnly(properties.Select(p => new DavPropertyResult(p.Name, status, p)).ToArray());
+            var results = new DavPropertyResult[properties.Count];
+            for (int i = 0; i < results.Length; i++)
+            {
+                var property = properties[i];
+                results[i] = new DavPropertyResult(property.Name, status, property);
+            }
+            Properties = Array.AsReadOnly(results);
             Description = description;
             Errors = Array.AsReadOnly(errors.ToArray());
         }
@@ -116,7 +122,23 @@ namespace WebDAVClient.Protocol
         public IEnumerable<DavPropertyResult> GetProperties(PropertyName name)
         {
             ArgumentNullException.ThrowIfNull(name);
-            return PropertyStatuses.SelectMany(s => s.Properties).Where(p => p.Name == name);
+            return EnumerateProperties(name);
+        }
+
+        private IEnumerable<DavPropertyResult> EnumerateProperties(PropertyName name)
+        {
+            for (int groupIndex = 0; groupIndex < PropertyStatuses.Count; groupIndex++)
+            {
+                var properties = PropertyStatuses[groupIndex].Properties;
+                for (int propertyIndex = 0; propertyIndex < properties.Count; propertyIndex++)
+                {
+                    var property = properties[propertyIndex];
+                    if (property.Name == name)
+                    {
+                        yield return property;
+                    }
+                }
+            }
         }
     }
 
