@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "suiteVersion": "1.0",
-  "generatedUtc": "2026-10-20T23:09:33.9220956+00:00",
+  "generatedUtc": "2026-10-20T23:24:51.4463989+00:00",
   "scope": "Independent-server observations only; not full RFC conformance, publication, or unobserved configuration support.",
   "servers": [
     {
@@ -406,6 +406,108 @@
               "outcome": "failed",
               "httpStatus": 207,
               "detail": "proppatch:WebDAVException"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-native-core-6dbc3dc-alias-net10.0.json",
+          "startedUtc": "2026-10-20T23:20:19.9711093+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "2.4.66-native-win64",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "af576a4b287bd491b4e9865c2d42ae6d5cadf00e",
+          "succeeded": true,
+          "passed": 19,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-native-core-6dbc3dc-alias-net8.0.json",
+          "startedUtc": "2026-10-20T23:20:00.5521444+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "2.4.66-native-win64",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "af576a4b287bd491b4e9865c2d42ae6d5cadf00e",
+          "succeeded": true,
+          "passed": 19,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-native-core-6dbc3dc-strict-net10.0.json",
+          "startedUtc": "2026-10-20T23:19:37.2765195+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "2.4.66-native-win64",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "af576a4b287bd491b4e9865c2d42ae6d5cadf00e",
+          "succeeded": false,
+          "passed": 18,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "dead-property",
+              "outcome": "failed",
+              "httpStatus": 207,
+              "detail": "proppatch:proppatch-target-or-property-outcomes"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-native-core-6dbc3dc-strict-net8.0.json",
+          "startedUtc": "2026-10-20T23:19:17.3770253+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "2.4.66-native-win64",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "af576a4b287bd491b4e9865c2d42ae6d5cadf00e",
+          "succeeded": false,
+          "passed": 18,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "dead-property",
+              "outcome": "failed",
+              "httpStatus": 207,
+              "detail": "proppatch:proppatch-target-or-property-outcomes"
             }
           ],
           "cleanup": [

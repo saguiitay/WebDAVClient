@@ -75,5 +75,12 @@
   "allRunTreesCleaned": true,
   "composeExecuted": false,
   "originalHostedVersion": "2.4.65",
-  "originalHostedExactWireCaptured": false
+  "originalHostedExactWireCaptured": false,
+  "fixtureTeardown": {
+    "serverProcessStopped": true,
+    "portClosed": true,
+    "allRunTreesPreviouslyDeletedOverHttp": true,
+    "ownedSiteAndLockDatabaseRemoved": true,
+    "serviceInstalled": false
+  }
 }

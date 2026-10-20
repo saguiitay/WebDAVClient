@@ -48,3 +48,13 @@ tokens are included. Hosted Apache 2.4.65's same failure phase remains recorded
 separately, including run 39511504385 after the percent-hex fix. Its exact XML
 must still be captured by the new loopback-only fixture probe before claiming
 byte-for-byte confirmation for that particular build.
+
+Final native comparison with core 6dbc3dc and integrated harness af576a4:
+strict default still records **18/2/1**, while explicit
+`PropPatchOptions.AllowPathPlusEncodingAlias=true` records **19/2/0**, on both
+frameworks. PROPPATCH/readback succeeds only in the disclosed configured mode;
+neither the outbound target nor raw href is changed and no mutation is replayed.
+All four run trees were deleted over HTTP with absence confirmed. The native
+server was then stopped, its port confirmed closed, and its own generated site,
+fixture account file and lock database removed. See the versioned result files
+and `apache-native-core-6dbc3dc-environment.json` for provenance.

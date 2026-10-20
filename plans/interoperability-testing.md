@@ -140,3 +140,12 @@ Result detail discloses the profile assumption, while default failures remain
 in the evidence ledger. Configuration tests enforce default-off, explicit flag
 values and Apache-only scope. Query, slash, percent nesting, case and origin
 distinctions remain production-core validations, not harness relaxations.
+
+Final native Apache 2.4.66 comparisons with core 6dbc3dc verify 19 passed/two
+optional unavailable/zero nonpassing with explicit alias mode on both TFMs,
+while fresh strict-default runs remain 18/two/one. All four trees have successful
+HTTP cleanup/absence checks. Both portable native servers are stopped, ports
+closed, and only their generated fixture data removed. Their raw fixtures and
+versioned positive/negative JSON remain durable. Corrected hosted Apache
+2.4.65/Sabre Linux execution awaits the final explicit opt-in rerun;
+nginx's conditional-write deviation remains a real failure.

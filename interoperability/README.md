@@ -250,7 +250,7 @@ than deleting negative history to make the summary green.
 | Profile | Configuration | Execution evidence |
 | --- | --- | --- |
 | WsgiDAV 4.3.5 / Cheroot 11.1.2 | Python 3.12, property manager and exclusive locks; anonymous and Basic profiles | Windows anonymous/Basic and hosted Linux Basic, both TFMs; checked-in JSON |
-| Apache mod_dav 2.4.65 | Digest-pinned official httpd; DAV filesystem + lock DB, Basic, `/dav/` | Hosted Linux, both TFMs: 18 passes, two unsupported/unavailable probes, one property-protocol failure at outer 207; not a passing profile |
+| Apache mod_dav 2.4.65 | Digest-pinned official httpd; DAV filesystem + lock DB, Basic, `/dav/` | Retained hosted strict-default runs: 18 passes/two optional unavailable/one target failure. Separately versioned native 2.4.66 with explicit path-plus option: 19 passes/two optional unavailable/zero nonpassing, both TFMs and cleanup; corrected Linux profile awaits execution |
 | nginx 1.28.0 | Digest-pinned official nginx; built-in DAV module only, anonymous, `/` | Hosted Linux, both TFMs: 12 passes, seven unsupported probes, conditional PUT returned 204 instead of required 412; remains a failure |
 | SabreDAV 4.7.0 / PHP 8.3.25 | Digest-pinned PHP/Composer, frozen Composer dependencies, Basic, filesystem, lock/property storage, Sync plugin | Hosted OPTIONS readiness confirmed; retained container runs fail. Native Windows with corrected core 78c9e2a: 20 passes/1 evidenced sync-unavailable/0 nonpassing, both TFMs and confirmed cleanup; not a corrected Linux-container run |
 | Nextcloud 31.0.9 | Digest-pinned official image, disposable SQLite install, dedicated Basic account, `/remote.php/dav/files/{user}/` | Candidate, not run |
@@ -282,6 +282,12 @@ target matching still rejects it. The
 additional mismatch concrete; a safe explicit profile decision belongs in core,
 not a blanket decoded-URI comparison or an “unsupported” harness workaround.
 The new fixture-only capture obtains the still-missing exact Linux 2.4.65 wire.
+With core 6dbc3dc, actual native 2.4.66 retests preserve **18/2/1** under strict
+defaults and verify **19/2/0** with the explicit path-plus profile on each
+framework. All four run trees were deleted over HTTP and absence confirmed.
+The wrapper's default stayed strict even with an inherited alias environment
+flag. Source revision af576a4 identifies the integrated harness/core sources
+used for these comparisons; the environment companion records DLL hashes.
 Sabre LOCK still failed on ce37580 and caused DELETE/cleanup 423; those native
 failures are retained. The server supplies a **raw decoded, unescaped** optional
 lockroot (including spaces, Unicode, literal percent and hash), not a usable URI.
@@ -305,10 +311,14 @@ that enforces the required `If-Match`/`If-None-Match` behavior. A preliminary HE
 or ETag comparison cannot close the race before an unconditional PUT, and this
 suite does not retry without the condition or silently skip these assertions.
 
-No passing Apache/nginx or corrected SabreDAV **Linux-container** profile, HTTPS
+No passing Apache 2.4.65 Linux-container, nginx or corrected SabreDAV **Linux-container** profile, HTTPS
 or Windows-authentication run is asserted here. The local Docker daemon remains unavailable; hosted evidence does
 not imply local container execution.
 Shared locks, lock-token conditioned writes, partial PUT, large/deep trees,
 chunking extensions, ACLs, quotas, CalDAV/CardDAV and full RFC conformance remain
 outside suite v1. Keep a failing result rather than widening “unsupported” to
 hide a real rejection or removing a server from the evidence ledger.
+Both native diagnostic server processes were stopped, their loopback ports
+confirmed closed, and only their generated fixture data/accounts/lock databases
+removed. Native passing runs retain their successful HTTP cleanup; earlier
+Sabre cleanup failures remain failed despite subsequent fixture destruction.
