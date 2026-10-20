@@ -111,6 +111,10 @@ dependencies and the production-module coverage gate are unchanged.
   MOVE byte integrity and disappearance of its source, DELETE and verified absence.
 * Exclusive LOCK, conflicting unconditioned DELETE=423, refresh, and UNLOCK.
   A failed intermediate check still attempts independent UNLOCK during cleanup.
+  A successful acquisition with one absolute bare response-header token matching
+  exactly one discovery token records only the static wire-deviation code
+  `unbracketed-lock-token-confirmed`; the token itself is never persisted. This
+  observation does not relax or replace the library's lock validation.
 * For configured authentication, an unauthenticated HEAD of a run-owned file must
   return 401 with the configured scheme. No bad-password/lockout probing is done.
 * RFC 6578 discovery is distinct from REPORT. On supported servers the suite
@@ -189,6 +193,13 @@ Apache's property protocol error is unresolved, not reclassified as unsupported;
 the stricter phase/cause codes will identify its origin on rerun. nginx's ignored
 conditional PUT is a server compatibility restriction, not made green by changing
 configuration or expectations. All completed Apache/nginx runs verified cleanup.
+
+Do not rely on built-in nginx DAV for safe preconditioned creation/replacement
+where conditional writes are ignored. A stale `If-Match` returning 204 is also a
+server deviation, not success of the intended guard. Use a server/configuration
+that enforces the required `If-Match`/`If-None-Match` behavior. A preliminary HEAD
+or ETag comparison cannot close the race before an unconditional PUT, and this
+suite does not retry without the condition or silently skip these assertions.
 
 No passing Apache/nginx/SabreDAV profile, HTTPS or Windows-authentication run is
 asserted here. The local Docker daemon remains unavailable; hosted evidence does

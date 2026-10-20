@@ -194,13 +194,18 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
                 }
                 lockToken = response.LockToken?.Trim('<', '>');
                 Require(!string.IsNullOrWhiteSpace(lockToken));
+                string? wireDeviation = LockWireDeviation(response.GetHeader("Lock-Token"), response.Locks.Select(l => l.Token).ToArray());
                 var blocked = await client.DeleteAsync(file, cancellationToken: ct).ConfigureAwait(false);
                 Require(blocked.StatusCode == 423);
                 var refresh = await client.RefreshLockAsync(file, lockToken!, cancellationToken: ct).ConfigureAwait(false);
                 refresh.EnsureSucceeded();
                 (await client.UnlockAsync(file, lockToken!, ct).ConfigureAwait(false)).EnsureSucceeded();
                 lockToken = null;
-                return result with { Detail = "Exclusive lock, conflicting DELETE=423, refresh, UNLOCK confirmed." };
+                return result with
+                {
+                    Detail = "Exclusive lock, conflicting DELETE=423, refresh, UNLOCK confirmed." +
+                        (wireDeviation == null ? "" : " Wire deviation: " + wireDeviation + ".")
+                };
             }).ConfigureAwait(false);
             var copy = DavPath.FromSegments(m_matrix.RunTree, "copy.bin");
             var moved = DavPath.FromSegments(m_matrix.RunTree, "moved.bin");
@@ -354,9 +359,21 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
             "Unexpected text in DAV:multistatus." => "multistatus-text",
             "DAV XML nesting limit exceeded." => "xml-depth-limit",
             "DAV resource XML size limit exceeded." => "xml-size-limit",
+            "A DAV resource href requires an HTTP(S) URI or an absolute path." => "invalid-resource-href",
+            "Invalid character in DAV href path or query." => "invalid-href-character",
             _ => ex.GetType().Name
         };
         return exception.InnerException == null ? Code(exception) : Code(exception) + ":" + Code(exception.InnerException);
+    }
+
+    internal static string? LockWireDeviation(string? rawHeader, IReadOnlyList<string?> discoveryTokens)
+    {
+        string? raw = rawHeader?.Trim(' ', '\t');
+        return !string.IsNullOrEmpty(raw) && !raw.StartsWith('<') &&
+            !raw.Any(char.IsWhiteSpace) && raw.IndexOfAny(['<', '>', '"']) < 0 &&
+            Uri.TryCreate(raw, UriKind.Absolute, out _) && discoveryTokens.Count == 1 &&
+            string.Equals(raw, discoveryTokens[0], StringComparison.Ordinal)
+                ? "unbracketed-lock-token-confirmed" : null;
     }
 
     private Observation Response(string name, DavResponse response, bool optional = false)

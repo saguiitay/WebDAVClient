@@ -150,6 +150,25 @@ public sealed class OfflineTests
         var sensitive = new IOException("https://user:secret@example.test/private",
             new System.Xml.XmlException("token=private-lock-token"));
         Assert.AreEqual("IOException:XmlException", CompatibilitySuite.DescribeFailure(sensitive));
+        Assert.AreEqual("invalid-resource-href", CompatibilitySuite.DescribeFailure(
+            new System.Xml.XmlException("A DAV resource href requires an HTTP(S) URI or an absolute path.")));
+        Assert.AreEqual("invalid-href-character", CompatibilitySuite.DescribeFailure(
+            new System.Xml.XmlException("Invalid character in DAV href path or query.")));
+    }
+
+    [TestMethod]
+    public void LockWireDeviationRequiresExactlyOneMatchingTokenAndNeverReturnsTheToken()
+    {
+        const string token = "opaquelocktoken:private-fixture-token";
+        Assert.AreEqual("unbracketed-lock-token-confirmed", CompatibilitySuite.LockWireDeviation(token, [token]));
+        Assert.AreEqual("unbracketed-lock-token-confirmed", CompatibilitySuite.LockWireDeviation(" \t" + token + "\t ", [token]));
+        Assert.IsNull(CompatibilitySuite.LockWireDeviation("<" + token + ">", [token]));
+        Assert.IsNull(CompatibilitySuite.LockWireDeviation(token, []));
+        Assert.IsNull(CompatibilitySuite.LockWireDeviation(token, [token, token]));
+        Assert.IsNull(CompatibilitySuite.LockWireDeviation(token, ["opaquelocktoken:different"]));
+        Assert.IsNull(CompatibilitySuite.LockWireDeviation("relative", ["relative"]));
+        Assert.IsNull(CompatibilitySuite.LockWireDeviation("opaquelocktoken:bad token", ["opaquelocktoken:bad token"]));
+        Assert.IsNull(CompatibilitySuite.LockWireDeviation(null, [token]));
     }
 
     private sealed class SequenceHandler(params int[] statuses) : HttpMessageHandler
