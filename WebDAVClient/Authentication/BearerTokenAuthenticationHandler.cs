@@ -43,7 +43,9 @@ namespace WebDAVClient.Authentication
         public BearerTokenAuthenticationHandler(string bearerToken)
         {
             if (string.IsNullOrWhiteSpace(bearerToken))
+            {
                 throw new ArgumentException("Bearer token must be a non-empty string.", nameof(bearerToken));
+            }
             // Capture the token in a closure so the per-request hot path is the
             // same as the dynamic-provider case — no branching in SendAsync.
             var captured = bearerToken;
@@ -53,7 +55,10 @@ namespace WebDAVClient.Authentication
         /// <inheritdoc/>
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
 
             var token = await m_tokenProvider(cancellationToken).ConfigureAwait(false);
             if (!string.IsNullOrEmpty(token))

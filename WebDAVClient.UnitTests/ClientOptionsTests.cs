@@ -39,12 +39,17 @@ namespace WebDAVClient.UnitTests.ClientTests
                 Content = new ByteArrayContent(Array.Empty<byte>())
             };
             if (dav != null)
+            {
                 response.Headers.TryAddWithoutValidation("DAV", dav);
+            }
+
             if (allow != null)
             {
                 // Allow lives on Content.Headers per RFC 9110 §10.2.1.
                 foreach (var token in allow.Split(','))
+                {
                     response.Content.Headers.Allow.Add(token.Trim());
+                }
             }
             return response;
         }

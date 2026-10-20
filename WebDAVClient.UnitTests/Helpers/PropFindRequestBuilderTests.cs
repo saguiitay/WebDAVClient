@@ -173,9 +173,11 @@ namespace WebDAVClient.UnitTests.Helpers
 
             // Round-trips through XmlReader without throwing.
             using (var ms = new System.IO.MemoryStream(bytes))
-            using (var reader = XmlReader.Create(ms))
             {
-                while (reader.Read()) { }
+                using (var reader = XmlReader.Create(ms))
+                {
+                    while (reader.Read()) { }
+                }
             }
         }
     }

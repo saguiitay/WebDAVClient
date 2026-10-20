@@ -254,7 +254,11 @@ namespace WebDAVClient.UnitTests.ClientTests
             using var harness = new ClientHarness(Responder(_ =>
             {
                 response = new TrackingHttpResponseMessage((HttpStatusCode)status) { Content = new StringContent(body) };
-                if (range != null) response.Content.Headers.TryAddWithoutValidation("Content-Range", range);
+                if (range != null)
+                {
+                    response.Content.Headers.TryAddWithoutValidation("Content-Range", range);
+                }
+
                 return response;
             }), Server, BasePath);
 
@@ -927,7 +931,11 @@ namespace WebDAVClient.UnitTests.ClientTests
 
             protected override void Dispose(bool disposing)
             {
-                if (disposing) Interlocked.Increment(ref DisposeCount);
+                if (disposing)
+                {
+                    Interlocked.Increment(ref DisposeCount);
+                }
+
                 base.Dispose(disposing);
             }
         }

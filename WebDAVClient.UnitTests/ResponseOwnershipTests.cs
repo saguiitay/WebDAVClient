@@ -23,7 +23,10 @@ namespace WebDAVClient.UnitTests
             var content = new TrackingContent();
             var response = new TrackingResponse(partial ? HttpStatusCode.PartialContent : HttpStatusCode.OK) { Content = content };
             if (partial)
+            {
                 content.Headers.ContentRange = new ContentRangeHeaderValue(0, 22, 23);
+            }
+
             using var harness = new ClientHarness(request =>
                 request.Method.Method == "PROPFIND"
                     ? StubHttpMessageHandler.Multistatus(WebDAVResponses.Root("/webdav/")) : response);
@@ -32,12 +35,20 @@ namespace WebDAVClient.UnitTests
             Assert.AreEqual(0, response.DisposeCount);
             Assert.AreEqual(0, content.DisposeCount);
             using (var reader = new StreamReader(stream, leaveOpen: true))
+            {
                 Assert.AreEqual("unread response content", await reader.ReadToEndAsync());
+            }
+
             Assert.AreEqual(0, response.DisposeCount);
             if (asyncDisposal)
+            {
                 await stream.DisposeAsync();
+            }
             else
+            {
                 stream.Dispose();
+            }
+
             stream.Dispose();
             await stream.DisposeAsync();
             Assert.AreEqual(1, response.DisposeCount);
@@ -69,9 +80,13 @@ namespace WebDAVClient.UnitTests
                 : harness.Client.CopyFile("source", "destination");
 
             if (status == 403)
+            {
                 await Assert.ThrowsExceptionAsync<WebDAVException>(() => Invoke());
+            }
             else
+            {
                 Assert.IsTrue(await Invoke());
+            }
 
             Assert.AreEqual(1, response.DisposeCount);
             Assert.AreEqual(1, content.DisposeCount);
@@ -86,7 +101,10 @@ namespace WebDAVClient.UnitTests
             protected override void Dispose(bool disposing)
             {
                 if (disposing)
+                {
                     DisposeCount++;
+                }
+
                 base.Dispose(disposing);
             }
         }
@@ -100,7 +118,10 @@ namespace WebDAVClient.UnitTests
             protected override void Dispose(bool disposing)
             {
                 if (disposing)
+                {
                     DisposeCount++;
+                }
+
                 base.Dispose(disposing);
             }
         }

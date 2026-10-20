@@ -23,7 +23,10 @@ namespace WebDAVClient.UnitTests
             Assert.AreEqual("value", Assert.ThrowsException<ArgumentNullException>(() => harness.Client.Server = null).ParamName);
             Assert.AreEqual("value", Assert.ThrowsException<ArgumentNullException>(() => harness.Client.BasePath = null).ParamName);
             foreach (var server in new[] { "", " ", "http://", "not a valid host", "ftp://example.com" })
+            {
                 Assert.AreEqual("value", Assert.ThrowsException<ArgumentException>(() => harness.Client.Server = server).ParamName);
+            }
+
             Assert.AreEqual("value", Assert.ThrowsException<ArgumentException>(() => harness.Client.BasePath = " ").ParamName);
             Assert.AreEqual("value", Assert.ThrowsException<ArgumentOutOfRangeException>(() => harness.Client.Port = 65536).ParamName);
             Assert.AreEqual(0, harness.Handler.Requests.Count);

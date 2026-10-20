@@ -11,6 +11,7 @@ dotnet restore
 dotnet build -c Release --no-restore          # builds both TFMs
 dotnet test -c Release --no-build             # runs both test TFMs after building
 dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -p:CollectCoverage=true
+dotnet format style WebDAVClient.sln --diagnostics IDE0011 --severity error --no-restore --verify-no-changes
 dotnet build WebDAVClient\WebDAVClient.csproj -c Release-Unsigned # library-only configuration
 dotnet pack  -c Release -o Release/nuget      # produces .nupkg + .snupkg
 ```
@@ -40,6 +41,7 @@ Version 2.7.0 is already released (maintainer-confirmed); current 2.8.0 is upcom
 
 ## Conventions specific to this repo
 
+- **Braces**: always use `{}` for C# control-flow bodies, including single statements in library, sample, and test code. `.editorconfig` sets IDE0011 to error, and CI verifies it with the targeted formatting command above.
 - **Path handling is opinionated**: `Server` is stored without a trailing slash; `BasePath` is normalized to `"/" + value + "/"` (or `"/"` if empty). Don't bypass these setters when constructing URLs internally — use `m_server` / `m_basePath` / `m_encodedBasePath`.
 - **Async**: public I/O methods return tasks and accept a trailing `CancellationToken cancellationToken = default`. Always add `.ConfigureAwait(false)` on awaits in library code (per release-notes 1.0.7 and existing usage). Thread tokens through discovery and body reads, not only HTTP sends.
 - **Field naming**: instance fields use `m_camelCase`, statics use `s_camelCase`, constants use `c_camelCase`. Match this when adding new members in `Client.cs` / `HttpClientWrapper.cs`.

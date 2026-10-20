@@ -272,7 +272,8 @@ namespace WebDAVClient.UnitTests.Parser
         public void Hidden_properties_use_their_values_in_allprop_and_targeted_modes(string value, bool expected)
         {
             foreach (var mode in new[] { PropFindMode.AllProp, PropFindMode.NamedProperties })
-            foreach (var name in new[] { "hidden", "ishidden" })
+            {
+                foreach (var name in new[] { "hidden", "ishidden" })
             {
                 var property = value.Length == 0 ? $"<D:{name}/>" : $"<D:{name}>{value}</D:{name}>";
                 var xml = $@"<D:multistatus xmlns:D=""DAV:""><D:response><D:href>/file.txt</D:href>
@@ -283,6 +284,7 @@ namespace WebDAVClient.UnitTests.Parser
 
                 Assert.AreEqual(expected, item.IsHidden, $"{mode}: {name}={value}");
                 Assert.AreEqual("etag", item.Etag);
+            }
             }
         }
     }

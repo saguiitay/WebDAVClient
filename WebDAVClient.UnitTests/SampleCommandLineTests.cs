@@ -80,7 +80,10 @@ namespace WebDAVClient.UnitTests
                 Environment.SetEnvironmentVariable("WEBDAV_PASSWORD", "sample-password");
             }
             if (authentication == "bearer")
+            {
                 Environment.SetEnvironmentVariable("WEBDAV_BEARER_TOKEN", "sample-token");
+            }
+
             var previousProxy = System.Net.Http.HttpClient.DefaultProxy;
             System.Net.Http.HttpClient.DefaultProxy = new WebProxy();
             int completed = 0;
@@ -96,15 +99,24 @@ namespace WebDAVClient.UnitTests
                     using var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, leaveOpen: true);
                     var request = await reader.ReadLineAsync(deadline.Token);
                     if (request == null)
+                    {
                         throw new IOException("Missing loopback request.");
+                    }
+
                     var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                     while (true)
                     {
                         var line = await reader.ReadLineAsync(deadline.Token);
                         if (line == null)
+                        {
                             throw new IOException("Incomplete request headers.");
+                        }
+
                         if (line.Length == 0)
+                        {
                             break;
+                        }
+
                         var separator = line.IndexOf(':');
                         headers.Add(line.Substring(0, separator), line.Substring(separator + 1).Trim());
                     }
@@ -112,7 +124,9 @@ namespace WebDAVClient.UnitTests
                     {
                         var body = new char[int.Parse(length, CultureInfo.InvariantCulture)];
                         if (await reader.ReadBlockAsync(body.AsMemory(), deadline.Token) != body.Length)
+                        {
                             throw new IOException("Incomplete request body.");
+                        }
                     }
                     string status = "207 Multi-Status";
                     string extraHeaders = "";
@@ -128,19 +142,28 @@ namespace WebDAVClient.UnitTests
                     {
                         completed++;
                         if (authentication == "credentials")
+                        {
                             Assert.AreEqual("Basic " + Convert.ToBase64String(Encoding.ASCII.GetBytes("sample-user:sample-password")), headers["Authorization"]);
+                        }
                         else if (authentication == "bearer")
+                        {
                             Assert.AreEqual("Bearer sample-token", headers["Authorization"]);
+                        }
                         else
+                        {
                             Assert.IsFalse(headers.ContainsKey("Authorization"));
+                        }
+
                         if (request.StartsWith("GET ", StringComparison.Ordinal))
                         {
                             status = "200 OK";
                             content = Encoding.ASCII.GetBytes("sample content");
                         }
                         else
+                        {
                             content = Encoding.ASCII.GetBytes(headers["Depth"] == "0"
                                 ? WebDAVResponses.Root("/webdav/") : WebDAVResponses.FolderListing());
+                        }
                     }
                     var response = Encoding.ASCII.GetBytes($"HTTP/1.1 {status}\r\n{extraHeaders}Content-Length: {content.Length}\r\nConnection: close\r\n\r\n");
                     await stream.WriteAsync(response, deadline.Token);
@@ -160,7 +183,10 @@ namespace WebDAVClient.UnitTests
                 StringAssert.Contains(environment.Output.ToString(), "File:");
                 StringAssert.Contains(environment.Output.ToString(), "Folder:");
                 if (authentication != "credentials")
+                {
                     StringAssert.Contains(environment.Output.ToString(), "Requested target read successfully.");
+                }
+
                 Assert.AreEqual("", environment.Error.ToString());
             }
             finally
@@ -203,7 +229,10 @@ namespace WebDAVClient.UnitTests
                 Console.SetOut(m_output);
                 Console.SetError(m_error);
                 foreach (var pair in m_environment)
+                {
                     Environment.SetEnvironmentVariable(pair.Key, pair.Value);
+                }
+
                 Output.Dispose();
                 Error.Dispose();
             }

@@ -41,7 +41,9 @@ foreach (var item in await client.List(cancellationToken: cancellation.Token))
     count++;
 }
 if (count == 0)
+{
     Console.WriteLine("This directory is empty.");
+}
 ```
 
 ### Paths
@@ -136,7 +138,7 @@ gate fails; a failed gate prevents publication. No production-code exclusions
 are added to reach the thresholds.
 
 Measured on both frameworks: **533 passing cases per framework**, with library
-coverage of **99.53% lines / 97.18% branches** and sample coverage of
+coverage of **99.40% lines / 97.18% branches** and sample coverage of
 **100% lines / 98.78% branches**. Both modules have **100% method coverage**.
 Coverage is a regression signal, not proof of correctness; unexecuted defensive
 branches are not forced through reflection just to reach 100%.
@@ -343,7 +345,9 @@ foreach (var item in await client.List(cancellationToken: token))
     count++;
 }
 if (count == 0)
+{
     Console.WriteLine("This directory is empty.");
+}
 ```
 
 This example is read-only and requires no pre-existing files or folders. The
@@ -416,7 +420,9 @@ Task<string> CurrentToken(CancellationToken cancellationToken)
     cancellationToken.ThrowIfCancellationRequested();
     var value = Environment.GetEnvironmentVariable("WEBDAV_BEARER_TOKEN");
     if (string.IsNullOrWhiteSpace(value))
+    {
         throw new InvalidOperationException("Set WEBDAV_BEARER_TOKEN.");
+    }
     return Task.FromResult(value);
 }
 
@@ -456,7 +462,9 @@ var pipeline = new BearerTokenAuthenticationHandler(cancellationToken =>
     cancellationToken.ThrowIfCancellationRequested();
     var value = Environment.GetEnvironmentVariable("WEBDAV_BEARER_TOKEN");
     if (string.IsNullOrWhiteSpace(value))
+    {
         throw new InvalidOperationException("Set WEBDAV_BEARER_TOKEN.");
+    }
     return Task.FromResult(value);
 })
 {
@@ -624,11 +632,15 @@ async Task<string> GetTokenAsync(CancellationToken ct)
     try
     {
         if (cachedToken != null && expiresAt > DateTimeOffset.UtcNow.AddSeconds(30))
+        {
             return cachedToken;
+        }
 
         var fresh = await tokenSource.RefreshAsync(ct).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(fresh.AccessToken) || fresh.ExpiresAt <= DateTimeOffset.UtcNow)
+        {
             throw new InvalidOperationException("Refresh returned an empty or expired token.");
+        }
 
         cachedToken = fresh.AccessToken;
         expiresAt = fresh.ExpiresAt;
@@ -656,7 +668,9 @@ request's token with other callers.
 ```csharp
 var options = await client.GetServerOptions("/dav/", cancellationToken: token);
 if (!options.IsWebDavServer)
+{
     throw new InvalidOperationException("Endpoint is not a WebDAV server");
+}
 
 bool supportsLock = options.IsClass2 && options.SupportsMethod("LOCK");
 ```
@@ -670,7 +684,9 @@ var info = await client.LockFile("/dav/report.docx", owner: "alice", cancellatio
 try
 {
     using (var fs = File.OpenRead(localPath))
+    {
         await client.Upload("/dav/", fs, "report.docx", lockToken: info.Token, cancellationToken: token);
+    }
     await client.RefreshLock("/dav/report.docx", info.Token, timeoutSeconds: 600, cancellationToken: token);
 }
 finally
@@ -715,13 +731,17 @@ foreach (var item in items)
     // Custom properties land in FoundProperties / NotFoundProperties.
     if (item.FoundProperties != null &&
         item.FoundProperties.TryGetValue(new PropertyName("https://example.com/ns", "author"), out var author))
+    {
         Console.WriteLine(author);
+    }
 }
 
 // Discover what properties a resource exposes
 var names = await client.GetFilePropertyNames("/dav/report.docx", cancellationToken: token);
 foreach (var n in names.AvailablePropertyNames)
+{
     Console.WriteLine($"{n.Namespace}:{n.LocalName}");
+}
 ```
 
 ### Lock-token-aware writes (If header)

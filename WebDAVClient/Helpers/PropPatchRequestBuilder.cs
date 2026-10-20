@@ -19,7 +19,10 @@ namespace WebDAVClient.Helpers
         public static void ValidatePropertyName(string propertyName)
         {
             if (string.IsNullOrWhiteSpace(propertyName))
+            {
                 throw new ArgumentException("Property name must be a non-empty string.", nameof(propertyName));
+            }
+
             try
             {
                 XmlConvert.VerifyNCName(propertyName);
@@ -40,11 +43,16 @@ namespace WebDAVClient.Helpers
         public static void ValidatePropertyNamespace(string propertyNamespace)
         {
             if (string.IsNullOrWhiteSpace(propertyNamespace))
+            {
                 throw new ArgumentException("Property namespace must be a non-empty string.", nameof(propertyNamespace));
+            }
+
             if (string.Equals(propertyNamespace, "DAV:", StringComparison.Ordinal))
+            {
                 throw new ArgumentException(
                     "The DAV: namespace is reserved for protected (live) properties; SetProperty/RemoveProperty only support custom (dead) properties.",
                     nameof(propertyNamespace));
+            }
         }
 
         /// <summary>

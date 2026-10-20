@@ -51,7 +51,9 @@ namespace WebDAVClient.Helpers
                     {
                         var result = await ReadPropStatAsync(reader, cancellationToken).ConfigureAwait(false);
                         if (result != null)
+                        {
                             results.Add(result);
+                        }
                     }
                 }
             }
@@ -61,7 +63,9 @@ namespace WebDAVClient.Helpers
         private static async Task<PropStatResult> ReadPropStatAsync(XmlReader reader, CancellationToken cancellationToken)
         {
             if (reader.IsEmptyElement)
+            {
                 return null;
+            }
 
             var result = new PropStatResult();
             int depth = reader.Depth;
@@ -79,7 +83,9 @@ namespace WebDAVClient.Helpers
                 }
 
                 if (reader.NodeType != XmlNodeType.Element || reader.Depth != depth + 1)
+                {
                     continue;
+                }
 
                 // Only consume DAV-namespaced status / responsedescription children of <propstat>.
                 // A user-defined property called "status" inside <D:prop> would be a different
@@ -106,20 +112,27 @@ namespace WebDAVClient.Helpers
         private static int ParseStatusCode(string statusLine)
         {
             if (string.IsNullOrEmpty(statusLine))
+            {
                 return 0;
+            }
 
             var span = statusLine.AsSpan();
 
             // Skip the HTTP-version token (leading whitespace + non-whitespace run).
             var i = SkipWhitespace(span, 0);
             if (i >= span.Length)
+            {
                 return 0;
+            }
+
             i = SkipNonWhitespace(span, i);
 
             // Skip the separating whitespace before the status-code token.
             i = SkipWhitespace(span, i);
             if (i >= span.Length)
+            {
                 return 0;
+            }
 
             // Find the end of the status-code token.
             var end = SkipNonWhitespace(span, i);
@@ -133,7 +146,10 @@ namespace WebDAVClient.Helpers
         {
             var i = start;
             while (i < span.Length && (span[i] == ' ' || span[i] == '\t'))
+            {
                 i++;
+            }
+
             return i;
         }
 
@@ -141,7 +157,10 @@ namespace WebDAVClient.Helpers
         {
             var i = start;
             while (i < span.Length && span[i] != ' ' && span[i] != '\t')
+            {
                 i++;
+            }
+
             return i;
         }
 

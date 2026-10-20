@@ -26,9 +26,14 @@ namespace WebDAVClient.UnitTests
                     : StubHttpMessageHandler.StatusOnly((HttpStatusCode)status));
             var pending = Upload(harness.Client, input, partial);
             if (status == 403)
+            {
                 await Assert.ThrowsExceptionAsync<WebDAVException>(() => pending);
+            }
             else
+            {
                 Assert.IsTrue(await pending);
+            }
+
             Assert.IsFalse(input.CanRead);
         }
 

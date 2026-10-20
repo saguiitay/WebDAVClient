@@ -46,15 +46,24 @@ namespace TestWebDAVClient
                 if (!Uri.TryCreate(server, UriKind.Absolute, out var uri)
                     || (uri.Scheme != "https" && uri.Scheme != "http") || uri.AbsolutePath != "/"
                     || uri.UserInfo.Length != 0 || uri.Query.Length != 0 || uri.Fragment.Length != 0)
+                {
                     throw new ArgumentException("Supply --server as an HTTP(S) origin without credentials, query or path; use --base-path for the directory.");
+                }
+
                 if (string.IsNullOrWhiteSpace(basePath))
+                {
                     throw new ArgumentException("--base-path must not be blank.");
+                }
+
                 string user = Environment.GetEnvironmentVariable("WEBDAV_USERNAME");
                 string password = Environment.GetEnvironmentVariable("WEBDAV_PASSWORD");
                 string bearer = Environment.GetEnvironmentVariable("WEBDAV_BEARER_TOKEN");
                 if ((!string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(bearer))
                     || (string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(password)))
+                {
                     throw new ArgumentException("Choose username/password or bearer authentication, not both; password requires a username.");
+                }
+
                 if (validate)
                 {
                     Console.WriteLine("Configuration valid. No server contacted.");
@@ -62,10 +71,16 @@ namespace TestWebDAVClient
                 }
                 var transport = new HttpClientHandler { UseDefaultCredentials = false };
                 if (!string.IsNullOrEmpty(user))
+                {
                     transport.Credentials = new NetworkCredential(user, password);
+                }
+
                 HttpMessageHandler pipeline = transport;
                 if (!string.IsNullOrEmpty(bearer))
+                {
                     pipeline = new BearerTokenAuthenticationHandler(bearer) { InnerHandler = transport };
+                }
+
                 using var http = new HttpClient(pipeline);
                 using var client = new Client(http) { Server = server, BasePath = basePath };
                 using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(60));
@@ -90,7 +105,10 @@ namespace TestWebDAVClient
         private static string Value(string[] args, ref int index)
         {
             if (index + 1 >= args.Length || args[index + 1].StartsWith("--", StringComparison.Ordinal))
+            {
                 throw new ArgumentException(args[index] + " requires a value.");
+            }
+
             return args[++index];
         }
 
@@ -103,9 +121,15 @@ namespace TestWebDAVClient
             {
                 var items = (await client.List(cancellationToken: token).ConfigureAwait(false)).ToList();
                 if (items.Count == 0)
+                {
                     output.WriteLine("No items found. An empty server is supported.");
+                }
+
                 foreach (var item in items)
+                {
                     output.WriteLine($"{(item.IsCollection ? "Folder" : "File")}: {item.DisplayName}");
+                }
+
                 if (target != null)
                 {
                     using var stream = await client.Download(target, token).ConfigureAwait(false);
@@ -120,19 +144,28 @@ namespace TestWebDAVClient
                     created = true;
                     output.WriteLine("Created run-owned directory: " + directory);
                     using (var input = new MemoryStream(Encoding.ASCII.GetBytes("abcdefgh")))
+                    {
                         await client.Upload(directory, input, "sample.bin", cancellationToken: token).ConfigureAwait(false);
+                    }
+
                     if (options.SupportsMethod("LOCK"))
                     {
                         var info = await client.LockFile(directory + "/sample.bin", cancellationToken: token).ConfigureAwait(false);
                         lockToken = info.Token;
                     }
                     using (var patch = new MemoryStream(new byte[] { 0xF0, 0x0B, 0xA5 }))
+                    {
                         await client.UploadPartial(directory, patch, "sample.bin", 2, 5, lockToken, token).ConfigureAwait(false);
+                    }
+
                     using var part = await client.DownloadPartial(directory + "/sample.bin", 2, 4, token).ConfigureAwait(false);
                     using var result = new MemoryStream();
                     await part.CopyToAsync(result, token).ConfigureAwait(false);
                     if (!result.ToArray().SequenceEqual(new byte[] { 0xF0, 0x0B, 0xA5 }))
+                    {
                         throw new InvalidDataException("Partial transfer returned unexpected bytes.");
+                    }
+
                     output.WriteLine("Run-owned partial-transfer roundtrip completed.");
                 }
             }
@@ -152,10 +185,15 @@ namespace TestWebDAVClient
             {
                 if (lockToken != null && !await CleanupAsync(
                     ct => client.UnlockFile(directory + "/sample.bin", lockToken, ct), "Unlock", error).ConfigureAwait(false))
+                {
                     exitCode = 1;
+                }
+
                 if (created && !await CleanupAsync(
                     ct => client.DeleteFolder(directory, cancellationToken: ct), "Delete run-owned directory " + directory, error).ConfigureAwait(false))
+                {
                     exitCode = 1;
+                }
             }
             return exitCode;
         }

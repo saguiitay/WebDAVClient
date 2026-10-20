@@ -67,10 +67,16 @@ namespace WebDAVClient.UnitTests
                 var pending = Invoke(client, operation, cancellation.Token);
                 var first = await Task.WhenAny(stream.Stalled.Task, pending).WaitAsync(TimeSpan.FromSeconds(5));
                 if (first == pending)
+                {
                     await pending;
+                }
+
                 await stream.Stalled.Task.WaitAsync(TimeSpan.FromSeconds(5));
                 if (!useDeadline)
+                {
                     cancellation.Cancel();
+                }
+
                 try
                 {
                     await pending.WaitAsync(TimeSpan.FromSeconds(5));
@@ -97,7 +103,10 @@ namespace WebDAVClient.UnitTests
             using var client = new Client();
             Assert.AreEqual(TimeSpan.FromSeconds(100), client.ResponseBodyTimeout);
             foreach (var invalid in new[] { TimeSpan.Zero, TimeSpan.FromMilliseconds(-2), TimeSpan.MaxValue })
+            {
                 Assert.ThrowsException<ArgumentOutOfRangeException>(() => client.ResponseBodyTimeout = invalid);
+            }
+
             client.ResponseBodyTimeout = Timeout.InfiniteTimeSpan;
             Assert.AreEqual(Timeout.InfiniteTimeSpan, client.ResponseBodyTimeout);
         }
@@ -121,7 +130,10 @@ namespace WebDAVClient.UnitTests
             var pending = client.GetFile("file", cancellationToken: cancellation.Token);
             await content.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
             if (!useDeadline)
+            {
                 cancellation.Cancel();
+            }
+
             try
             {
                 await pending.WaitAsync(TimeSpan.FromSeconds(5));
@@ -155,7 +167,10 @@ namespace WebDAVClient.UnitTests
             protected override void Dispose(bool disposing)
             {
                 if (disposing)
+                {
                     DisposeCount++;
+                }
+
                 base.Dispose(disposing);
             }
         }
@@ -177,7 +192,10 @@ namespace WebDAVClient.UnitTests
             protected override void Dispose(bool disposing)
             {
                 if (disposing)
+                {
                     IsDisposed = true;
+                }
+
                 base.Dispose(disposing);
             }
         }

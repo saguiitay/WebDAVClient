@@ -20,9 +20,15 @@ namespace WebDAVClient.UnitTests
             using var handler = new AsyncHttpMessageHandler(async (request, token) =>
             {
                 if (request.Method.Method == "PROPFIND")
+                {
                     return StubHttpMessageHandler.Multistatus(WebDAVResponses.Root("/webdav/"));
+                }
+
                 if (Interlocked.Increment(ref failures) == 2)
+                {
                     release.TrySetResult();
+                }
+
                 await release.Task.WaitAsync(TimeSpan.FromSeconds(5), token);
                 return new HttpResponseMessage(request.Method == HttpMethod.Get ? HttpStatusCode.Forbidden : HttpStatusCode.Conflict);
             });
@@ -41,8 +47,12 @@ namespace WebDAVClient.UnitTests
             Assert.AreEqual("http://example.com/webdav/two", exceptions[1].ResourceUri.AbsoluteUri);
             Assert.IsInstanceOfType<WebDAVConflictException>(exceptions[1]);
             foreach (var exception in exceptions)
+            {
                 foreach (var secret in new[] { "example-user", "example-password", "example-query", "example-fragment", "example-header-secret" })
+                {
                     Assert.IsFalse(exception.ToString().Contains(secret), secret);
+                }
+            }
         }
 
         [TestMethod]

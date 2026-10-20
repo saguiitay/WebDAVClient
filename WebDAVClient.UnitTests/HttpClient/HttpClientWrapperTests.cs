@@ -107,7 +107,11 @@ namespace WebDAVClient.UnitTests.HttpClientTests
 
             protected override void Dispose(bool disposing)
             {
-                if (disposing) Interlocked.Increment(ref DisposeCount);
+                if (disposing)
+                {
+                    Interlocked.Increment(ref DisposeCount);
+                }
+
                 base.Dispose(disposing);
             }
         }

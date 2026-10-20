@@ -21,7 +21,9 @@ namespace WebDAVClient.Helpers
         public static List<string> Split(string headerValue)
         {
             if (string.IsNullOrWhiteSpace(headerValue))
+            {
                 return new List<string>(0);
+            }
 
             var result = new List<string>(4);
             var span = headerValue.AsSpan();
@@ -32,7 +34,10 @@ namespace WebDAVClient.Helpers
                 {
                     var slice = span.Slice(start, i - start).Trim();
                     if (slice.Length > 0)
+                    {
                         result.Add(slice.ToString());
+                    }
+
                     start = i + 1;
                 }
             }
@@ -47,7 +52,11 @@ namespace WebDAVClient.Helpers
         /// </summary>
         public static string Join(IEnumerable<string> values)
         {
-            if (values == null) return null;
+            if (values == null)
+            {
+                return null;
+            }
+
             string joined = string.Join(", ", values);
             return string.IsNullOrEmpty(joined) ? null : joined;
         }

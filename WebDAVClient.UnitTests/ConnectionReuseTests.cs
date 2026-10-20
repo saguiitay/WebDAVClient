@@ -43,23 +43,37 @@ namespace WebDAVClient.UnitTests
                     {
                         var requestLine = await reader.ReadLineAsync(deadline.Token);
                         if (requestLine == null)
+                        {
                             break;
+                        }
+
                         string method = requestLine.Split(' ')[0];
                         int contentLength = 0;
                         while (true)
                         {
                             var header = await reader.ReadLineAsync(deadline.Token);
                             if (header == null)
+                            {
                                 throw new IOException("Unexpected end of request headers.");
+                            }
+
                             if (header.Length == 0)
+                            {
                                 break;
+                            }
+
                             if (header.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
+                            {
                                 contentLength = int.Parse(header.Substring("Content-Length:".Length), CultureInfo.InvariantCulture);
+                            }
                         }
                         // These test requests contain only ASCII XML/MOVE/COPY bodies.
                         var requestBody = new char[contentLength];
                         if (contentLength > 0 && await reader.ReadBlockAsync(requestBody.AsMemory(), deadline.Token) != contentLength)
+                        {
                             throw new IOException("Unexpected end of request content.");
+                        }
+
                         Interlocked.Increment(ref requests);
                         var body = method == "PROPFIND" ? root : unusedBody;
                         var status = method == "PROPFIND" ? "207 Multi-Status"

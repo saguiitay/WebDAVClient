@@ -29,7 +29,10 @@ namespace WebDAVClient.Helpers
         internal WebDAVException WithRequestContext(HttpRequestMessage request)
         {
             if (request == null)
+            {
                 return this;
+            }
+
             Operation = request.Options.TryGetValue(s_operationKey, out var operation) ? operation : request.Method.Method;
             Method = request.Method.Method;
             if (request.RequestUri?.IsAbsoluteUri == true)
@@ -158,7 +161,10 @@ namespace WebDAVClient.Helpers
             s += Environment.NewLine + string.Format("ErrorCode: {0}", ErrorCode);
             s += Environment.NewLine + string.Format("Message: {0}", Message);
             if (Operation != null)
+            {
                 s += Environment.NewLine + $"Request: {Operation} ({Method}) {ResourceUri}";
+            }
+
             s += Environment.NewLine + base.ToString();
 
             return s;

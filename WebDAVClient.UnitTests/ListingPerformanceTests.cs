@@ -52,7 +52,10 @@ namespace WebDAVClient.UnitTests
         {
             var value = new string('x', 2 * 1024 * 1024);
             if (structured)
+            {
                 value = "<X:nested>" + value + "</X:nested>";
+            }
+
             var xml = Encoding.UTF8.GetBytes(
                 "<D:multistatus xmlns:D=\"DAV:\" xmlns:X=\"urn:test\"><D:response><D:href>/webdav/file</D:href>"
                 + "<D:propstat><D:prop><X:large>" + value + "</X:large><D:displayname/></D:prop>"
@@ -100,7 +103,10 @@ namespace WebDAVClient.UnitTests
             for (int i = 0; i < count; i++)
             {
                 if (i == count / 2)
+                {
                     xml.Append("<D:response><D:href>/webdav/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>");
+                }
+
                 xml.Append("<D:response><D:href>/webdav/file").Append(i)
                     .Append("</D:href><D:propstat><D:prop><D:displayname>file").Append(i)
                     .Append("</D:displayname><D:getcontentlength>1</D:getcontentlength></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>");

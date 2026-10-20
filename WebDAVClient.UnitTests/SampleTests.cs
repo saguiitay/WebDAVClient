@@ -37,21 +37,36 @@ namespace WebDAVClient.UnitTests
             {
                 string method = request.Method.Method;
                 if (method == "PROPFIND")
+                {
                     return StubHttpMessageHandler.Multistatus(request.Headers.GetValues("Depth").Single() == "0"
                         ? WebDAVResponses.Root("/webdav/") : "<D:multistatus xmlns:D=\"DAV:\"/>");
+                }
+
                 if (method == "OPTIONS")
                 {
                     if (scenario == "timeout")
+                    {
                         throw new OperationCanceledException("metadata deadline");
+                    }
+
                     if (scenario == "transport-failure")
+                    {
                         throw new HttpRequestException("connection failed");
+                    }
+
                     var options = new HttpResponseMessage(HttpStatusCode.NoContent) { Content = new StringContent("") };
                     if (scenario == "locked-failure" || scenario == "unlock-failure")
+                    {
                         options.Content.Headers.Allow.Add("LOCK");
+                    }
+
                     return options;
                 }
                 if (method == "MKCOL" && scenario == "not-created")
+                {
                     return new HttpResponseMessage(HttpStatusCode.MethodNotAllowed);
+                }
+
                 if (method == "PUT")
                 {
                     if (scenario == "cancelled")
@@ -60,7 +75,9 @@ namespace WebDAVClient.UnitTests
                         await Task.Delay(Timeout.InfiniteTimeSpan, token);
                     }
                     if (scenario == "upload-failure" || (scenario == "locked-failure" && request.Content.Headers.ContentRange != null))
+                    {
                         return new HttpResponseMessage(HttpStatusCode.InternalServerError);
+                    }
                 }
                 if (method == "LOCK")
                 {
@@ -77,7 +94,10 @@ namespace WebDAVClient.UnitTests
                 if (method == "GET")
                 {
                     if (scenario == "missing-target")
+                    {
                         return new HttpResponseMessage(HttpStatusCode.NotFound);
+                    }
+
                     var content = new ByteArrayContent(scenario == "bad-range" ? new byte[3] : new byte[] { 0xF0, 0x0B, 0xA5 });
                     content.Headers.ContentRange = new ContentRangeHeaderValue(2, 4, 8);
                     return new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = content };
@@ -100,7 +120,9 @@ namespace WebDAVClient.UnitTests
             Assert.IsTrue(output.ToString().Contains("No items found"));
             var deletes = requests.Where(r => r.Method == "DELETE").ToArray();
             if (!mutate || scenario == "not-created" || scenario == "timeout" || scenario == "transport-failure")
+            {
                 Assert.AreEqual(0, deletes.Length);
+            }
             else
             {
                 Assert.AreEqual(1, deletes.Length);
@@ -109,15 +131,29 @@ namespace WebDAVClient.UnitTests
                 Assert.AreEqual(created, deletes[0].Uri.AbsolutePath.TrimEnd('/'));
             }
             if (scenario == "locked-failure" || scenario == "unlock-failure")
+            {
                 Assert.IsTrue(Array.FindIndex(requests, r => r.Method == "UNLOCK") < Array.FindIndex(requests, r => r.Method == "DELETE"));
+            }
+
             if (scenario == "missing-target")
+            {
                 StringAssert.Contains(error.ToString(), "not found");
+            }
+
             if (scenario == "cleanup-failure" || scenario == "unlock-failure")
+            {
                 StringAssert.Contains(error.ToString(), "manual cleanup");
+            }
+
             if (scenario == "read-target")
+            {
                 StringAssert.Contains(output.ToString(), "Requested target read successfully.");
+            }
+
             if (scenario == "bad-range")
+            {
                 StringAssert.Contains(error.ToString(), "unexpected bytes");
+            }
         }
     }
 }

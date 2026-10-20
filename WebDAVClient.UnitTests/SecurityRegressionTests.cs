@@ -173,7 +173,11 @@ namespace WebDAVClient.UnitTests
 
             Assert.AreEqual(3, stub.Requests.Count);
             var origin = new UriBuilder(server);
-            if (port.HasValue) origin.Port = port.Value;
+            if (port.HasValue)
+            {
+                origin.Port = port.Value;
+            }
+
             foreach (var request in stub.Requests)
             {
                 Assert.AreEqual(origin.Scheme, request.RequestUri.Scheme);

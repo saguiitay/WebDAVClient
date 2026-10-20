@@ -67,7 +67,9 @@ namespace WebDAVClient.Helpers
         public static byte[] BuildPropBody(IEnumerable<PropertyName> properties)
         {
             if (properties == null)
+            {
                 throw new ArgumentNullException(nameof(properties));
+            }
 
             // Materialise once so we can validate non-emptiness up-front and
             // assign a stable prefix per distinct namespace.
@@ -75,12 +77,17 @@ namespace WebDAVClient.Helpers
             foreach (var p in properties)
             {
                 if (p == null)
+                {
                     throw new ArgumentException("Property list must not contain null entries.", nameof(properties));
+                }
+
                 list.Add(p);
             }
 
             if (list.Count == 0)
+            {
                 throw new ArgumentException("PROPFIND <prop> requires at least one property.", nameof(properties));
+            }
 
             using (var ms = new MemoryStream())
             {
@@ -105,7 +112,10 @@ namespace WebDAVClient.Helpers
                     foreach (var prop in list)
                     {
                         if (nsToPrefix.ContainsKey(prop.Namespace))
+                        {
                             continue;
+                        }
+
                         if (prop.Namespace.Length == 0)
                         {
                             nsToPrefix[prop.Namespace] = string.Empty;

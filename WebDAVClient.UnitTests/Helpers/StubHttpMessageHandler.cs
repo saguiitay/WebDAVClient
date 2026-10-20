@@ -61,7 +61,11 @@ namespace WebDAVClient.UnitTests.Helpers
         private static Dictionary<string, string[]> CloneContentHeaders(HttpRequestMessage request)
         {
             var dict = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-            if (request.Content == null) return dict;
+            if (request.Content == null)
+            {
+                return dict;
+            }
+
             foreach (var header in request.Content.Headers)
             {
                 dict[header.Key] = new List<string>(header.Value).ToArray();

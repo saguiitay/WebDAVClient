@@ -14,7 +14,10 @@ namespace WebDAVClient.Helpers
         public static string Escape(string value)
         {
             if (string.IsNullOrEmpty(value))
+            {
                 return value;
+            }
+
             return value
                 .Replace("&", "&amp;")
                 .Replace("<", "&lt;")

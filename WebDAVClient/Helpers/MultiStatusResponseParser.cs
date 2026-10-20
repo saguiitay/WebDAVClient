@@ -26,15 +26,23 @@ namespace WebDAVClient.Helpers
                 cancellationToken.ThrowIfCancellationRequested();
                 advance = true;
                 if (reader.NamespaceURI != "DAV:")
+                {
                     continue;
+                }
+
                 if (reader.NodeType == XmlNodeType.Element)
                 {
                     if (reader.Depth == 0 && reader.LocalName == "multistatus")
+                    {
                         isMultistatus = true;
+                    }
                     else if (isMultistatus && reader.Depth == 1 && reader.LocalName == "response")
                     {
                         if (reader.IsEmptyElement)
+                        {
                             throw new XmlException("A mutation DAV:response must contain a href and status.");
+                        }
+
                         inResponse = true;
                         href = null;
                         description = null;
@@ -43,13 +51,22 @@ namespace WebDAVClient.Helpers
                     else if (inResponse && reader.Depth == 2)
                     {
                         if (reader.LocalName == "href")
+                        {
                             href = await reader.ReadElementContentAsStringAsync().ConfigureAwait(false);
+                        }
                         else if (reader.LocalName == "status")
+                        {
                             status = ResponseParser.ParseStatusCode(await reader.ReadElementContentAsStringAsync().ConfigureAwait(false));
+                        }
                         else if (reader.LocalName == "responsedescription")
+                        {
                             description = await reader.ReadElementContentAsStringAsync().ConfigureAwait(false);
+                        }
                         else
+                        {
                             continue;
+                        }
+
                         advance = false;
                     }
                 }
@@ -57,13 +74,19 @@ namespace WebDAVClient.Helpers
                     && reader.Depth == 1 && reader.LocalName == "response")
                 {
                     if (string.IsNullOrWhiteSpace(href) || status == 0)
+                    {
                         throw new XmlException("A mutation DAV:response must contain a href and HTTP status.");
+                    }
+
                     results.Add(new ResourceStatus(href, status, description));
                     inResponse = false;
                 }
             }
             if (results.Count == 0)
+            {
                 throw new XmlException("The mutation multi-status response contains no resource outcomes.");
+            }
+
             return results.AsReadOnly();
         }
     }

@@ -37,11 +37,19 @@ namespace WebDAVClient.Model
         public PropertyName(string @namespace, string localName)
         {
             if (@namespace == null)
+            {
                 throw new ArgumentNullException(nameof(@namespace));
+            }
+
             if (localName == null)
+            {
                 throw new ArgumentNullException(nameof(localName));
+            }
+
             if (localName.Length == 0)
+            {
                 throw new ArgumentException("Property local name must be a non-empty XML NCName.", nameof(localName));
+            }
 
             try
             {
@@ -65,8 +73,16 @@ namespace WebDAVClient.Model
         /// </summary>
         public bool Equals(PropertyName other)
         {
-            if (ReferenceEquals(other, null)) return false;
-            if (ReferenceEquals(this, other)) return true;
+            if (ReferenceEquals(other, null))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
             return string.Equals(Namespace, other.Namespace, StringComparison.Ordinal)
                 && string.Equals(LocalName, other.LocalName, StringComparison.Ordinal);
         }
@@ -93,7 +109,11 @@ namespace WebDAVClient.Model
         /// <summary>Compares qualified names by ordinal namespace and local name, including null values.</summary>
         public static bool operator ==(PropertyName left, PropertyName right)
         {
-            if (ReferenceEquals(left, null)) return ReferenceEquals(right, null);
+            if (ReferenceEquals(left, null))
+            {
+                return ReferenceEquals(right, null);
+            }
+
             return left.Equals(right);
         }
 

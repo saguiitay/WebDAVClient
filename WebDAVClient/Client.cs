@@ -73,12 +73,19 @@ namespace WebDAVClient
         /// </summary>
         public string Server
         {
-            get { lock (m_connectionLock) return m_server; }
+            get { lock (m_connectionLock)
+                {
+                    return m_server;
+                }
+            }
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
                 if (string.IsNullOrWhiteSpace(value))
+                {
                     throw new ArgumentException("Server must identify an HTTP or HTTPS server.", nameof(value));
+                }
+
                 Uri server;
                 try
                 {
@@ -89,11 +96,18 @@ namespace WebDAVClient
                     throw new ArgumentException("Server must identify an HTTP or HTTPS server.", nameof(value), exception);
                 }
                 if (server.Scheme != Uri.UriSchemeHttp && server.Scheme != Uri.UriSchemeHttps)
+                {
                     throw new ArgumentException("Server must identify an HTTP or HTTPS server.", nameof(value));
+                }
+
                 value = value.TrimEnd('/');
                 lock (m_connectionLock)
                 {
-                    if (m_server == value) return;
+                    if (m_server == value)
+                    {
+                        return;
+                    }
+
                     m_server = value;
                     m_encodedBasePath = null;
                     m_discoveryGate = new SemaphoreSlim(1, 1);
@@ -107,17 +121,28 @@ namespace WebDAVClient
         /// </summary>
         public string BasePath
         {
-            get { lock (m_connectionLock) return m_basePath; }
+            get { lock (m_connectionLock)
+                {
+                    return m_basePath;
+                }
+            }
             set
             {
                 ArgumentNullException.ThrowIfNull(value);
                 if (value.Length != 0 && string.IsNullOrWhiteSpace(value))
+                {
                     throw new ArgumentException("BasePath must be a path or an empty root path.", nameof(value));
+                }
+
                 value = value.Trim('/');
                 var basePath = string.IsNullOrEmpty(value) ? "/" : "/" + value + "/";
                 lock (m_connectionLock)
                 {
-                    if (m_basePath == basePath) return;
+                    if (m_basePath == basePath)
+                    {
+                        return;
+                    }
+
                     m_basePath = basePath;
                     m_encodedBasePath = null;
                     m_discoveryGate = new SemaphoreSlim(1, 1);
@@ -131,14 +156,25 @@ namespace WebDAVClient
         /// </summary>
         public int? Port
         {
-            get { lock (m_connectionLock) return m_port; }
+            get { lock (m_connectionLock)
+                {
+                    return m_port;
+                }
+            }
             set
             {
                 if (value < -1 || value > 65535)
+                {
                     throw new ArgumentOutOfRangeException(nameof(value));
+                }
+
                 lock (m_connectionLock)
                 {
-                    if (m_port == value) return;
+                    if (m_port == value)
+                    {
+                        return;
+                    }
+
                     m_port = value;
                     m_encodedBasePath = null;
                     m_discoveryGate = new SemaphoreSlim(1, 1);
@@ -170,7 +206,10 @@ namespace WebDAVClient
             {
                 if (value != Timeout.InfiniteTimeSpan
                     && (value <= TimeSpan.Zero || value.TotalMilliseconds > uint.MaxValue - 1))
+                {
                     throw new ArgumentOutOfRangeException(nameof(value));
+                }
+
                 m_responseBodyTimeout = value;
             }
         }
@@ -221,7 +260,10 @@ namespace WebDAVClient
         public Client(string bearerToken, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
         {
             if (string.IsNullOrWhiteSpace(bearerToken))
+            {
                 throw new ArgumentException("Bearer token must be a non-empty string.", nameof(bearerToken));
+            }
+
             InitializeOwnedHttpClients(credential: null, new BearerTokenAuthenticationHandler(bearerToken), uploadTimeout, proxy);
         }
 
@@ -238,7 +280,11 @@ namespace WebDAVClient
         /// <param name="proxy">Optional <see cref="IWebProxy"/> to apply to the underlying handler.</param>
         public Client(Func<CancellationToken, Task<string>> bearerTokenProvider, TimeSpan? uploadTimeout = null, IWebProxy proxy = null)
         {
-            if (bearerTokenProvider == null) throw new ArgumentNullException(nameof(bearerTokenProvider));
+            if (bearerTokenProvider == null)
+            {
+                throw new ArgumentNullException(nameof(bearerTokenProvider));
+            }
+
             InitializeOwnedHttpClients(credential: null, new BearerTokenAuthenticationHandler(bearerTokenProvider), uploadTimeout, proxy);
         }
 
@@ -270,7 +316,10 @@ namespace WebDAVClient
         {
             if (uploadTimeout.HasValue && uploadTimeout.Value != Timeout.InfiniteTimeSpan
                 && (uploadTimeout.Value <= TimeSpan.Zero || uploadTimeout.Value > TimeSpan.FromMilliseconds(int.MaxValue)))
+            {
                 throw new ArgumentOutOfRangeException(nameof(uploadTimeout), "Upload timeout must be positive, at most Int32.MaxValue milliseconds, or infinite.");
+            }
+
             var handler = new HttpClientHandler();
             if (proxy != null && handler.SupportsProxy)
             {
@@ -431,7 +480,11 @@ namespace WebDAVClient
         /// </summary>
         public async Task<IEnumerable<Item>> List(string path, int? depth, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default)
         {
-            if (properties == null) throw new ArgumentNullException(nameof(properties));
+            if (properties == null)
+            {
+                throw new ArgumentNullException(nameof(properties));
+            }
+
             var body = PropFindRequestBuilder.BuildPropBody(properties);
             return await ListCore(path, depth, body, PropFindMode.NamedProperties, cancellationToken).ConfigureAwait(false);
         }
@@ -514,7 +567,11 @@ namespace WebDAVClient
         /// </summary>
         public async Task<Item> GetFolder(string path, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default)
         {
-            if (properties == null) throw new ArgumentNullException(nameof(properties));
+            if (properties == null)
+            {
+                throw new ArgumentNullException(nameof(properties));
+            }
+
             var body = PropFindRequestBuilder.BuildPropBody(properties);
             var listUri = await GetServerUrl(path, true, cancellationToken).ConfigureAwait(false);
             return await Get(listUri.Uri, body, PropFindMode.NamedProperties, cancellationToken).ConfigureAwait(false);
@@ -547,7 +604,11 @@ namespace WebDAVClient
         /// </summary>
         public async Task<Item> GetFile(string path, IEnumerable<PropertyName> properties, CancellationToken cancellationToken = default)
         {
-            if (properties == null) throw new ArgumentNullException(nameof(properties));
+            if (properties == null)
+            {
+                throw new ArgumentNullException(nameof(properties));
+            }
+
             var body = PropFindRequestBuilder.BuildPropBody(properties);
             var listUri = await GetServerUrl(path, false, cancellationToken).ConfigureAwait(false);
             return await Get(listUri.Uri, body, PropFindMode.NamedProperties, cancellationToken).ConfigureAwait(false);
@@ -579,9 +640,15 @@ namespace WebDAVClient
         {
             ValidatePath(remoteFilePath, nameof(remoteFilePath));
             if (startBytes < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(startBytes));
+            }
+
             if (endBytes < startBytes)
+            {
                 throw new ArgumentOutOfRangeException(nameof(endBytes));
+            }
+
             var headers = new Dictionary<string, string>(2)
             { 
                 { "translate", "f" }, 
@@ -606,7 +673,9 @@ namespace WebDAVClient
             ValidateName(name);
             ArgumentNullException.ThrowIfNull(content);
             if (!content.CanRead)
+            {
                 throw new ArgumentException("Upload content must be readable.", nameof(content));
+            }
             // Should not have a trailing slash.
             var uploadUri = await GetServerUrl(remoteFilePath.TrimEnd('/') + "/" + name.TrimStart('/'), false, cancellationToken).ConfigureAwait(false);
 
@@ -650,13 +719,25 @@ namespace WebDAVClient
             ValidatePath(remoteFilePath, nameof(remoteFilePath));
             ValidateName(name);
             if (content == null)
+            {
                 throw new ArgumentNullException(nameof(content));
+            }
+
             if (!content.CanRead || !content.CanSeek)
+            {
                 throw new ArgumentException("Partial upload content must be readable and seekable.", nameof(content));
+            }
+
             if (startBytes < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(startBytes));
+            }
+
             if (endBytes <= startBytes)
+            {
                 throw new ArgumentOutOfRangeException(nameof(endBytes), "The exclusive end must be greater than the start.");
+            }
+
             if (content.Length - content.Position != endBytes - startBytes)
             {
                 throw new InvalidOperationException("The remaining content length must match endBytes minus startBytes.");
@@ -838,7 +919,10 @@ namespace WebDAVClient
         {
             ValidatePath(filePath, nameof(filePath));
             if (timeoutSeconds <= 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(timeoutSeconds));
+            }
+
             var uri = await GetServerUrl(filePath, false, cancellationToken).ConfigureAwait(false);
             return await Lock(uri.Uri, depth: "0", timeoutSeconds, owner, cancellationToken).ConfigureAwait(false);
         }
@@ -850,7 +934,10 @@ namespace WebDAVClient
         {
             ValidatePath(folderPath, nameof(folderPath));
             if (timeoutSeconds <= 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(timeoutSeconds));
+            }
+
             var uri = await GetServerUrl(folderPath, true, cancellationToken).ConfigureAwait(false);
             return await Lock(uri.Uri, depth: "infinity", timeoutSeconds, owner, cancellationToken).ConfigureAwait(false);
         }
@@ -885,7 +972,9 @@ namespace WebDAVClient
         {
             ValidatePath(path, nameof(path));
             if (timeoutSeconds <= 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(timeoutSeconds), "Lock timeout must be greater than zero seconds.");
+            }
 
             var bareToken = LockTokenHeaderHelper.NormalizeLockToken(lockToken);
 
@@ -1064,7 +1153,9 @@ namespace WebDAVClient
         private async Task<LockInfo> Lock(Uri uri, string depth, int timeoutSeconds, string owner, CancellationToken cancellationToken)
         {
             if (timeoutSeconds <= 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(timeoutSeconds), "Lock timeout must be greater than zero seconds.");
+            }
 
             var ownerText = string.IsNullOrEmpty(owner) ? c_defaultLockOwner : owner;
             var body = Encoding.UTF8.GetBytes(string.Format(c_lockRequestContentFormat, XmlEscape.Escape(ownerText)));
@@ -1191,7 +1282,9 @@ namespace WebDAVClient
                     {
                         var msg = "PROPPATCH server reported failure for property '" + propertyName + "': " + (r.StatusLine ?? "(no status line)");
                         if (!string.IsNullOrEmpty(r.ResponseDescription))
+                        {
                             msg += " — " + r.ResponseDescription;
+                        }
                         // r.StatusCode may be 0 for a malformed status line; surface 0 verbatim
                         // rather than synthesizing a fake code.
                         throw CreateWebDAVException(response, msg, httpCode: r.StatusCode);
@@ -1205,7 +1298,10 @@ namespace WebDAVClient
         private async Task<WebDAVException> CreateMutationException(HttpResponseMessage response, string message, CancellationToken cancellationToken)
         {
             if ((int)response.StatusCode != c_httpStatusCode_MultiStatus)
+            {
                 return CreateWebDAVException(response, message);
+            }
+
             try
             {
                 var statuses = await ReadMetadataResponse(response, MultiStatusResponseParser.ParseAsync, cancellationToken).ConfigureAwait(false);
@@ -1259,7 +1355,10 @@ namespace WebDAVClient
             try
             {
                 if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.PartialContent)
+                {
                     throw CreateWebDAVException(response, "Failed retrieving file.");
+                }
+
                 if (rangeStart.HasValue)
                 {
                     var range = response.Content.Headers.ContentRange;
@@ -1270,7 +1369,9 @@ namespace WebDAVClient
                         || range.From != rangeStart || range.To != expectedEnd
                         || (response.Content.Headers.ContentLength.HasValue
                             && response.Content.Headers.ContentLength.Value != range.To.Value - range.From.Value + 1))
+                    {
                         throw CreateWebDAVException(response, "The server did not return the requested byte range.");
+                    }
                 }
                 var stream = await response.Content.ReadAsStreamAsync(cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false);
                 return new ResponseOwnedStream(stream, response);
@@ -1311,9 +1412,13 @@ namespace WebDAVClient
                 request.Options.Set(WebDAVException.s_operationKey, operation ?? method.Method);
                 request.Headers.Connection.Add("Keep-Alive");
                 if (!string.IsNullOrWhiteSpace(UserAgent))
+                {
                     request.Headers.UserAgent.Add(new ProductInfoHeaderValue(UserAgent, UserAgentVersion));
+                }
                 else
+                {
                     request.Headers.UserAgent.Add(s_defaultUserAgent);
+                }
 
                 if (headers != null)
                 {
@@ -1353,9 +1458,13 @@ namespace WebDAVClient
                 request.Options.Set(WebDAVException.s_operationKey, operation ?? method.Method);
                 request.Headers.Connection.Add("Keep-Alive");
                 if (!string.IsNullOrWhiteSpace(UserAgent))
+                {
                     request.Headers.UserAgent.Add(new ProductInfoHeaderValue(UserAgent, UserAgentVersion));
+                }
                 else
+                {
                     request.Headers.UserAgent.Add(s_defaultUserAgent);
+                }
 
                 if (headers != null)
                 {
@@ -1408,13 +1517,18 @@ namespace WebDAVClient
         private void ValidateTransportConfiguration()
         {
             if (m_handler == null && ServerCertificateValidationCallback != null)
+            {
                 throw new InvalidOperationException("ServerCertificateValidationCallback cannot configure an injected transport. Set certificate validation on the injected HTTP handler instead.");
+            }
         }
 
         private async Task<UriBuilder> GetServerUrl(string path, bool appendTrailingSlash, CancellationToken cancellationToken)
         {
             if (path != null)
+            {
                 ValidatePath(path, nameof(path));
+            }
+
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -1422,9 +1536,15 @@ namespace WebDAVClient
                 lock (m_connectionLock)
                 {
                     if (m_server == null)
+                    {
                         throw new InvalidOperationException("Set Server before performing WebDAV operations.");
+                    }
+
                     if (m_encodedBasePath != null)
+                    {
                         return BuildServerUrl(path, appendTrailingSlash);
+                    }
+
                     gate = m_discoveryGate;
                 }
                 await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -1436,12 +1556,21 @@ namespace WebDAVClient
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         if (m_encodedBasePath != null)
+                        {
                             return BuildServerUrl(path, appendTrailingSlash);
+                        }
+
                         if (!ReferenceEquals(gate, m_discoveryGate))
+                        {
                             continue;
+                        }
+
                         var baseUri = new UriBuilder(m_server) { Path = m_basePath };
                         if (m_port.HasValue)
+                        {
                             baseUri.Port = m_port.Value;
+                        }
+
                         discoveryUri = baseUri.Uri;
                         version = m_connectionVersion;
                     }
@@ -1452,9 +1581,15 @@ namespace WebDAVClient
                         // A discovery started before reconfiguration must not repopulate
                         // the new connection's cache with the previous root.
                         if (version != m_connectionVersion)
+                        {
                             continue;
+                        }
+
                         if (TryCreateAbsolute(root.Href, out var absoluteRootUri))
+                        {
                             EnsureSameOrigin(absoluteRootUri, "server-resolved base path");
+                        }
+
                         m_encodedBasePath = root.Href;
                         return BuildServerUrl(path, appendTrailingSlash);
                     }
@@ -1472,7 +1607,10 @@ namespace WebDAVClient
         {
             var serverUriBuilder = new UriBuilder(m_server);
             if (Port.HasValue)
+            {
                 serverUriBuilder.Port = Port.Value;
+            }
+
             var serverUri = serverUriBuilder.Uri;
             if (!string.Equals(absoluteUri.Scheme, serverUri.Scheme, StringComparison.OrdinalIgnoreCase)
                 || !string.Equals(absoluteUri.Host, serverUri.Host, StringComparison.OrdinalIgnoreCase)
@@ -1490,14 +1628,18 @@ namespace WebDAVClient
         {
             ArgumentNullException.ThrowIfNull(path, parameterName);
             if (path.Length != 0 && string.IsNullOrWhiteSpace(path))
+            {
                 throw new ArgumentException("Path must not be whitespace.", parameterName);
+            }
         }
 
         private static void ValidateName(string name)
         {
             ArgumentNullException.ThrowIfNull(name);
             if (string.IsNullOrWhiteSpace(name.Trim('/')))
+            {
                 throw new ArgumentException("Name must identify a resource, not an empty path.", nameof(name));
+            }
         }
 
         // Synchronous core of GetServerUrl. Callers must ensure m_encodedBasePath
@@ -1507,7 +1649,10 @@ namespace WebDAVClient
             lock (m_connectionLock)
             {
                 if (m_encodedBasePath == null)
+                {
                     throw new InvalidOperationException("Connection configuration changed during the operation; retry it with the current configuration.");
+                }
+
                 return BuildResolvedServerUrl(path, appendTrailingSlash);
             }
         }
@@ -1530,7 +1675,9 @@ namespace WebDAVClient
             {
                 baseUri = new UriBuilder(m_server) { Path = m_encodedBasePath };
                 if (m_port.HasValue)
+                {
                     baseUri.Port = m_port.Value;
+                }
             }
             return JoinServerPath(baseUri, path, appendTrailingSlash);
         }
@@ -1538,11 +1685,17 @@ namespace WebDAVClient
         private UriBuilder BuildOptionsUrl(string path)
         {
             if (path != null)
+            {
                 ValidatePath(path, nameof(path));
+            }
+
             lock (m_connectionLock)
             {
                 if (m_server == null)
+                {
                     throw new InvalidOperationException("Set Server before performing WebDAV operations.");
+                }
+
                 if (TryCreateAbsolute(path, out var absoluteUri))
                 {
                     EnsureSameOrigin(absoluteUri, "OPTIONS path argument");
@@ -1550,7 +1703,10 @@ namespace WebDAVClient
                 }
                 var baseUri = new UriBuilder(m_server) { Path = m_basePath };
                 if (m_port.HasValue)
+                {
                     baseUri.Port = m_port.Value;
+                }
+
                 return JoinServerPath(baseUri, path, false);
             }
         }
@@ -1558,7 +1714,9 @@ namespace WebDAVClient
         private static UriBuilder JoinServerPath(UriBuilder baseUri, string path, bool appendTrailingSlash)
         {
             if (string.IsNullOrEmpty(path))
+            {
                 return baseUri;
+            }
 
             var rootPath = baseUri.Path.TrimEnd('/');
             var normalizedPath = "/" + path.TrimStart('/');
@@ -1567,7 +1725,10 @@ namespace WebDAVClient
                     || normalizedPath.StartsWith(rootPath + "/", StringComparison.OrdinalIgnoreCase));
             var finalPath = alreadyRooted ? normalizedPath : rootPath + "/" + path.TrimStart('/');
             if (appendTrailingSlash)
+            {
                 finalPath = finalPath.TrimEnd('/') + "/";
+            }
+
             baseUri.Path = finalPath;
             return baseUri;
         }

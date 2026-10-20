@@ -66,7 +66,9 @@ namespace WebDAVClient.UnitTests.Parser
             using var harness = new ClientHarness(_ => StubHttpMessageHandler.Multistatus(
                 ++requests == 1 ? WebDAVResponses.Root("/webdav/") : xml));
             if (actualStatus == 200)
+            {
                 Assert.IsTrue(await harness.Client.SetProperty("file", "metadata", "urn:test", "value"));
+            }
             else
             {
                 var error = await Assert.ThrowsExceptionAsync<WebDAVException>(() =>

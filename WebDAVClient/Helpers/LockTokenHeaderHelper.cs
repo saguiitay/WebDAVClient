@@ -34,7 +34,9 @@ namespace WebDAVClient.Helpers
         public static string NormalizeLockToken(string lockToken)
         {
             if (string.IsNullOrWhiteSpace(lockToken))
+            {
                 throw new ArgumentException("Lock token must be a non-empty string.", nameof(lockToken));
+            }
 
             var trimmed = lockToken.Trim();
             if (trimmed.Length >= 2 && trimmed[0] == '<' && trimmed[trimmed.Length - 1] == '>')
@@ -58,7 +60,9 @@ namespace WebDAVClient.Helpers
         public static IDictionary<string, string> BuildLockTokenHeaders(Uri requestUri, string lockToken)
         {
             if (lockToken == null)
+            {
                 return null;
+            }
 
             var headers = new Dictionary<string, string>(1);
             AddIfHeader(headers, requestUri, lockToken, destinationUri: null, destinationLockToken: null);
@@ -97,7 +101,9 @@ namespace WebDAVClient.Helpers
         public static string BuildIfHeader(Uri requestUri, string sourceLockToken, Uri destinationUri, string destinationLockToken)
         {
             if (sourceLockToken == null && destinationLockToken == null)
+            {
                 return null;
+            }
 
             var srcToken = sourceLockToken == null ? null : NormalizeLockToken(sourceLockToken);
             var dstToken = destinationLockToken == null ? null : NormalizeLockToken(destinationLockToken);
@@ -113,14 +119,24 @@ namespace WebDAVClient.Helpers
             if (srcToken != null)
             {
                 if (requestUri == null)
+                {
                     throw new InvalidOperationException("requestUri is required when emitting a tagged If-header for the source lock token.");
+                }
+
                 sb.Append('<').Append(requestUri.AbsoluteUri).Append("> (<").Append(srcToken).Append(">)");
             }
             if (dstToken != null)
             {
                 if (destinationUri == null)
+                {
                     throw new InvalidOperationException("destinationUri is required when a destinationLockToken is supplied.");
-                if (sb.Length > 0) sb.Append(' ');
+                }
+
+                if (sb.Length > 0)
+                {
+                    sb.Append(' ');
+                }
+
                 sb.Append('<').Append(destinationUri.AbsoluteUri).Append("> (<").Append(dstToken).Append(">)");
             }
             return sb.ToString();
@@ -139,7 +155,10 @@ namespace WebDAVClient.Helpers
                 foreach (var v in values)
                 {
                     if (string.IsNullOrWhiteSpace(v))
+                    {
                         continue;
+                    }
+
                     var trimmed = v.Trim();
                     if (trimmed.Length >= 2 && trimmed[0] == '<' && trimmed[trimmed.Length - 1] == '>')
                     {

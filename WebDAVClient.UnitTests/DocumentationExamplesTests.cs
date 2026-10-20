@@ -36,7 +36,10 @@ namespace WebDAVClient.UnitTests
             using var harness = new ClientHarness(request =>
             {
                 if (request.Method.Method == "PROPFIND")
+                {
                     return StubHttpMessageHandler.Multistatus(WebDAVResponses.Root("/webdav/"));
+                }
+
                 if (request.Method == HttpMethod.Put)
                 {
                     Assert.AreEqual("bytes 2-4/*", request.Content.Headers.ContentRange.ToString());

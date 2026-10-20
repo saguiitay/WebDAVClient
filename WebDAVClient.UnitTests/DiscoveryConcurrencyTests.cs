@@ -98,7 +98,10 @@ namespace WebDAVClient.UnitTests
                 if (IsDiscovery(request) && Interlocked.Increment(ref discoveries) == 1)
                 {
                     if (duringBody)
+                    {
                         return new HttpResponseMessage((HttpStatusCode)207) { Content = new StreamContent(stream) };
+                    }
+
                     started.TrySetResult();
                     await Task.Delay(Timeout.InfiniteTimeSpan, token);
                 }
@@ -117,7 +120,9 @@ namespace WebDAVClient.UnitTests
             Assert.AreEqual(2, discoveries);
             Assert.AreEqual(3, handler.Requests.Count);
             if (duringBody)
+            {
                 Assert.IsTrue(stream.IsDisposed);
+            }
         }
 
         [TestMethod]

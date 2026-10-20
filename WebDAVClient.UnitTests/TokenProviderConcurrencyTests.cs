@@ -35,7 +35,10 @@ namespace WebDAVClient.UnitTests
             {
                 Assert.AreEqual("shared", request.Headers.Authorization?.Parameter);
                 if (Interlocked.Increment(ref activeTransports) == 24)
+                {
                     allTransportsStarted.TrySetResult();
+                }
+
                 await releaseTransports.Task.WaitAsync(token);
                 return new HttpResponseMessage(HttpStatusCode.OK);
             });
@@ -149,10 +152,16 @@ namespace WebDAVClient.UnitTests
                 try
                 {
                     if (cachedToken != null && expiresAt > DateTimeOffset.UtcNow.AddSeconds(30))
+                    {
                         return cachedToken;
+                    }
+
                     var fresh = await refresh(ct).ConfigureAwait(false);
                     if (string.IsNullOrWhiteSpace(fresh.AccessToken) || fresh.ExpiresAt <= DateTimeOffset.UtcNow)
+                    {
                         throw new InvalidOperationException("Refresh returned an empty or expired token.");
+                    }
+
                     cachedToken = fresh.AccessToken;
                     expiresAt = fresh.ExpiresAt;
                     return cachedToken;

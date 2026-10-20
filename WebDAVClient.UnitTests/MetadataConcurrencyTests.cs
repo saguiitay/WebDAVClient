@@ -27,11 +27,17 @@ namespace WebDAVClient.UnitTests
             using var handler = new AsyncHttpMessageHandler((_, _) =>
             {
                 if (!delayBodies)
+                {
                     return Task.FromResult(StubHttpMessageHandler.Multistatus(WebDAVResponses.Root("/webdav/")));
+                }
+
                 var stream = new PrefixThenStallStream("<D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>/webdav/file");
                 streams.Add(stream);
                 if (Interlocked.Increment(ref started) == concurrency)
+                {
                     allStarted.TrySetResult();
+                }
+
                 return Task.FromResult(new HttpResponseMessage((HttpStatusCode)207) { Content = new StreamContent(stream) });
             });
             using var http = new System.Net.Http.HttpClient(handler);

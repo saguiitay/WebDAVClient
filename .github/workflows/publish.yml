@@ -40,6 +40,9 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
+      - name: Require braces in C# control-flow blocks
+        run: dotnet format style WebDAVClient.sln --diagnostics IDE0011 --severity error --no-restore --verify-no-changes
+
       - name: Build
         id: build
         run: dotnet build -c Release --no-restore

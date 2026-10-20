@@ -103,7 +103,9 @@ namespace WebDAVClient.UnitTests
                     Assert.AreEqual(5L, item.ContentLength);
                 }
                 if (mode == 0)
+                {
                     Assert.IsNull(item.FoundProperties);
+                }
                 else if (mode == 1)
                 {
                     Assert.AreEqual("good", item.FoundProperties[new PropertyName("DAV:", "displayname")]);
@@ -111,7 +113,9 @@ namespace WebDAVClient.UnitTests
                     Assert.IsTrue(item.NotFoundProperties.Contains(new PropertyName("urn:custom", "failed")));
                 }
                 else
+                {
                     Assert.IsFalse(item.AvailablePropertyNames.Contains(new PropertyName("urn:custom", "failed")));
+                }
             }
         }
 

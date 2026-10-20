@@ -44,7 +44,9 @@ namespace WebDAVClient.UnitTests
                 Assert.AreEqual(403, ex.GetHttpCode());
             }
             else
+            {
                 Assert.IsTrue(await operation);
+            }
 
             Assert.AreEqual(0, content.SerializeCount, "Status-only upload handling must not read the body.");
             Assert.AreEqual(1, content.DisposeCount);
@@ -72,7 +74,10 @@ namespace WebDAVClient.UnitTests
             protected override void Dispose(bool disposing)
             {
                 if (disposing)
+                {
                     Interlocked.Increment(ref DisposeCount);
+                }
+
                 base.Dispose(disposing);
             }
         }

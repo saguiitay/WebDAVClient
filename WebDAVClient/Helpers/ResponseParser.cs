@@ -141,7 +141,10 @@ namespace WebDAVClient.Helpers
                     cancellationToken.ThrowIfCancellationRequested();
                     if (advance)
                     {
-                        if (!await reader.ReadAsync().ConfigureAwait(false)) break;
+                        if (!await reader.ReadAsync().ConfigureAwait(false))
+                        {
+                            break;
+                        }
                     }
                     advance = true;
 
@@ -169,7 +172,9 @@ namespace WebDAVClient.Helpers
                             continue;
                         }
                         if (itemInfo == null)
+                        {
                             continue;
+                        }
 
                         if (reader.Depth == responseDepth + 1 && isDav
                             && string.Equals(localName, "propstat", StringComparison.OrdinalIgnoreCase))
@@ -192,9 +197,14 @@ namespace WebDAVClient.Helpers
                             var isResourceStatus = reader.Depth == responseDepth + 1;
                             var statusCode = ParseStatusCode(await reader.ReadElementContentAsStringAsync().ConfigureAwait(false));
                             if (isResourceStatus)
+                            {
                                 resourceStatus = statusCode;
+                            }
                             else
+                            {
                                 currentPropStatStatus = statusCode;
+                            }
+
                             advance = false;
                             continue;
                         }
@@ -220,7 +230,9 @@ namespace WebDAVClient.Helpers
                     else if (reader.NodeType == XmlNodeType.EndElement)
                     {
                         if (itemInfo == null)
+                        {
                             continue;
+                        }
 
                         if (propDepth >= 0
                             && reader.Depth == propDepth
@@ -244,11 +256,17 @@ namespace WebDAVClient.Helpers
                             && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.Ordinal))
                         {
                             if (string.IsNullOrEmpty(itemInfo.Href))
+                            {
                                 throw new XmlException("A DAV:response must contain a direct DAV:href resource identifier.");
+                            }
+
                             if (resourceStatus != 0 && (resourceStatus < 200 || resourceStatus >= 300))
                             {
                                 if (resourceStatus == (int)HttpStatusCode.Conflict)
+                                {
                                     throw new WebDAVConflictException(resourceStatus, "PROPFIND reported a failed resource.");
+                                }
+
                                 throw new WebDAVException(resourceStatus, "PROPFIND reported a failed resource.");
                             }
                             if (mode != PropFindMode.AllProp)
@@ -257,7 +275,9 @@ namespace WebDAVClient.Helpers
                                     && (itemInfo.FoundProperties.ContainsKey(new PropertyName(c_davNamespace, "resourcetype"))
                                         || itemInfo.FoundProperties.ContainsKey(new PropertyName(c_davNamespace, "iscollection")));
                                 if (!hasTypeValue && itemInfo.Href.EndsWith("/", StringComparison.Ordinal))
+                                {
                                     itemInfo.IsCollection = true;
+                                }
                             }
                             // Remove trailing / if the item is not a collection
                             var href = itemInfo.Href.TrimEnd('/');
@@ -273,7 +293,10 @@ namespace WebDAVClient.Helpers
                             // Validate the complete body even for a single result so
                             // later resource failures cannot masquerade as success.
                             if (!firstItemOnly || items.Count == 0)
+                            {
                                 items.Add(itemInfo);
+                            }
+
                             itemInfo = null;
                             responseDepth = -1;
                         }
@@ -331,20 +354,29 @@ namespace WebDAVClient.Helpers
         private static void DispatchPropStat(Item itemInfo, List<(PropertyName Name, string Value)> buffer, int statusCode, PropFindMode mode)
         {
             if (itemInfo == null || buffer == null || buffer.Count == 0)
+            {
                 return;
+            }
 
             if (mode != PropFindMode.AllProp)
             {
                 itemInfo.PropertyStatuses ??= new Dictionary<PropertyName, int?>();
                 foreach (var entry in buffer)
+                {
                     itemInfo.PropertyStatuses[entry.Name] = statusCode == 0 ? null : statusCode;
+                }
             }
 
             if (mode == PropFindMode.PropName)
             {
                 if (statusCode == 0 || (statusCode >= 200 && statusCode < 300))
+                {
                     foreach (var entry in buffer)
+                    {
                         AppendAvailableName(itemInfo, entry.Name);
+                    }
+                }
+
                 return;
             }
 
@@ -354,8 +386,13 @@ namespace WebDAVClient.Helpers
                 // Preserve legacy support for omitted propstat status, but never
                 // apply values explicitly marked as failed.
                 if (success || statusCode == 0)
+                {
                     foreach (var entry in buffer)
+                    {
                         ApplyTypedFieldFromBag(itemInfo, entry.Name.Namespace, entry.Name.LocalName, ExtractElementText(entry.Value));
+                    }
+                }
+
                 return;
             }
             if (success)
@@ -382,9 +419,14 @@ namespace WebDAVClient.Helpers
         private static string ExtractElementText(string innerXml)
         {
             if (string.IsNullOrEmpty(innerXml))
+            {
                 return string.Empty;
+            }
+
             if (innerXml.IndexOf('<') < 0 && innerXml.IndexOf('&') < 0)
+            {
                 return innerXml;
+            }
 
             using (var reader = CreatePropertyReader(innerXml))
             {
@@ -392,10 +434,15 @@ namespace WebDAVClient.Helpers
                 while (reader.Read())
                 {
                     if (reader.NodeType == XmlNodeType.Element)
+                    {
                         return innerXml;
+                    }
+
                     if (reader.NodeType == XmlNodeType.Text || reader.NodeType == XmlNodeType.CDATA
                         || reader.NodeType == XmlNodeType.Whitespace || reader.NodeType == XmlNodeType.SignificantWhitespace)
+                    {
                         text.Append(reader.Value);
+                    }
                 }
                 return text.ToString();
             }
@@ -413,21 +460,30 @@ namespace WebDAVClient.Helpers
         private static void AppendFoundProperty(Item itemInfo, PropertyName name, string value)
         {
             if (itemInfo.FoundProperties == null)
+            {
                 itemInfo.FoundProperties = new Dictionary<PropertyName, string>();
+            }
+
             itemInfo.FoundProperties[name] = value;
         }
 
         private static void AppendNotFoundProperty(Item itemInfo, PropertyName name)
         {
             if (itemInfo.NotFoundProperties == null)
+            {
                 itemInfo.NotFoundProperties = new List<PropertyName>();
+            }
+
             itemInfo.NotFoundProperties.Add(name);
         }
 
         private static void AppendAvailableName(Item itemInfo, PropertyName name)
         {
             if (itemInfo.AvailablePropertyNames == null)
+            {
                 itemInfo.AvailablePropertyNames = new List<PropertyName>();
+            }
+
             itemInfo.AvailablePropertyNames.Add(name);
         }
 
@@ -435,17 +491,23 @@ namespace WebDAVClient.Helpers
         private static void ApplyTypedFieldFromBag(Item itemInfo, string ns, string localName, string value)
         {
             if (!string.Equals(ns, c_davNamespace, StringComparison.Ordinal))
+            {
                 return;
+            }
 
             if (string.Equals(localName, "creationdate", StringComparison.OrdinalIgnoreCase))
             {
                 if (DateTime.TryParse(value, out var d))
+                {
                     itemInfo.CreationDate = d;
+                }
             }
             else if (string.Equals(localName, "getlastmodified", StringComparison.OrdinalIgnoreCase))
             {
                 if (DateTime.TryParse(value, out var d))
+                {
                     itemInfo.LastModified = d;
+                }
             }
             else if (string.Equals(localName, "displayname", StringComparison.OrdinalIgnoreCase))
             {
@@ -454,7 +516,9 @@ namespace WebDAVClient.Helpers
             else if (string.Equals(localName, "getcontentlength", StringComparison.OrdinalIgnoreCase))
             {
                 if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
+                {
                     itemInfo.ContentLength = n;
+                }
             }
             else if (string.Equals(localName, "getcontenttype", StringComparison.OrdinalIgnoreCase))
             {
@@ -467,9 +531,13 @@ namespace WebDAVClient.Helpers
             else if (string.Equals(localName, "iscollection", StringComparison.OrdinalIgnoreCase))
             {
                 if (bool.TryParse(value, out var b))
+                {
                     itemInfo.IsCollection = b;
+                }
                 else if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i))
+                {
                     itemInfo.IsCollection = i == 1;
+                }
             }
             else if (string.Equals(localName, "resourcetype", StringComparison.OrdinalIgnoreCase))
             {
@@ -480,7 +548,9 @@ namespace WebDAVClient.Helpers
                         if (reader.NodeType == XmlNodeType.Element && reader.Depth == 0
                             && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.Ordinal)
                             && string.Equals(reader.LocalName, "collection", StringComparison.OrdinalIgnoreCase))
+                        {
                             itemInfo.IsCollection = true;
+                        }
                     }
                 }
             }
@@ -494,7 +564,10 @@ namespace WebDAVClient.Helpers
         private static bool ParseBooleanValue(string value)
         {
             if (bool.TryParse(value, out var result))
+            {
                 return result;
+            }
+
             return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) && number == 1;
         }
 
@@ -503,17 +576,39 @@ namespace WebDAVClient.Helpers
         internal static int ParseStatusCode(string statusLine)
         {
             if (string.IsNullOrEmpty(statusLine))
+            {
                 throw new XmlException("A DAV:status must contain an HTTP status line.");
+            }
+
             var span = statusLine.AsSpan();
             int i = 0;
-            while (i < span.Length && (span[i] == ' ' || span[i] == '\t')) i++;
-            while (i < span.Length && span[i] != ' ' && span[i] != '\t') i++;
-            while (i < span.Length && (span[i] == ' ' || span[i] == '\t')) i++;
+            while (i < span.Length && (span[i] == ' ' || span[i] == '\t'))
+            {
+                i++;
+            }
+
+            while (i < span.Length && span[i] != ' ' && span[i] != '\t')
+            {
+                i++;
+            }
+
+            while (i < span.Length && (span[i] == ' ' || span[i] == '\t'))
+            {
+                i++;
+            }
+
             int start = i;
-            while (i < span.Length && span[i] != ' ' && span[i] != '\t') i++;
+            while (i < span.Length && span[i] != ' ' && span[i] != '\t')
+            {
+                i++;
+            }
+
             if (int.TryParse(span.Slice(start, i - start), NumberStyles.Integer, CultureInfo.InvariantCulture, out var code)
                 && code >= 100 && code <= 599)
+            {
                 return code;
+            }
+
             throw new XmlException("A DAV:status contains an invalid HTTP status code.");
         }
     }

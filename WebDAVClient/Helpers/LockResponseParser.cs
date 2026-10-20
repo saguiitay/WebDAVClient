@@ -74,10 +74,14 @@ namespace WebDAVClient.Helpers
                 }
 
                 if (reader.NodeType != XmlNodeType.Element)
+                {
                     continue;
+                }
 
                 if (!string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.OrdinalIgnoreCase))
+                {
                     continue;
+                }
 
                 var localName = reader.LocalName;
                 if (string.Equals(localName, "locktype", StringComparison.OrdinalIgnoreCase))
@@ -129,16 +133,23 @@ namespace WebDAVClient.Helpers
         private static async Task<string> ReadFirstChildElementNameAsync(XmlReader reader)
         {
             if (reader.IsEmptyElement)
+            {
                 return null;
+            }
 
             int depth = reader.Depth;
             string name = null;
             while (await reader.ReadAsync().ConfigureAwait(false))
             {
                 if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth)
+                {
                     break;
+                }
+
                 if (name == null && reader.NodeType == XmlNodeType.Element)
+                {
                     name = reader.LocalName;
+                }
             }
             return name;
         }
@@ -148,7 +159,9 @@ namespace WebDAVClient.Helpers
         private static async Task<string> ReadHrefChildAsync(XmlReader reader)
         {
             if (reader.IsEmptyElement)
+            {
                 return null;
+            }
 
             int depth = reader.Depth;
             string href = null;
@@ -157,7 +170,10 @@ namespace WebDAVClient.Helpers
             {
                 advance = true;
                 if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth)
+                {
                     break;
+                }
+
                 if (href == null && reader.NodeType == XmlNodeType.Element
                     && string.Equals(reader.LocalName, "href", StringComparison.OrdinalIgnoreCase)
                     && string.Equals(reader.NamespaceURI, c_davNamespace, StringComparison.OrdinalIgnoreCase))
@@ -174,15 +190,23 @@ namespace WebDAVClient.Helpers
         internal static int? ParseTimeout(string raw)
         {
             if (string.IsNullOrWhiteSpace(raw))
+            {
                 return null;
+            }
 
             foreach (var part in raw.Split(','))
             {
                 var token = part.Trim();
                 if (token.Length == 0)
+                {
                     continue;
+                }
+
                 if (string.Equals(token, "Infinite", StringComparison.OrdinalIgnoreCase))
+                {
                     return null;
+                }
+
                 if (token.StartsWith("Second-", StringComparison.OrdinalIgnoreCase)
                     && int.TryParse(token.Substring("Second-".Length), out var seconds))
                 {

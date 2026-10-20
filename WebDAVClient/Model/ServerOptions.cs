@@ -91,11 +91,17 @@ namespace WebDAVClient.Model
         /// </summary>
         public bool SupportsMethod(string method)
         {
-            if (string.IsNullOrEmpty(method)) return false;
+            if (string.IsNullOrEmpty(method))
+            {
+                return false;
+            }
+
             for (int i = 0; i < AllowedMethods.Count; i++)
             {
                 if (string.Equals(AllowedMethods[i], method, StringComparison.OrdinalIgnoreCase))
+                {
                     return true;
+                }
             }
             return false;
         }
@@ -107,11 +113,17 @@ namespace WebDAVClient.Model
         /// </summary>
         public bool HasComplianceToken(string token)
         {
-            if (string.IsNullOrEmpty(token)) return false;
+            if (string.IsNullOrEmpty(token))
+            {
+                return false;
+            }
+
             for (int i = 0; i < DavComplianceClasses.Count; i++)
             {
                 if (string.Equals(DavComplianceClasses[i], token, StringComparison.OrdinalIgnoreCase))
+                {
                     return true;
+                }
             }
             return false;
         }

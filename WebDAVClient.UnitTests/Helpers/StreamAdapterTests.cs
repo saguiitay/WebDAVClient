@@ -66,9 +66,14 @@ namespace WebDAVClient.UnitTests.Helpers
             var stream = new ResponseOwnedStream(inner, response);
             Assert.IsFalse(stream.CanTimeout);
             if (asyncDisposal)
+            {
                 await stream.DisposeAsync();
+            }
             else
+            {
                 stream.Dispose();
+            }
+
             stream.Dispose();
             await stream.DisposeAsync();
             Assert.AreEqual(1, response.DisposeCount);
@@ -107,7 +112,9 @@ namespace WebDAVClient.UnitTests.Helpers
                 Assert.AreEqual(2, await stream.ReadAsync(buffer, 1, 2, token));
                 CollectionAssert.AreEqual(new byte[] { 99, 1, 2, 99 }, buffer);
                 if (tokenMode != "different")
+                {
                     Assert.AreEqual(bound.Token, inner.LastToken);
+                }
                 else
                 {
                     Assert.AreNotEqual(bound.Token, inner.LastToken);
@@ -178,7 +185,9 @@ namespace WebDAVClient.UnitTests.Helpers
                 () => stream.Write(new byte[1], 0, 1)
             };
             foreach (var operation in unsupported)
+            {
                 Assert.ThrowsException<NotSupportedException>(operation);
+            }
         }
 
         private sealed class TimeoutStream : MemoryStream
@@ -203,7 +212,10 @@ namespace WebDAVClient.UnitTests.Helpers
             protected override void Dispose(bool disposing)
             {
                 if (disposing)
+                {
                     DisposeCount++;
+                }
+
                 base.Dispose(disposing);
             }
         }

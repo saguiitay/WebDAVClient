@@ -52,7 +52,10 @@ namespace WebDAVClient.Helpers
             // HttpContent caches and owns the stream returned by ReadAsStreamAsync.
             // Disposing only the response releases both that stream and custom content resources.
             if (disposing)
+            {
                 Interlocked.Exchange(ref m_response, null)?.Dispose();
+            }
+
             base.Dispose(disposing);
         }
 

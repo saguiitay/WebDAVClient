@@ -29,7 +29,10 @@ namespace WebDAVClient.UnitTests.Helpers
             ObjectDisposedException.ThrowIf(IsDisposed, this);
             cancellationToken.ThrowIfCancellationRequested();
             if (buffer.Length == 0)
+            {
                 return 0;
+            }
+
             if (m_position < m_prefix.Length)
             {
                 int count = Math.Min(buffer.Length, m_prefix.Length - m_position);
@@ -54,7 +57,10 @@ namespace WebDAVClient.UnitTests.Helpers
         protected override void Dispose(bool disposing)
         {
             if (disposing)
+            {
                 IsDisposed = true;
+            }
+
             base.Dispose(disposing);
         }
     }

@@ -66,7 +66,10 @@ namespace WebDAVClient.UnitTests
             => new ClientHarness(request =>
             {
                 if (request.Method.Method == "PROPFIND")
+                {
                     return StubHttpMessageHandler.Multistatus(WebDAVResponses.Root("/webdav/"));
+                }
+
                 mutation();
                 return response;
             });
@@ -86,7 +89,10 @@ namespace WebDAVClient.UnitTests
             protected override void Dispose(bool disposing)
             {
                 if (disposing)
+                {
                     DisposeCount++;
+                }
+
                 base.Dispose(disposing);
             }
         }
