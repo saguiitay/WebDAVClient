@@ -25,7 +25,12 @@ namespace WebDAVClient.UnitTests
         {
             var duration = TimeSpan.FromSeconds(seconds);
             var timeout = "Second-" + seconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            using var handler = new StubHttpMessageHandler(_ => XmlResponse(LockXml(timeout), 200));
+            using var handler = new StubHttpMessageHandler(_ =>
+            {
+                var response = XmlResponse(LockXml(timeout), 200);
+                response.Headers.TryAddWithoutValidation("Lock-Token", "<urn:lock:1>");
+                return response;
+            });
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
             var result = await client.AcquireLockAsync(DavClientTests.File,
@@ -161,9 +166,16 @@ namespace WebDAVClient.UnitTests
                 + "<D:locktype><X:extension/><D:unknown/>" + type + "</D:locktype>";
             var supported = "<D:supportedlock><D:lockentry>" + kinds + "</D:lockentry></D:supportedlock>";
             var active = "<D:lockdiscovery><D:activelock>" + kinds + "<D:depth>0</D:depth></D:activelock></D:lockdiscovery>";
-            using var handler = new StubHttpMessageHandler(r => r.Method.Method == "LOCK"
-                ? XmlResponse("<D:prop xmlns:D=\"DAV:\" xmlns:X=\"urn:test\">" + active + "</D:prop>", 200)
-                : XmlResponse(Multi(Resource(supported + active))));
+            using var handler = new StubHttpMessageHandler(r =>
+            {
+                if (r.Method.Method != "LOCK")
+                {
+                    return XmlResponse(Multi(Resource(supported + active)));
+                }
+                var response = XmlResponse("<D:prop xmlns:D=\"DAV:\" xmlns:X=\"urn:test\">" + active + "</D:prop>", 200);
+                response.Headers.TryAddWithoutValidation("Lock-Token", "<urn:lock:1>");
+                return response;
+            });
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
             var resource = (await client.PropFindAsync(DavClientTests.File)).Resources.Single();

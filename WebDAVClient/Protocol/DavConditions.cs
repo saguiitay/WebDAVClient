@@ -22,7 +22,7 @@ namespace WebDAVClient.Protocol
         }
 
         /// <summary>
-        /// Matches an opaque absolute state-token URI; pass the bare token.
+        /// Matches an opaque escaped absolute state-token URI without a fragment; pass the bare token.
         /// </summary>
         public static DavCondition StateToken(string token, bool negated = false)
         {
@@ -46,11 +46,11 @@ namespace WebDAVClient.Protocol
         internal static void ValidateToken(string token)
         {
             ArgumentNullException.ThrowIfNull(token);
-            if (token.Any(char.IsWhiteSpace) || token.IndexOfAny(new[]
+            if (token.Any(c => c > 127 || char.IsWhiteSpace(c) || char.IsControl(c)) || token.IndexOfAny(new[]
                 {
                     '<', '>', '\r', '\n'
                 }) >= 0
-                || !Uri.TryCreate(token, UriKind.Absolute, out _))
+                || !Uri.TryCreate(token, UriKind.Absolute, out var uri) || !uri.IsWellFormedOriginalString() || uri.Fragment.Length != 0)
             {
                 throw new ArgumentException("A state token must be a bare absolute URI.", nameof(token));
             }

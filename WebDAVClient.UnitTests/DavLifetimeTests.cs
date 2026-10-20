@@ -439,7 +439,9 @@ namespace WebDAVClient.UnitTests
                         return XmlResponse(Multi(Resource()));
                     case "LOCK":
                         Assert.AreEqual("Second-30", request.Headers.GetValues("Timeout").Single());
-                        return XmlResponse(LockXml(), 200);
+                        var lockResponse = XmlResponse(LockXml(), 200);
+                        lockResponse.Headers.TryAddWithoutValidation("Lock-Token", "<urn:lock:1>");
+                        return lockResponse;
                     case "GET":
                         Assert.AreEqual("bytes=0-2", request.Headers.Range.ToString());
                         var response = new HttpResponseMessage(HttpStatusCode.PartialContent)

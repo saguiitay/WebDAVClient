@@ -383,14 +383,12 @@ namespace WebDAVClient.UnitTests
         }
 
         [TestMethod]
-        public async Task Refresh_has_no_body_and_does_not_invent_lock_metadata()
+        public async Task Refresh_has_no_request_body_and_rejects_missing_response_confirmation()
         {
             using var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
-            var result = await client.RefreshLockAsync(File, "urn:lock:1");
-            result.EnsureSucceeded();
-            Assert.AreEqual(0, result.Locks.Count);
+            await Assert.ThrowsExceptionAsync<WebDAVException>(() => client.RefreshLockAsync(File, "urn:lock:1"));
             Assert.IsNull(handler.Requests.Single().Body);
         }
 
@@ -434,7 +432,7 @@ namespace WebDAVClient.UnitTests
                 "</D:multistatus>", "<broken>"
             })
             {
-                using var handler = new StubHttpMessageHandler(_ => XmlResponse("<D:multistatus xmlns:D=\"DAV:\">" + Resource() + Resource() + suffix));
+                using var handler = new StubHttpMessageHandler(_ => XmlResponse("<D:multistatus xmlns:D=\"DAV:\">" + Resource() + Resource(href: "/dav/other") + suffix));
                 using var http = new System.Net.Http.HttpClient(handler);
                 using var client = new DavClient(Endpoint, http);
                 await using var listing = await client.OpenListingAsync(DavPath.Root);
@@ -444,7 +442,7 @@ namespace WebDAVClient.UnitTests
                     await foreach (var resource in listing.ReadResourcesAsync())
                     {
                         count++;
-                        Assert.AreEqual("/dav/file", resource.Hrefs[0]);
+                        Assert.AreEqual(count == 1 ? "/dav/file" : "/dav/other", resource.Hrefs[0]);
                         Assert.IsFalse(listing.IsComplete);
                     }
                 }
@@ -465,7 +463,7 @@ namespace WebDAVClient.UnitTests
         [TestMethod]
         public async Task Early_break_releases_listing_but_does_not_certify_completion()
         {
-            using var handler = new StubHttpMessageHandler(_ => XmlResponse(Multi(Resource() + Resource())));
+            using var handler = new StubHttpMessageHandler(_ => XmlResponse(Multi(Resource() + Resource(href: "/dav/other"))));
             using var http = new System.Net.Http.HttpClient(handler);
             using var client = new DavClient(Endpoint, http);
             await using var listing = await client.OpenListingAsync(DavPath.Root);

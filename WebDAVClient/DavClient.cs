@@ -144,6 +144,7 @@ namespace WebDAVClient
 
         /// <summary>
         /// Returns every PROPFIND resource, including the addressed resource, without legacy filtering.
+        /// Core href format, origin, uniqueness and XML cardinality violations are malformed protocol responses.
         /// </summary>
         public Task<DavMultiStatusResult> PropFindAsync(DavPath path, PropFindOptions? options = null, CancellationToken cancellationToken = default)
         {
@@ -326,7 +327,9 @@ namespace WebDAVClient
         }
 
         /// <summary>
-        /// Refreshes a lock without a body. The requested timeout is not substituted for an absent granted timeout.
+        /// Refreshes one lock without a request body. A successful refresh requires HTTP 200 and a DAV:prop
+        /// response containing lockdiscovery; a bodyless successful response is malformed.
+        /// The requested timeout is not substituted for an absent granted timeout.
         /// </summary>
         public Task<DavLockResult> RefreshLockAsync(DavPath path, string token, IReadOnlyList<DavLockTimeout>? timeouts = null, CancellationToken cancellationToken = default)
         {
@@ -532,7 +535,13 @@ namespace WebDAVClient
             {
                 using (var response = await SendAsync(request, token).ConfigureAwait(false))
                 {
-                    var document = await ReadOptionalXmlAsync(response, request, token, response.IsSuccessStatusCode && !refresh || (int)response.StatusCode == 207).ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode && (int)response.StatusCode != 207
+                        && (refresh ? response.StatusCode != HttpStatusCode.OK
+                            : response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created))
+                    {
+                        throw ProtocolError(response, request, "Unexpected successful LOCK status.");
+                    }
+                    var document = await ReadOptionalXmlAsync(response, request, token, response.IsSuccessStatusCode).ConfigureAwait(false);
                     IReadOnlyList<DavLock> locks = Array.Empty<DavLock>();
                     if (response.IsSuccessStatusCode && (int)response.StatusCode != 207 && document != null)
                     {
@@ -547,14 +556,41 @@ namespace WebDAVClient
                             {
                                 throw new XmlException("No active locks were reported.");
                             }
+                            if (!refresh)
+                            {
+                                ValidateAcquisitionToken(response);
+                            }
                         }
                         catch (XmlException exception)
                         {
                             throw ProtocolError(response, request, "Malformed LOCK response.", exception);
                         }
                     }
-                    return new DavLockResult(response, request.RequestUri!, locks, ParseResources(document, response, request), Errors(document));
+                    var resources = ParseResources(document, response, request);
+                    if ((int)response.StatusCode == 207 && (resources.Count == 0 || resources.Any(r => !r.StatusCode.HasValue)))
+                    {
+                        throw ProtocolError(response, request, "Recursive LOCK failure requires resource-level outcomes.");
+                    }
+                    return new DavLockResult(response, request.RequestUri!, locks, resources, Errors(document));
                 }
+            }
+        }
+
+        private static void ValidateAcquisitionToken(HttpResponseMessage response)
+        {
+            var values = response.Headers.TryGetValues("Lock-Token", out var tokens) ? tokens.ToArray() : Array.Empty<string>();
+            var value = values.Length == 1 ? values[0].Trim(' ', '\t') : "";
+            if (values.Length != 1 || value.Length < 3 || value[0] != '<' || value[^1] != '>')
+            {
+                throw new XmlException("A successful lock acquisition requires exactly one bracketed Lock-Token header.");
+            }
+            try
+            {
+                DavCondition.ValidateToken(value.Substring(1, value.Length - 2));
+            }
+            catch (ArgumentException exception)
+            {
+                throw new XmlException("Invalid acquired lock token URI.", exception);
             }
         }
 
@@ -575,6 +611,10 @@ namespace WebDAVClient
             try
             {
                 var document = await DavXml.ReadDocumentAsync(bound, m_options.XmlLimits, deadline.Token).ConfigureAwait(false);
+                if (document.Name == DavXml.Dav + "error")
+                {
+                    DavCoreResponseValidator.Error(document);
+                }
                 deadline.Token.ThrowIfCancellationRequested();
                 return document;
             }
@@ -600,7 +640,13 @@ namespace WebDAVClient
                 {
                     throw new XmlException("Unexpected text in DAV:multistatus.");
                 }
-                return Array.AsReadOnly(document.Elements(DavXml.Dav + "response").Select(e => DavXml.ParseResponse(e, false)).ToArray());
+                var validator = request.Method.Method == "REPORT" ? null : new DavCoreResponseValidator(request.RequestUri!);
+                validator?.ValidateRoot(document);
+                return Array.AsReadOnly(document.Elements(DavXml.Dav + "response").Select(e =>
+                {
+                    validator?.ValidateResponse(e);
+                    return DavXml.ParseResponse(e, false);
+                }).ToArray());
             }
             catch (XmlException exception)
             {

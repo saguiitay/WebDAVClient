@@ -150,20 +150,8 @@ namespace WebDAVClient
             var started = clock.GetTimestamp();
             var result = await client.AcquireLockAsync(path, options, cancellationToken).ConfigureAwait(false);
             result.EnsureSucceeded();
-            var header = result.LockToken;
-            if (header == null || result.Headers["Lock-Token"].Count != 1 || header.Length < 3 || header[0] != '<' || header[^1] != '>')
-            {
-                throw result.CreateException("Managed lock acquisition requires one bracketed Lock-Token header.");
-            }
+            var header = result.LockToken!.Trim(' ', '\t');
             var token = header.Substring(1, header.Length - 2);
-            try
-            {
-                DavCondition.ValidateToken(token);
-            }
-            catch (ArgumentException exception)
-            {
-                throw result.CreateException("Managed lock acquisition returned an invalid token.", exception);
-            }
             var observation = MatchingLock(result, token);
             var scope = options?.Scope == DavLockScope.Shared ? "shared" : "exclusive";
             var depth = options?.Depth == DavDepth.Infinity ? "infinity" : "0";

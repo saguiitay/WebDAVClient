@@ -24,6 +24,15 @@ including immediately expired zero-second grants. Focused deterministic tests
 cover these contracts on both target frameworks; independent-server evidence
 remains a separate requirement.
 
+A follow-up core receive-validation pass now enforces escaped structural resource
+href forms/origins/uniqueness, known singleton cardinalities and element-only
+containers in buffered and streamed core responses. Generic REPORT profile
+cardinalities, arbitrary property/owner XML and legacy projection remain separate.
+LOCK acquisition requires its token header; refresh requests are bodyless but
+successful refresh responses must provide HTTP 200 with lockdiscovery XML.
+The prior low-level empty-refresh-response tolerance is removed. Optional
+lockroot omission retains the section 14.12 SHOULD applicability rationale.
+
 Implementation update (v3 source): `DavClient` now provides the immutable
 resource-oriented surface, shared bounded XML reading, rich outcomes, typed
 properties/conditions, ordered PROPPATCH, metadata-rich transfers, lock options,
@@ -31,8 +40,8 @@ and streamed listing completion. Existing `Client`/`IClient` remain compatibilit
 APIs. A public REPORT seam and a single-batch sync-level 1 profile exercise the
 extension boundary. See the README's v3 migration section for current contracts.
 This is not completion of P-01 through P-10: independent server conformance
-evidence, DI/resilience integration, strict receive-validation gaps recorded in
-the ledger, and the broader extension portfolio remain outstanding. The ledger
+evidence, DI/resilience integration, and the broader extension portfolio remain
+outstanding. The ledger
 and explicit managed lifecycle above are implemented, not automatic scheduling
 or durable leases. No package publication or full RFC conformance is implied.
 

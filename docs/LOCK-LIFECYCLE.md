@@ -67,8 +67,10 @@ inspect the operation result. `CreateConditions` refuses non-active local states
 as required by RFC 4918 section 9.10.2. There is no acquisition fallback, background
 renewal, or automatic retry. Expired/uncertain observations may be reconciled by an
 explicit renewal. A successful renewal must identify the same token and retain
-scope/depth. The low-level API tolerates bodyless successful refresh responses
-for compatibility; such a response **cannot** confirm a managed renewal.
+scope/depth. Both low-level and managed refresh now require HTTP 200 with a
+`DAV:prop`/`DAV:lockdiscovery` response. RFC 4918 section 9.10.2 requires a
+bodyless **request**, not a bodyless successful response. Missing response
+confirmation is a protocol error and cannot establish renewal.
 
 Renewals/releases are serialized. Cancellation while waiting for the serialization
 gate does not change the last confirmed state. Once an operation starts, a
