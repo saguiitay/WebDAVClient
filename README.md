@@ -37,15 +37,53 @@ clarifies MIT licensing without changing the public API.
 
 ### Version 3: resource-oriented API
 
+List an anonymous endpoint:
+
 <!-- compile-example: modern-propfind -->
 ```csharp
 using System;
+using WebDAVClient;
+using WebDAVClient.Protocol;
+using var client = new DavClient(new Uri("https://dav.example.com/dav/"));
+var result = await client.PropFindAsync(DavPath.Root);
+result.EnsureSucceeded();
+foreach (var resource in result.Resources)
+{
+    Console.WriteLine(resource.Hrefs[0]);
+}
+```
+
+Unlike legacy `List`, `PropFindAsync` preserves the requested resource as well
+as its children. Server rejections are inspectable results; explicitly check
+them or call `EnsureSucceeded()`. See [v3 migration and contracts](#v3-migration-and-contracts).
+
+#### Authenticated application
+
+For a protected endpoint, configure a caller-owned `HttpClient`. This complete
+example reads credentials from the environment, disables redirects, requests
+specific properties, and applies a 30-second cancellation budget:
+
+<!-- compile-example: modern-authenticated-propfind -->
+```csharp
+using System;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
 using WebDAVClient;
 using WebDAVClient.Protocol;
 
-// Owns an anonymous transport; redirects and automatic decompression are off.
-using var client = new DavClient(new Uri("https://dav.example.com/dav/"));
+var username = Environment.GetEnvironmentVariable("WEBDAV_USERNAME")
+    ?? throw new InvalidOperationException("Set WEBDAV_USERNAME.");
+var password = Environment.GetEnvironmentVariable("WEBDAV_PASSWORD")
+    ?? throw new InvalidOperationException("Set WEBDAV_PASSWORD.");
+using var http = new HttpClient(new HttpClientHandler
+{
+    Credentials = new NetworkCredential(username, password),
+    UseDefaultCredentials = false,
+    AllowAutoRedirect = false,
+    AutomaticDecompression = DecompressionMethods.None
+});
+using var client = new DavClient(new Uri("https://dav.example.com/dav/"), http);
 using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 var result = await client.PropFindAsync(DavPath.Root, new PropFindOptions
 {
@@ -60,9 +98,10 @@ foreach (var resource in result.Resources)
 }
 ```
 
-Unlike legacy `List`, `PropFindAsync` preserves the requested resource as well
-as its children. Server rejections are inspectable results; explicitly check
-them or call `EnsureSucceeded()`. See [v3 migration and contracts](#v3-migration-and-contracts).
+Replace the endpoint URI with your server's collection URL. `DavClient` leaves
+the injected `HttpClient` caller-owned; the `using` scopes dispose both after the
+operation. For bearer tokens or shared transports, see
+[configuration recipes](#configuration-recipes).
 
 ### Existing API (retained)
 
@@ -313,7 +352,7 @@ The MSTest suite runs on both .NET 8 and .NET 10 without an external WebDAV
 server. It covers protocol outcomes, XML structure, cancellation and deadlines,
 stream ownership, authentication, configuration changes, and sample CLI behavior.
 Bounded loopback tests also exercise actual HTTP transport and authentication.
-The seven complete C# examples marked `compile-example` in this README are
+The eight complete C# examples marked `compile-example` in this README are
 compiled by the test suite against each target framework. Other C# blocks are
 contextual fragments that require the surrounding client/application variables.
 
@@ -359,6 +398,8 @@ basic transfer smoke result.
 ## Release Notes
 
 + **3.0.1** Documentation and licensing patch:
+  - Lead the quickstart with a ten-line anonymous listing, followed by a complete
+    authenticated example with explicit transport ownership and cancellation.
   - Corrected the packaged README to identify 3.0.0 as released on October 20,
     2026 and use the published NuGet package for v3 examples, without a local build.
   - Declared MIT as the single package license with the owner's authorization,
