@@ -18,6 +18,10 @@
 * New resource-oriented DavClient with immutable endpoints, request-scoped options and no implicit discovery.
 * Lossless XML property values, exact resource/property outcomes, typed property codecs and structured DAV errors.
 * Conditional requests, full structured DAV If expressions, ordered atomic PROPPATCH and safe namespace replacement defaults.
+* Explicit lock lease lifecycle, DAV If proxy-cache directives, empty-resource GET support and core response validation.
+* Traceable RFC 4918 requirement ledger; no full RFC conformance claim.
+* Valid escaped Unicode and percent-escape hex-case identity; bare lock-token compatibility requires exactly matching discovery evidence.
+* Explicit opt-in PROPPATCH path-plus alias comparison for known server profiles; default URI identity and query/origin checks remain strict.
 * HEAD, response-owning downloads, verified byte ranges, explicit upload ownership, shared/exclusive locks and streamed listings with completion tracking.
 * Public REPORT execution seam and an explicit sync-level 1 collection synchronization batch profile; no durable sync or automatic retries.
 * Shared XML readers with legacy compatibility projections; existing Client/IClient signatures and transport ownership retained.

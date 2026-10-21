@@ -174,6 +174,21 @@ tokens, entity tags, negation and alternative lists. Tagged alternatives are not
 a universal assertion that all named resources are locked. Options collections
 are copied before the first await; do not mutate collections during that copy.
 
+For explicitly configured servers that equate a literal path `+` with `%2B`,
+`PropPatchOptions.AllowPathPlusEncodingAlias` permits that alias when checking a
+PROPPATCH response target. It is off by default: reserved-character equivalence
+cannot be assumed for arbitrary servers. It never rewrites requests or relaxes
+query-string, origin, case-sensitive path or other reserved-character checks.
+
+### Explicit lock lifecycle
+
+`DavLockLease` provides acquisition, caller-driven renewal, conditional-write
+conditions and release around an observed lock. It has no background timer,
+automatic retries or automatic reacquisition. Treat an expired or lost lease as
+a reason to stop protected writes and reconcile, not permission to acquire a new
+lock and replay them. See the [lock lifecycle contract](docs/LOCK-LIFECYCLE.md)
+for timeout observations, state transitions and disposal behavior.
+
 ### Lifetimes, limits and transport
 
 Use `using`/`await using` for `DavDownloadResult` and `DavListing`. A download's
@@ -230,7 +245,9 @@ The v3 package is still lightweight: no new NuGet dependencies or separate
 protocol package. Server hosting, DI adapters, managed lock renewal, durable sync,
 desktop providers, SEARCH/ACL/DeltaV and other completeness-plan milestones remain
 separate work. Unit/wire-contract coverage is not independent-server interoperability
-evidence or a full RFC conformance certification.
+evidence or a full RFC conformance certification. The
+[RFC 4918 requirement ledger](docs/RFC4918-REQUIREMENTS.md) distinguishes
+implemented client capabilities from outstanding validation and server obligations.
 
 ## Legacy API recipes
 
@@ -351,7 +368,7 @@ workflow dispatch **publishes to NuGet**; do not use those paths as a
 validation-only rehearsal. A local green run is not a GitHub/Linux CI result.
 
 Independent-server smoke evidence and its limits are recorded in the
-[protocol plan](docs/PROTOCOL-COMPLETENESS-PLAN.md). Keep authentication, TLS,
+[protocol plan](plans/PROTOCOL-COMPLETENESS-PLAN.md). Keep authentication, TLS,
 server-specific extensions and broader conformance checks separate from the
 basic transfer smoke result.
 
@@ -373,6 +390,13 @@ basic transfer smoke result.
     references, resource-oriented operations and request-local options.
   - Added faithful XML/status/error results, typed property codecs, HTTP/DAV
     conditions, ordered XML-valued PROPPATCH and conservative overwrite defaults.
+  - Added an explicit lock lease lifecycle, DAV `If` proxy-cache directives,
+    safe empty-resource GET handling, core response validation and a traceable
+    RFC 4918 requirement ledger.
+  - Real-server investigation corrected escaped-Unicode href validation and
+    percent-escape hex-case comparison without case-folding resource paths.
+    Bare lock-token compatibility requires matching discovery evidence;
+    PROPPATCH path-plus alias comparison requires an explicit opt-in.
   - Added HEAD, metadata-rich owned downloads, range validation, explicit upload
     ownership, lock scope/depth/timeout options and streamed listing completion.
   - Consolidated XML reading beneath modern results and legacy projections.
@@ -386,8 +410,9 @@ basic transfer smoke result.
   - Reduced per-resource LINQ allocations with single-pass response projection,
     direct XML-context traversal, ordered property iteration and allocation-free
     successful completion checks. Preserved legacy parsing and immutable results.
-  - Added the public REPORT seam and a single-batch sync-level 1 profile. No
-    automatic retry, lease renewal, durable synchronization or conformance claim.
+  - Added the public REPORT seam and a single-batch sync-level 1 profile. This
+    low-level seam does not persist checkpoints or automatically retry, and
+    does not claim full RFC conformance.
 
 + **2.8.0** _(released)_ Security, correctness and reliability improvements:
   - PROPPATCH outcomes and descriptions come only from direct `propstat` children; nested property values cannot overwrite success or failure.
