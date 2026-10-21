@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Headers;
+using System.Xml;
 
 namespace WebDAVClient.Protocol
 {
@@ -22,7 +23,7 @@ namespace WebDAVClient.Protocol
         }
 
         /// <summary>
-        /// Matches an opaque absolute state-token URI; pass the bare token.
+        /// Matches an opaque escaped absolute state-token URI without a fragment; pass the bare token.
         /// </summary>
         public static DavCondition StateToken(string token, bool negated = false)
         {
@@ -46,13 +47,16 @@ namespace WebDAVClient.Protocol
         internal static void ValidateToken(string token)
         {
             ArgumentNullException.ThrowIfNull(token);
-            if (token.Any(char.IsWhiteSpace) || token.IndexOfAny(new[]
-                {
-                    '<', '>', '\r', '\n'
-                }) >= 0
-                || !Uri.TryCreate(token, UriKind.Absolute, out _))
+            try
             {
-                throw new ArgumentException("A state token must be a bare absolute URI.", nameof(token));
+                if (!DavCoreResponseValidator.SimpleReference(token, resource: false))
+                {
+                    throw new ArgumentException("A state token must be a bare absolute URI.", nameof(token));
+                }
+            }
+            catch (XmlException exception)
+            {
+                throw new ArgumentException("A state token must be a bare absolute URI.", nameof(token), exception);
             }
         }
     }

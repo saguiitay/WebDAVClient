@@ -144,6 +144,7 @@ namespace WebDAVClient
 
         /// <summary>
         /// Returns every PROPFIND resource, including the addressed resource, without legacy filtering.
+        /// Core href format, origin, uniqueness and XML cardinality violations are malformed protocol responses.
         /// </summary>
         public Task<DavMultiStatusResult> PropFindAsync(DavPath path, PropFindOptions? options = null, CancellationToken cancellationToken = default)
         {
@@ -174,6 +175,7 @@ namespace WebDAVClient
 
         /// <summary>
         /// Submits ordered set/remove instructions in one server-atomic PROPPATCH, including writable DAV properties.
+        /// Pass <see cref="PropPatchOptions"/> only when explicit server-specific response-target compatibility is needed.
         /// </summary>
         public Task<DavMultiStatusResult> UpdatePropertiesAsync(DavPath path, IReadOnlyList<DavPropertyChange> changes,
             DavRequestOptions? options = null, CancellationToken cancellationToken = default)
@@ -189,7 +191,9 @@ namespace WebDAVClient
                     new XElement(DavXml.Dav + "prop", c.Value?.ToElement() ?? new XElement(XName.Get(c.Name.LocalName, c.Name.Namespace))))));
             var request = CreateRequest("PROPPATCH", path, options);
             request.Content = XmlContent(body);
-            return ExecuteMultiStatusAsync(request, requireMultiStatus: true, cancellationToken, expectedProperties: snapshot.Select(c => c.Name).Distinct().ToArray());
+            return ExecuteMultiStatusAsync(request, requireMultiStatus: true, cancellationToken,
+                expectedProperties: snapshot.Select(c => c.Name).Distinct().ToArray(),
+                allowPathPlusEncodingAlias: options is PropPatchOptions { AllowPathPlusEncodingAlias: true });
         }
 
         /// <summary>
@@ -235,7 +239,7 @@ namespace WebDAVClient
         }
 
         /// <summary>
-        /// Downloads a full representation or validates one requested byte range. Ignored ranges are rejected,
+        /// Downloads a full representation (including a 204 empty resource) or validates one requested byte range. Ignored ranges are rejected,
         /// never returned as appendable content. Reads after return use the stream's own cancellation tokens.
         /// </summary>
         public async Task<DavDownloadResult> DownloadAsync(DavPath path, DownloadOptions? options = null, CancellationToken cancellationToken = default)
@@ -275,6 +279,14 @@ namespace WebDAVClient
                 if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
                 {
                     stream = await response.Content.ReadAsStreamAsync(cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else if (range == null && response.StatusCode == HttpStatusCode.NoContent)
+                {
+                    if (response.Content.Headers.ContentLength > 0 || response.Content.Headers.ContentRange != null)
+                    {
+                        throw ProtocolError(response, request, "A 204 empty resource cannot contain a representation or range.");
+                    }
+                    stream = Stream.Null;
                 }
                 else if (response.IsSuccessStatusCode)
                 {
@@ -318,7 +330,9 @@ namespace WebDAVClient
         }
 
         /// <summary>
-        /// Refreshes a lock without a body. The requested timeout is not substituted for an absent granted timeout.
+        /// Refreshes one lock without a request body. A successful refresh requires HTTP 200 and a DAV:prop
+        /// response containing lockdiscovery; a bodyless successful response is malformed.
+        /// The requested timeout is not substituted for an absent granted timeout.
         /// </summary>
         public Task<DavLockResult> RefreshLockAsync(DavPath path, string token, IReadOnlyList<DavLockTimeout>? timeouts = null, CancellationToken cancellationToken = default)
         {
@@ -399,6 +413,16 @@ namespace WebDAVClient
                         request.Headers.Add(header.Key, header.Value);
                     }
                 }
+                if (condition != null)
+                {
+                    var cacheControl = request.Headers.CacheControl ??= new CacheControlHeaderValue();
+                    cacheControl.NoCache = true;
+                    cacheControl.NoCacheHeaders.Clear();
+                    if (!request.Headers.Pragma.Any(p => p.Value == null && string.Equals(p.Name, "no-cache", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        request.Headers.Pragma.Add(new NameValueHeaderValue("no-cache"));
+                    }
+                }
                 return request;
             }
             catch
@@ -468,7 +492,7 @@ namespace WebDAVClient
         }
 
         private async Task<DavMultiStatusResult> ExecuteMultiStatusAsync(HttpRequestMessage request, bool requireMultiStatus,
-            CancellationToken token, IReadOnlyList<PropertyName>? expectedProperties = null)
+            CancellationToken token, IReadOnlyList<PropertyName>? expectedProperties = null, bool allowPathPlusEncodingAlias = false)
         {
             using (request)
             {
@@ -496,7 +520,9 @@ namespace WebDAVClient
                     }
                     if ((int)response.StatusCode == 207 && expectedProperties != null)
                     {
-                        if (resources.Count != 1 || new Uri(request.RequestUri!, resources[0].Hrefs[0]) != request.RequestUri
+                        // ParseResources has checked origins; escape hex case must not change target identity.
+                        if (resources.Count != 1 || !DavCoreResponseValidator.SameEscapedPathAndQuery(
+                            new Uri(request.RequestUri!, resources[0].Hrefs[0]), request.RequestUri!, allowPathPlusEncodingAlias)
                             || expectedProperties.Any(name => !resources[0].GetProperties(name).Any()))
                         {
                             throw ProtocolError(response, request, "PROPPATCH did not report outcomes for every requested property on the target resource.");
@@ -514,8 +540,15 @@ namespace WebDAVClient
             {
                 using (var response = await SendAsync(request, token).ConfigureAwait(false))
                 {
-                    var document = await ReadOptionalXmlAsync(response, request, token, response.IsSuccessStatusCode && !refresh || (int)response.StatusCode == 207).ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode && (int)response.StatusCode != 207
+                        && (refresh ? response.StatusCode != HttpStatusCode.OK
+                            : response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created))
+                    {
+                        throw ProtocolError(response, request, "Unexpected successful LOCK status.");
+                    }
+                    var document = await ReadOptionalXmlAsync(response, request, token, response.IsSuccessStatusCode).ConfigureAwait(false);
                     IReadOnlyList<DavLock> locks = Array.Empty<DavLock>();
+                    string? acquiredToken = null;
                     if (response.IsSuccessStatusCode && (int)response.StatusCode != 207 && document != null)
                     {
                         try
@@ -529,15 +562,49 @@ namespace WebDAVClient
                             {
                                 throw new XmlException("No active locks were reported.");
                             }
+                            if (!refresh)
+                            {
+                                acquiredToken = ValidateAcquisitionToken(response, locks);
+                            }
                         }
                         catch (XmlException exception)
                         {
                             throw ProtocolError(response, request, "Malformed LOCK response.", exception);
                         }
                     }
-                    return new DavLockResult(response, request.RequestUri!, locks, ParseResources(document, response, request), Errors(document));
+                    var resources = ParseResources(document, response, request);
+                    if ((int)response.StatusCode == 207 && (resources.Count == 0 || resources.Any(r => !r.StatusCode.HasValue)))
+                    {
+                        throw ProtocolError(response, request, "Recursive LOCK failure requires resource-level outcomes.");
+                    }
+                    return new DavLockResult(response, request.RequestUri!, locks, resources, Errors(document), acquiredToken);
                 }
             }
+        }
+
+        private static string ValidateAcquisitionToken(HttpResponseMessage response, IReadOnlyList<DavLock> locks)
+        {
+            var values = response.Headers.TryGetValues("Lock-Token", out var tokens) ? tokens.ToArray() : Array.Empty<string>();
+            if (values.Length != 1)
+            {
+                throw new XmlException("A successful lock acquisition requires exactly one Lock-Token header.");
+            }
+            var value = values[0].Trim(' ', '\t');
+            var token = value.Length >= 2 && value[0] == '<' && value[^1] == '>'
+                ? value.Substring(1, value.Length - 2) : value;
+            try
+            {
+                DavCondition.ValidateToken(token);
+            }
+            catch (ArgumentException exception)
+            {
+                throw new XmlException("Invalid acquired lock token URI.", exception);
+            }
+            if (locks.Count(l => string.Equals(l.Token, token, StringComparison.Ordinal)) != 1)
+            {
+                throw new XmlException("The acquired Lock-Token must match exactly one active lock.");
+            }
+            return "<" + token + ">";
         }
 
         private async Task<XElement?> ReadOptionalXmlAsync(HttpResponseMessage response, HttpRequestMessage request, CancellationToken token, bool required = false)
@@ -557,6 +624,10 @@ namespace WebDAVClient
             try
             {
                 var document = await DavXml.ReadDocumentAsync(bound, m_options.XmlLimits, deadline.Token).ConfigureAwait(false);
+                if (document.Name == DavXml.Dav + "error")
+                {
+                    DavCoreResponseValidator.Error(document);
+                }
                 deadline.Token.ThrowIfCancellationRequested();
                 return document;
             }
@@ -582,7 +653,13 @@ namespace WebDAVClient
                 {
                     throw new XmlException("Unexpected text in DAV:multistatus.");
                 }
-                return Array.AsReadOnly(document.Elements(DavXml.Dav + "response").Select(e => DavXml.ParseResponse(e, false)).ToArray());
+                var validator = request.Method.Method == "REPORT" ? null : new DavCoreResponseValidator(request.RequestUri!);
+                validator?.ValidateRoot(document);
+                return Array.AsReadOnly(document.Elements(DavXml.Dav + "response").Select(e =>
+                {
+                    validator?.ValidateResponse(e);
+                    return DavXml.ParseResponse(e, false);
+                }).ToArray());
             }
             catch (XmlException exception)
             {

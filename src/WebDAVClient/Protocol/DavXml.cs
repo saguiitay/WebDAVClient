@@ -32,7 +32,8 @@ namespace WebDAVClient.Protocol
 
         internal static async IAsyncEnumerable<DavResourceResponse> ReadMultiStatusAsync(Stream stream, DavXmlLimits limits,
             bool legacy = false, [EnumeratorCancellation] CancellationToken cancellationToken = default,
-            bool namesOnly = false, bool davPropertiesOnly = false, Action<DavXmlValue>? onExtension = null)
+            bool namesOnly = false, bool davPropertiesOnly = false, Action<DavXmlValue>? onExtension = null,
+            DavCoreResponseValidator? coreValidator = null)
         {
             using var reader = CreateReader(stream, limits);
             await reader.MoveToContentAsync().ConfigureAwait(false);
@@ -60,10 +61,12 @@ namespace WebDAVClient.Protocol
                         var element = await ReadElementAsync(reader, limits, cancellationToken, namesOnly, davPropertiesOnly).ConfigureAwait(false);
                         if (isResponse)
                         {
+                            coreValidator?.ValidateResponse(element);
                             yield return ParseResponse(element, legacy);
                         }
                         else
                         {
+                            coreValidator?.ObserveRootChild(element);
                             onExtension?.Invoke(new DavXmlValue(element));
                         }
                     }
@@ -375,24 +378,25 @@ namespace WebDAVClient.Protocol
 
         internal static IReadOnlyList<DavLock> ParseLocks(XElement root, DateTimeOffset observed)
         {
-            var discovery = root.Name == Dav + "lockdiscovery" ? root : root.Element(Dav + "lockdiscovery");
+            DavCoreResponseValidator.ElementContent(root);
+            var discovery = root.Name == Dav + "lockdiscovery" ? root : DavCoreResponseValidator.Single(root, "lockdiscovery");
             if (discovery == null)
             {
                 throw new XmlException("LOCK requires DAV:lockdiscovery.");
             }
+            DavCoreResponseValidator.ElementContent(discovery);
             return Array.AsReadOnly(discovery.Elements(Dav + "activelock").Select(e =>
             {
-                var scopes = e.Element(Dav + "lockscope")?.Elements().ToArray();
-                var types = e.Element(Dav + "locktype")?.Elements().ToArray();
-                var scope = scopes?.Length == 1 ? scopes[0] : null;
-                var type = types?.Length == 1 ? types[0] : null;
-                var depthElement = e.Element(Dav + "depth");
+                DavCoreResponseValidator.ElementContent(e);
+                var scope = LockKind(e, "lockscope");
+                var type = LockKind(e, "locktype");
+                var depthElement = DavCoreResponseValidator.Single(e, "depth");
                 var depth = depthElement == null ? null : Text(depthElement);
                 if (scope == null || type == null || (depth != "0" && depth != "infinity"))
                 {
                     throw new XmlException("Invalid active lock scope, type or depth.");
                 }
-                var timeoutElement = e.Element(Dav + "timeout");
+                var timeoutElement = DavCoreResponseValidator.Single(e, "timeout");
                 var timeout = timeoutElement == null ? null : Text(timeoutElement);
                 var granted = DavLockTimeout.Unspecified;
                 if (timeout == "Infinite")
@@ -402,20 +406,54 @@ namespace WebDAVClient.Protocol
                 else if (timeout != null)
                 {
                     if (!timeout.StartsWith("Second-", StringComparison.Ordinal) || !uint.TryParse(timeout.AsSpan(7), NumberStyles.None,
-                        CultureInfo.InvariantCulture, out var seconds) || seconds == 0)
+                        CultureInfo.InvariantCulture, out var seconds))
                     {
                         throw new XmlException("Invalid granted lock timeout.");
                     }
                     granted = DavLockTimeout.Finite(TimeSpan.FromSeconds(seconds));
                 }
-                var token = e.Element(Dav + "locktoken")?.Element(Dav + "href");
-                var lockRoot = e.Element(Dav + "lockroot")?.Element(Dav + "href");
-                return new DavLock(token == null ? null : Text(token),
+                var token = LockHref(e, "locktoken");
+                if (token != null)
+                {
+                    try
+                    {
+                        DavCondition.ValidateToken(token);
+                    }
+                    catch (ArgumentException exception)
+                    {
+                        throw new XmlException("Invalid lock token URI.", exception);
+                    }
+                }
+                var lockRoot = LockHref(e, "lockroot");
+                return new DavLock(token,
                     new Model.PropertyName(scope.Name.NamespaceName, scope.Name.LocalName),
                     new Model.PropertyName(type.Name.NamespaceName, type.Name.LocalName), depth,
-                    e.Element(Dav + "owner") is XElement owner ? new DavXmlValue(owner) : null,
-                    lockRoot == null ? null : Text(lockRoot), granted, observed);
+                    DavCoreResponseValidator.Single(e, "owner") is XElement owner ? new DavXmlValue(owner) : null,
+                    lockRoot, granted, observed);
             }).ToArray());
+        }
+
+        internal static XElement? LockKind(XElement element, string name)
+        {
+            var permitted = name == "lockscope" ? new[] { Dav + "exclusive", Dav + "shared" } : new[] { Dav + "write" };
+            var container = DavCoreResponseValidator.Single(element, name);
+            if (container != null)
+            {
+                DavCoreResponseValidator.ElementContent(container);
+            }
+            var children = container?.Elements().Where(e => permitted.Contains(e.Name)).ToArray();
+            return children?.Length == 1 ? children[0] : null;
+        }
+
+        private static string? LockHref(XElement element, string name)
+        {
+            var container = DavCoreResponseValidator.Single(element, name);
+            if (container == null)
+            {
+                return null;
+            }
+            DavCoreResponseValidator.ElementContent(container);
+            return Text(DavCoreResponseValidator.Single(container, "href", required: true)!);
         }
     }
 }

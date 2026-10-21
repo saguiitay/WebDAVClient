@@ -279,15 +279,17 @@ namespace WebDAVClient.UnitTests
             }
         }
 
-        [TestMethod]
-        public async Task Locking_example_submits_the_token_refreshes_and_unlocks_before_deleting()
+        [DataTestMethod]
+        [DataRow(true)]
+        [DataRow(false)]
+        public async Task Locking_example_submits_the_token_refreshes_and_unlocks_before_deleting(bool confirmRefresh)
         {
             const string token = "urn:uuid:example-lock";
             using var handler = new StubHttpMessageHandler(request =>
             {
                 if (request.Method.Method == "LOCK")
                 {
-                    if (request.Content == null)
+                    if (request.Content == null && !confirmRefresh)
                     {
                         return StubHttpMessageHandler.StatusOnly(HttpStatusCode.OK);
                     }
@@ -310,8 +312,9 @@ namespace WebDAVClient.UnitTests
             using var client = new DavClient(new Uri("https://example.test/dav/"), http);
             using var output = new StringWriter();
             using var error = new StringWriter();
-            Assert.AreEqual(0, await MutationExamples.RunAsync(client, "locking", null,
+            Assert.AreEqual(confirmRefresh ? 0 : 1, await MutationExamples.RunAsync(client, "locking", null,
                 TemporaryPath(), output, error, CancellationToken.None), error.ToString());
+            Assert.AreEqual(!confirmRefresh, error.ToString().Contains("Example failed:"));
             CollectionAssert.AreEqual(new[] { "MKCOL", "PUT", "LOCK", "PUT", "LOCK", "UNLOCK", "DELETE" },
                 handler.Requests.Select(request => request.Method.Method).ToArray());
             StringAssert.Contains(handler.Requests.Where(request => request.Method == HttpMethod.Put).Last().Headers["If"].Single(), token);

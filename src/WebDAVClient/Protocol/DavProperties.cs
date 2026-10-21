@@ -153,7 +153,12 @@ namespace WebDAVClient.Protocol
             get;
         } =
             new DavProperty<IReadOnlyList<PropertyName>>(new PropertyName("DAV:", "resourcetype"),
-                v => Array.AsReadOnly(v.ToElement().Elements().Select(e => new PropertyName(e.Name.NamespaceName, e.Name.LocalName)).ToArray()));
+                v =>
+                {
+                    var element = v.ToElement();
+                    DavCoreResponseValidator.ElementContent(element);
+                    return Array.AsReadOnly(element.Elements().Select(e => new PropertyName(e.Name.NamespaceName, e.Name.LocalName)).ToArray());
+                });
 
         /// <summary>
         /// Every active lock in DAV:lockdiscovery.
@@ -165,24 +170,31 @@ namespace WebDAVClient.Protocol
             new DavProperty<IReadOnlyList<DavLock>>(new PropertyName("DAV:", "lockdiscovery"), v => DavXml.ParseLocks(v.ToElement(), DateTimeOffset.UtcNow));
 
         /// <summary>
-        /// Every advertised DAV:supportedlock entry.
+        /// Advertised core write-lock entries. Unknown XML extensions are ignored, not interpreted as lock kinds.
         /// </summary>
         public static DavProperty<IReadOnlyList<DavSupportedLock>> SupportedLocks
         {
             get;
         } =
             new DavProperty<IReadOnlyList<DavSupportedLock>>(new PropertyName("DAV:", "supportedlock"), v =>
-                Array.AsReadOnly(v.ToElement().Elements(DavXml.Dav + "lockentry").Select(e =>
-                    new DavSupportedLock(ChildName(e, "lockscope"), ChildName(e, "locktype"))).ToArray()));
+            {
+                var element = v.ToElement();
+                DavCoreResponseValidator.ElementContent(element);
+                return Array.AsReadOnly(element.Elements(DavXml.Dav + "lockentry").Select(e =>
+                {
+                    DavCoreResponseValidator.ElementContent(e);
+                    return new DavSupportedLock(ChildName(e, "lockscope"), ChildName(e, "locktype"));
+                }).ToArray());
+            });
 
         private static PropertyName ChildName(XElement element, string name)
         {
-            var children = element.Element(DavXml.Dav + name)?.Elements().ToArray();
-            if (children == null || children.Length != 1)
+            var child = DavXml.LockKind(element, name);
+            if (child == null)
             {
                 throw new XmlException("A supported lock requires one scope and one type.");
             }
-            return new PropertyName(children[0].Name.NamespaceName, children[0].Name.LocalName);
+            return new PropertyName(child.Name.NamespaceName, child.Name.LocalName);
         }
 
         private static DavProperty<string> Text(string name) => new DavProperty<string>(new PropertyName("DAV:", name), TextValue);

@@ -111,7 +111,7 @@ if (count == 0)
 `Client` and `IClient` remain available without renamed members or changed
 upload ownership. They use compatibility projections over shared XML reading.
 `DavClient` is a separate API: migration is explicit, not a constructor rename.
-The 3.1.1 assembly version is `3.1.1.0`; rebuild consumers when upgrading.
+The 3.2.0 assembly version is `3.2.0.0`; rebuild consumers when upgrading.
 
 | Concern | Existing API | Modern API |
 |---|---|---|
@@ -187,10 +187,27 @@ tokens, entity tags, negation and alternative lists. Tagged alternatives are not
 a universal assertion that all named resources are locked. Options collections
 are copied before the first await; do not mutate collections during that copy.
 
+In 3.2+, `PropPatchOptions.AllowPathPlusEncodingAlias` can opt into a known
+server mapping that equates literal path `+` with `%2B`. It is off by default
+and affects only PROPPATCH response-target comparison, not outbound requests,
+queries, other reserved characters or origin checks. Do not enable it on
+servers that distinguish those paths.
+
+### Explicit lock lifecycle (3.2+)
+
+`DavLockLease` provides confirmed acquisition, conservative observed expiry,
+caller-driven renewal and at most one release attempt. There is no timer,
+automatic retry or reacquisition. See the [lifecycle guide](lock-lifecycle.md)
+for conditions, state transitions, ambiguous failures and disposal behavior.
+Low-level refresh now requires HTTP 200 and lockdiscovery XML; an empty
+successful response no longer confirms renewal.
+
 ### Lifetimes, limits and transport
 
 Use `using`/`await using` for `DavDownloadResult` and `DavListing`. A download's
 `Content` is null on 304 and rejection; `NotModified` explicitly identifies 304.
+In 3.2+, a full-resource 204 supplies an empty stream; the response-owning result
+must still be disposed.
 Range requests accept one validated bytes range, request identity encoding and
 reject ignored-range 200 responses and returned ETag/Last-Modified values that
 contradict the supplied `IfRange` validator. Resuming an existing file requires
@@ -246,6 +263,8 @@ protocol package. Server hosting, DI adapters, managed lock renewal, durable syn
 desktop providers, SEARCH/ACL/DeltaV and other completeness-plan milestones remain
 separate work. Unit/wire-contract coverage is not independent-server interoperability
 evidence or a full RFC conformance certification.
+The [RFC 4918 requirement ledger](rfc4918-requirements.md) maps implemented
+client requirements, test evidence and remaining server obligations.
 
 ## Legacy API recipes
 
@@ -371,6 +390,19 @@ server-specific extensions and broader conformance checks separate from the
 basic transfer smoke result.
 
 ## Release Notes
+
++ **3.2.0** _(unreleased)_ Core validation and explicit lock lifecycle:
+  - Added `DavLockLease` with conservative observed expiry, explicit renewal,
+    serialized lifecycle operations and at most one release attempt.
+  - Validate core response hrefs/cardinalities and require confirmed acquisition
+    tokens and HTTP 200 lockdiscovery responses for successful lock refresh.
+    Previously tolerated bodyless successful refresh responses now fail.
+  - Support full-resource GET 204 as an empty stream, unsigned lock timeout
+    seconds, DAV If proxy-cache directives and coded capability URIs.
+  - Preserve valid escaped Unicode and escape-hex case equivalence; tolerate
+    bare acquisition tokens only with matching discovery evidence.
+  - Add default-off, path-only PROPPATCH plus-alias compatibility options and a
+    traceable RFC 4918 requirement ledger; no complete conformance claim.
 
 + **3.1.1** Repository organization:
   - Moved the library to `src`, tests to `tests` and the smoke application to

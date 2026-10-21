@@ -82,7 +82,8 @@ namespace WebDAVClient
         }
 
         /// <summary>
-        /// DAV If grammar, independent of HTTP validators.
+        /// DAV If grammar, independent of HTTP validators. Conditioned requests automatically include
+        /// Cache-Control: no-cache and Pragma: no-cache to prevent non-DAV-aware proxy cache hits.
         /// </summary>
         public DavIfConditions? Conditions
         {
@@ -160,6 +161,24 @@ namespace WebDAVClient
         /// Required for Selected; additional include names for All; invalid for Names.
         /// </summary>
         public IReadOnlyList<PropertyName>? Properties
+        {
+            get;
+            init;
+        }
+    }
+
+    /// <summary>
+    /// Property-update options, including narrowly scoped server compatibility.
+    /// </summary>
+    public sealed record PropPatchOptions : DavRequestOptions
+    {
+        /// <summary>
+        /// Opts into servers known to report a literal '+' as an alias for '%2B' within path segments.
+        /// Default false: reserved characters are not universally equivalent under RFC 3986.
+        /// Applies only to PROPPATCH response-target confirmation, never query strings, other
+        /// reserved escapes, outbound URLs, or additional network requests.
+        /// </summary>
+        public bool AllowPathPlusEncodingAlias
         {
             get;
             init;

@@ -23,6 +23,7 @@ and setup guidance. Differences in the legacy `Client` API are called out below.
 | Ordered atomic PROPPATCH request | Implemented | `UpdatePropertiesAsync`; caller inspects property-level outcomes; atomicity is a server obligation |
 | Exclusive/shared write LOCK | Implemented | `AcquireLockAsync`; scope/depth validation, all observed locks retained |
 | Lock refresh / UNLOCK | Implemented | Explicit `RefreshLockAsync` / `UnlockAsync`; no background lease renewal |
+| Explicit lock lease lifecycle | Implemented (3.2+) | `DavLockLease`; observed expiry, caller-driven renewal and one release attempt; [guide](lock-lifecycle.md) |
 | HTTP ETag/date conditions | Implemented | Typed request options; no implicit lost-update strategy |
 | DAV `If` conditions | Implemented | Tagged/untagged lists, state tokens, ETags and `Not`; same-origin tagged resources |
 | Qualified XML values and 207 outcomes | Implemented | Resource/property outcomes retained separately; bounded asynchronous parser |
@@ -50,11 +51,27 @@ bearer handlers are provided, but OAuth acquisition/refresh is application-owned
 | RFC 4331 quota properties | Raw property access only | Can request qualified properties; no typed quota profile or server-support guarantee |
 | Vendor chunked/resumable uploads | Not implemented | Full PUT only on the modern API |
 | Durable local directory mirroring | Not implemented | Application-owned; not implied by file checkpoints or one sync REPORT |
-| Automatic retries / managed lock leases | Not implemented | Explicit reconciliation and lifecycle remain caller-owned |
+| Automatic retries / background lock renewal | Not implemented | Reconciliation and renewal scheduling remain caller-owned |
 
 Unknown XML and custom properties can be retained without implementing the
 extension that defines them. Parsing a name is not implementation of its
 authorization, error, continuation or mutation semantics.
+
+## Response validation (3.2+)
+
+Core multistatus responses and streamed listings enforce structural href format,
+origin, uniqueness and known XML cardinalities. A malformed response fails
+explicitly and cannot certify a complete listing. Generic REPORT profiles and
+legacy projection retain their separate validation boundaries.
+
+Successful LOCK acquisition requires one confirmed token header and matching
+lockdiscovery evidence. Refresh requires HTTP 200 and lockdiscovery XML, even
+though its request is bodyless. Full-resource GET accepts 204 as an empty stream;
+range requests still require valid partial-content confirmation.
+
+For detailed implementation/test mappings and remaining server obligations, see
+the [RFC 4918 requirement ledger](rfc4918-requirements.md). It is not a server
+compatibility certification.
 
 ## API reference
 

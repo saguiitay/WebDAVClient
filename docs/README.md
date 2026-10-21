@@ -43,6 +43,7 @@ No examples silently retry or overwrite local downloads.
 |---|---|
 | [Server compatibility](compatibility.md) | Which server products are relevant, what is verified, and how to test your deployment |
 | [Protocol support](protocol-support.md) | Implemented methods versus partial or absent extension profiles |
+| [Explicit lock lifecycle (3.2+)](lock-lifecycle.md) | Observed lease state, caller-driven renewal, conditional writes and one-attempt release |
 | [Errors and lifetimes](errors-and-lifetimes.md) | Status handling, stream ownership, cancellation, retries and troubleshooting |
 | [Detailed API and legacy reference](reference.md) | Migration, legacy `Client`/`IClient`, paths, proxy/TLS, provider concurrency, limits and historical release notes |
 | [Development](development.md) | Build, tests, coverage, documentation validation and release process |

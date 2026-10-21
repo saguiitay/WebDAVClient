@@ -55,6 +55,10 @@ required context/imports. Keep source links and the [guide index](README.md)
 consistent with each runnable example. Do not claim independent-server
 compatibility from unit/loopback tests.
 
+The [RFC 4918 requirement ledger](rfc4918-requirements.md) maps client
+implementation and deterministic evidence separately from server obligations
+and unsupported profiles. Update it when changing protocol contracts.
+
 ## Coverage and publishing
 
 ```pwsh

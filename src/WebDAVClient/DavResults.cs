@@ -206,8 +206,31 @@ namespace WebDAVClient
         }
 
         private IReadOnlyList<string> Split(string name) => Array.AsReadOnly(Headers.TryGetValue(name, out var values)
-            ? values.SelectMany(v => v.Split(',')).Select(v => v.Trim()).Where(v => v.Length != 0).ToArray()
+            ? values.SelectMany(SplitCodedValues).Select(v => v.Trim()).Where(v => v.Length != 0).ToArray()
             : Array.Empty<string>());
+
+        private static IEnumerable<string> SplitCodedValues(string value)
+        {
+            int start = 0;
+            bool codedUrl = false;
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (value[i] == '<')
+                {
+                    codedUrl = true;
+                }
+                else if (value[i] == '>')
+                {
+                    codedUrl = false;
+                }
+                else if (value[i] == ',' && !codedUrl)
+                {
+                    yield return value.Substring(start, i - start);
+                    start = i + 1;
+                }
+            }
+            yield return value.Substring(start);
+        }
 
         /// <summary>
         /// Time this observation was obtained.
@@ -278,15 +301,16 @@ namespace WebDAVClient
     public sealed class DavLockResult : DavResponse
     {
         internal DavLockResult(HttpResponseMessage response, Uri uri, IReadOnlyList<DavLock> locks,
-            IReadOnlyList<DavResourceResponse> resources, IReadOnlyList<DavXmlValue> errors)
+            IReadOnlyList<DavResourceResponse> resources, IReadOnlyList<DavXmlValue> errors, string? acquiredToken = null)
             : base(response, uri, "LOCK", errors)
         {
             Locks = locks;
             Resources = resources;
+            LockToken = acquiredToken ?? GetHeader("Lock-Token");
         }
 
         /// <summary>
-        /// Observed active locks. An empty refresh body does not invent a granted timeout.
+        /// Observed active locks from the required LOCK response body. Omitted timeout fields do not invent a grant.
         /// </summary>
         public IReadOnlyList<DavLock> Locks
         {
@@ -302,9 +326,14 @@ namespace WebDAVClient
         }
 
         /// <summary>
-        /// Canonical token header, including wire brackets, when present.
+        /// Confirmed acquisition token with wire brackets, or the raw header on other responses.
+        /// A single valid bare acquisition token is tolerated only when lockdiscovery confirms it;
+        /// <see cref="DavResponse.GetHeader"/> retains the original server header, including that deviation.
         /// </summary>
-        public string? LockToken => GetHeader("Lock-Token");
+        public string? LockToken
+        {
+            get;
+        }
 
         /// <summary>
         /// Requires a successful non-multistatus LOCK response.
@@ -340,7 +369,8 @@ namespace WebDAVClient
         }
 
         /// <summary>
-        /// Content only for accepted 200/206 responses; caller must dispose this result.
+        /// Content for accepted 200/206 responses, or an empty stream for a full-resource 204.
+        /// Caller must dispose this result, including for 204.
         /// </summary>
         public Stream? Content
         {
@@ -479,7 +509,7 @@ namespace WebDAVClient
                 using var stream = await m_response.Content.ReadAsStreamAsync(linked.Token).WaitAsync(linked.Token).ConfigureAwait(false);
                 using var cancellable = new CancellationReadStream(stream, linked.Token);
                 await using var iterator = DavXml.ReadMultiStatusAsync(cancellable, m_limits, cancellationToken: linked.Token,
-                    onExtension: value => m_extensions.Add(value)).GetAsyncEnumerator(linked.Token);
+                    onExtension: value => m_extensions.Add(value), coreValidator: new DavCoreResponseValidator(EffectiveUri)).GetAsyncEnumerator(linked.Token);
                 while (true)
                 {
                     bool hasNext;

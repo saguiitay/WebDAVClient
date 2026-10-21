@@ -19,6 +19,10 @@ its token in a structured DAV `If` condition during an upload, explicitly
 refreshes the lock and attempts unlock before deleting the run-owned collection.
 Tokens are not printed.
 
+In 3.2.0, successful refresh requires HTTP 200 with a `DAV:prop` response
+containing `DAV:lockdiscovery`. The request remains bodyless; an empty successful
+response is a protocol error, not confirmation that the lock was renewed.
+
 `LockOptions` supports exclusive/shared scope and depth zero/infinity.
 `Timeouts` is an ordered preference list, not a promise of the granted duration.
 Inspect observed lock metadata. Missing granted timeouts stay unknown; a 207
@@ -29,6 +33,14 @@ Modern lock tokens passed to `DavCondition.StateToken`, `RefreshLockAsync` and
 the canonical `Lock-Token` response header and removes its wire brackets.
 If no usable token header is returned it fails explicitly and advises
 reconciliation rather than fabricating a token.
+
+## Explicit lease helper (3.2+)
+
+[`DavLockLease`](lock-lifecycle.md) wraps one confirmed lock with conservative
+expiry tracking, serialized explicit renewal and at most one release attempt.
+It does not schedule renewal, retry mutations or reacquire a lost lock.
+The existing runnable example intentionally retains the low-level API so you can
+see acquisition, conditional writing, refresh and cleanup separately.
 
 ## HTTP validators and DAV `If` are different
 

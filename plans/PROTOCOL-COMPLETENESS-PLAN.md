@@ -1,17 +1,68 @@
 # Plan: complete WebDAV protocol support
 
-Status: proposed. Baseline: repository commit `ac0ef8a7b637b03114cf18a16a1e60d9a53396a1`, reviewed 2026-10-19.
+Status: partially implemented; not a full-conformance claim. Historical baseline:
+repository commit `ac0ef8a7b637b03114cf18a16a1e60d9a53396a1`, reviewed 2026-10-19.
+
+### Core requirement and lifecycle update (2026-10-21)
+
+The durable [RFC 4918 client requirement ledger](../docs/rfc4918-requirements.md)
+now maps sections 4–18 to concrete APIs, deterministic test evidence, server-only
+responsibilities and explicit unsupported/partial scope. It does not certify
+server conformance or claim every historical milestone complete.
+
+`DavLockLease` adds a dependency-free, explicitly renewed managed write-lock
+lifecycle with validated acquisition identity/scope/depth, conservative monotonic
+expiry, uncertainty on failed renewal/release, serialized operations and at most
+one release attempt. There is no timer, automatic retry, reacquisition or durable
+lease store. See [lock lifecycle reference](../docs/lock-lifecycle.md).
+
+Core corrections also cover RFC 4918 empty-resource GET 204, no-cache directives
+for DAV If requests through non-DAV-aware proxies, coded capability URIs containing
+commas, and ignoring unexpected lock-kind XML extensions without accepting foreign
+lookalikes. Timeout requests and grants support the full unsigned seconds range,
+including immediately expired zero-second grants. Focused deterministic tests
+cover these contracts on both target frameworks; independent-server evidence
+remains a separate requirement.
+
+A follow-up core receive-validation pass now enforces escaped structural resource
+href forms/origins/uniqueness, known singleton cardinalities and element-only
+containers in buffered and streamed core responses. Generic REPORT profile
+cardinalities, arbitrary property/owner XML and legacy projection remain separate.
+LOCK acquisition requires its token header; refresh requests are bodyless but
+successful refresh responses must provide HTTP 200 with lockdiscovery XML.
+The prior low-level empty-refresh-response tolerance is removed. Optional
+lockroot omission retains the section 14.12 SHOULD applicability rationale.
+Present lockroot hrefs remain scalar, raw evidence-only metadata, including
+server-produced unescaped filenames; they are never promoted to request targets
+or used to infer lock ownership.
+
+Independent WsgiDAV 4.3.5 / cheroot 11.1.2 testing exposed a .NET URI
+well-formedness false rejection for combined escaped Unicode/reserved octets;
+wire grammar validation now preserves those identities. For interoperability,
+one valid bare acquisition header token is accepted only with one exact
+lockdiscovery match, while its nonstandard wire form remains inspectable.
+Basic-authentication runs pass 19 observations plus two unavailable/unsupported
+extension observations on each target framework, with confirmed clean teardown.
+This narrow evidence does not certify other servers or all RFC server invariants.
+PROPPATCH target validation additionally recognizes equivalent escape-hex digit
+case without weakening case-sensitive path/query or escaped-separator identity.
+Reserved-plus aliases remain distinct by default. Known server mappings may
+explicitly select `PropPatchOptions.AllowPathPlusEncodingAlias` for path-only
+response-target compatibility; queries, other reserved escapes, outbound URLs,
+origin checks and mutation replay behavior are unchanged.
 
 Implementation update (v3 source): `DavClient` now provides the immutable
 resource-oriented surface, shared bounded XML reading, rich outcomes, typed
 properties/conditions, ordered PROPPATCH, metadata-rich transfers, lock options,
 and streamed listing completion. Existing `Client`/`IClient` remain compatibility
 APIs. A public REPORT seam and a single-batch sync-level 1 profile exercise the
-extension boundary. See the README's v3 migration section for current contracts.
-This is not completion of P-01 through P-10: the normative ledger, independent
-server conformance evidence, DI/resilience integration, managed leases, and
-the broader extension portfolio remain outstanding. No package publication or
-full RFC conformance is implied.
+extension boundary. See the [v3 migration reference](../docs/reference.md#v3-migration-and-contracts)
+for current contracts.
+This is not completion of P-01 through P-10: independent server conformance
+evidence, DI/resilience integration, and the broader extension portfolio remain
+outstanding. The ledger
+and explicit managed lifecycle above are implemented, not automatic scheduling
+or durable leases. No package publication or full RFC conformance is implied.
 
 ### Release-hardening smoke evidence (2026-10-20)
 
