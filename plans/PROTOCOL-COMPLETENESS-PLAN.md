@@ -68,7 +68,7 @@ The target is protocol capability and evidence. It does not imply that every ser
 | Transport/auth | Reusable HTTP wrapper, caller ownership, bearer handler, `ICredentials`, TLS callback, origin validation. | Request-scoped options, replay policy, credential isolation, cancellation through initial path resolution, diagnostics and DI adapters. |
 | Automated tests | MSTest suite in solution for both target frameworks. | Requirement coverage, real-server integration, failure injection, native-client traces, large-resource fixtures. |
 
-Evidence locations: `WebDAVClient\IClient.cs`; `Client.cs:254-1390`; `Model\Item.cs`; `Model\ServerOptions.cs`; helpers under `WebDAVClient\Helpers`; and `WebDAVClient.UnitTests`.
+Evidence locations: `src\WebDAVClient\IClient.cs`; `Client.cs:254-1390`; `Model\Item.cs`; `Model\ServerOptions.cs`; helpers under `src\WebDAVClient\Helpers`; and `tests\WebDAVClient.UnitTests`.
 
 Specific design constraints visible in current code:
 
@@ -303,8 +303,8 @@ The site explicitly documents these as specialized behavior:
 Existing targeted commands remain:
 
 ```powershell
-dotnet test .\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -f net8.0
-dotnet test .\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -f net10.0
+dotnet test .\tests\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -f net8.0
+dotnet test .\tests\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -f net10.0
 ```
 
 Add any new integration-test projects to the solution before relying on solution-level test runs. Keep networked suites explicitly selected; public demonstration endpoints are not stable CI fixtures and must not receive destructive tests.

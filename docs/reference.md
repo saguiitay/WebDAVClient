@@ -31,9 +31,9 @@ and its NuGet license metadata declares `MIT`.
 
 [NOTICE.md](../NOTICE.md) preserves historical upstream attribution, not a separate
 CC0 licensing requirement. The former combined MIT/Apache text is
-retained as a [historical record](../licenses/HISTORICAL-LICENSE.md), not a
-whole-package dual-license declaration. All three files are included in the
-3.0.1 NuGet package; previously published packages are unchanged.
+retained in [Git history](https://github.com/saguiitay/WebDAVClient/blob/f686e530f2bfea3d908686cc722e0048497d733e/licenses/HISTORICAL-LICENSE.md),
+not a whole-package dual-license declaration. Current packages include the MIT
+license and provenance notice; previously published packages are unchanged.
 
 ## Quickstart
 
@@ -111,7 +111,7 @@ if (count == 0)
 `Client` and `IClient` remain available without renamed members or changed
 upload ownership. They use compatibility projections over shared XML reading.
 `DavClient` is a separate API: migration is explicit, not a constructor rename.
-The 3.1.0 assembly version is `3.1.0.0`; rebuild consumers when upgrading.
+The 3.1.1 assembly version is `3.1.1.0`; rebuild consumers when upgrading.
 
 | Concern | Existing API | Modern API |
 |---|---|---|
@@ -332,13 +332,13 @@ compiled by the test suite against each target framework. Other C# blocks are
 contextual fragments that require the surrounding client/application variables.
 
 ```pwsh
-dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -p:CollectCoverage=true
+dotnet test tests\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -p:CollectCoverage=true
 ```
 
 Coverage collection enforces **98% line and 95% branch coverage in each production
 module**, independently for each framework, including the sample executable.
 Cobertura reports are written under
-`WebDAVClient.UnitTests\TestResults\coverage\<framework>\`.
+`tests\WebDAVClient.UnitTests\TestResults\coverage\<framework>\`.
 CI runs both frameworks and uploads these reports even when a test or coverage
 gate fails; a failed gate prevents publication. No production-code exclusions
 are added to reach the thresholds.
@@ -371,6 +371,15 @@ server-specific extensions and broader conformance checks separate from the
 basic transfer smoke result.
 
 ## Release Notes
+
++ **3.1.1** Repository organization:
+  - Moved the library to `src`, tests to `tests` and the smoke application to
+    `examples`, retaining project/assembly names and the root solution.
+  - Updated project references, CI paths, package inputs and documentation.
+  - Removed unused legacy NuGet tooling and the superseded combined-license
+    archive from the current tree/package; retained MIT and upstream provenance
+    with an immutable Git-history reference.
+  - No library API or runtime behavior changes.
 
 + **3.1.0** Durable resumable file downloads:
   - Added the `DownloadFileAsync` extension in `WebDAVClient.Transfers` with strong validators,
@@ -654,11 +663,11 @@ This example is read-only and requires no pre-existing files or folders. The
 manual sample accepts configuration without source edits:
 
 ```pwsh
-dotnet run --project TestWebDAVClient -f net10.0 -- --help
-dotnet run --project TestWebDAVClient -f net10.0 -- --server https://dav.example.com --base-path /dav/ --validate
-dotnet run --project TestWebDAVClient -f net10.0 -- --server https://dav.example.com --base-path /dav/
-dotnet run --project TestWebDAVClient -f net10.0 -- --modern --server https://dav.example.com --base-path /dav/ --validate
-dotnet run --project TestWebDAVClient -f net10.0 -- --modern --server https://dav.example.com --base-path /dav/
+dotnet run --project examples\TestWebDAVClient -f net10.0 -- --help
+dotnet run --project examples\TestWebDAVClient -f net10.0 -- --server https://dav.example.com --base-path /dav/ --validate
+dotnet run --project examples\TestWebDAVClient -f net10.0 -- --server https://dav.example.com --base-path /dav/
+dotnet run --project examples\TestWebDAVClient -f net10.0 -- --modern --server https://dav.example.com --base-path /dav/ --validate
+dotnet run --project examples\TestWebDAVClient -f net10.0 -- --modern --server https://dav.example.com --base-path /dav/
 ```
 
 Use `WEBDAV_USERNAME`/`WEBDAV_PASSWORD` or `WEBDAV_BEARER_TOKEN` for authentication;

@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WebDAVClient.Examples;
 using WebDAVClient.Helpers;
@@ -347,16 +348,36 @@ namespace WebDAVClient.UnitTests
         }
 
         [TestMethod]
+        public void Solution_projects_references_and_package_inputs_resolve_in_the_repository_layout()
+        {
+            string root = RepositoryRoot();
+            string solution = File.ReadAllText(Path.Combine(root, "WebDAVClient.sln"));
+            var projects = Regex.Matches(solution, @"""(?<path>[^""]+\.csproj)""")
+                .Cast<Match>().Select(match => match.Groups["path"].Value).ToArray();
+            Assert.IsTrue(projects.Length > 0);
+            foreach (string relative in projects)
+            {
+                string folder = relative.Split('\\', '/')[0];
+                Assert.IsTrue(new[] { "src", "tests", "examples" }.Contains(folder), relative);
+                string path = Path.Combine(root, relative.Replace('\\', Path.DirectorySeparatorChar));
+                Assert.IsTrue(File.Exists(path), relative);
+                var project = XDocument.Load(path);
+                var inputs = project.Descendants("ProjectReference")
+                    .Concat(project.Descendants("None").Where(item => (string)item.Attribute("Pack") == "true"));
+                foreach (var item in inputs)
+                {
+                    string include = ((string)item.Attribute("Include")).Replace('\\', Path.DirectorySeparatorChar);
+                    string resolved = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), include));
+                    Assert.IsTrue(File.Exists(resolved), relative + " -> " + include);
+                }
+            }
+        }
+
+        [TestMethod]
         public void Documentation_links_point_to_existing_repository_files_and_sections()
         {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
-            while (directory != null && !File.Exists(Path.Combine(directory.FullName, "WebDAVClient.sln")))
-            {
-                directory = directory.Parent;
-            }
-            Assert.IsNotNull(directory, "Locate the checkout for documentation-link validation.");
-            string root = directory.FullName;
-            var documents = new[] { Path.Combine(root, "README.md") }
+            string root = RepositoryRoot();
+            var documents = new[] { Path.Combine(root, "README.md"), Path.Combine(root, "NOTICE.md") }
                 .Concat(Directory.GetFiles(Path.Combine(root, "docs"), "*.md"));
             const string repositoryPrefix = "https://github.com/saguiitay/WebDAVClient/blob/master/";
             foreach (string document in documents)
@@ -383,6 +404,17 @@ namespace WebDAVClient.UnitTests
                     }
                 }
             }
+        }
+
+        private static string RepositoryRoot()
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory != null && !File.Exists(Path.Combine(directory.FullName, "WebDAVClient.sln")))
+            {
+                directory = directory.Parent;
+            }
+            Assert.IsNotNull(directory, "Locate the checkout for repository validation.");
+            return directory.FullName;
         }
 
         private static string TemporaryPath() => Path.Combine(Path.GetTempPath(), "webdavclient-docs-" + Guid.NewGuid().ToString("N"));

@@ -5,6 +5,23 @@ runtimes to run both test targets (CI installs both SDKs).
 The library has no NuGet dependencies;
 the test project has private test/coverage/compiler dependencies.
 
+## Repository layout
+
+| Folder/file | Purpose |
+|---|---|
+| `src\WebDAVClient` | Packaged library and shared protocol/transfer code |
+| `tests\WebDAVClient.UnitTests` | Automated contract, loopback, example and documentation tests |
+| `examples\WebDAVClient.Examples` | Task-focused and vendor integration commands |
+| `examples\TestWebDAVClient` | Legacy/modern smoke-test executable |
+| `docs` | User guides, API contracts and development instructions |
+| `plans` | Design proposals and future work, not shipped API contracts |
+| `WebDAVClient.sln` | Root solution for all projects |
+| `LICENSE.md`, `NOTICE.md` | Current MIT terms and retained upstream provenance |
+
+Run the following commands from the repository root. SDK-style projects use
+`dotnet restore`; no checked-in NuGet executable or legacy restore targets are
+required.
+
 ```pwsh
 dotnet restore
 dotnet build -c Release --no-restore
@@ -18,7 +35,7 @@ frameworks. Choose a framework explicitly when running them:
 
 ```pwsh
 dotnet run --project examples\WebDAVClient.Examples -f net10.0 -- --help
-dotnet run --project TestWebDAVClient -f net10.0 -- --help
+dotnet run --project examples\TestWebDAVClient -f net10.0 -- --help
 ```
 
 ## Validate documentation
@@ -30,7 +47,7 @@ does not silently remove validation. The runnable examples project is built
 and its onboarding/failure workflows are covered separately.
 
 ```pwsh
-dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release --filter "FullyQualifiedName~ReadmeCompilationTests|FullyQualifiedName~DeveloperExamplesTests"
+dotnet test tests\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release --filter "FullyQualifiedName~ReadmeCompilationTests|FullyQualifiedName~DeveloperExamplesTests"
 ```
 
 Use complete markers only for standalone programs. Label fragments with their
@@ -41,7 +58,7 @@ compatibility from unit/loopback tests.
 ## Coverage and publishing
 
 ```pwsh
-dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -p:CollectCoverage=true
+dotnet test tests\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -p:CollectCoverage=true
 ```
 
 Coverage gates require at least 98% lines and 95% branches separately for each

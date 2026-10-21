@@ -58,7 +58,7 @@ authorization, error, continuation or mutation semantics.
 
 ## API reference
 
-The public implementations are in [DavClient.cs](../WebDAVClient/DavClient.cs),
-[options](../WebDAVClient/DavOptions.cs), [results](../WebDAVClient/DavResults.cs),
-[protocol models](../WebDAVClient/Protocol), and
-[CollectionSync.cs](../WebDAVClient/Extensions/CollectionSync.cs).
+The public implementations are in [DavClient.cs](../src/WebDAVClient/DavClient.cs),
+[options](../src/WebDAVClient/DavOptions.cs), [results](../src/WebDAVClient/DavResults.cs),
+[protocol models](../src/WebDAVClient/Protocol), and
+[CollectionSync.cs](../src/WebDAVClient/Extensions/CollectionSync.cs).
