@@ -380,9 +380,11 @@ guarantees. XML copies and read-only snapshots remain intact.
 
 Validate candidate commits through a pull request targeting `master`: the
 Ubuntu workflow builds both frameworks and runs tests, README compilation and
-coverage gates without publishing. A successful code push to `master` or manual
-workflow dispatch **publishes to NuGet**; do not use those paths as a
-validation-only rehearsal. A local green run is not a GitHub/Linux CI result.
+coverage gates without publishing. Code pushes to `master` also validate only.
+Only a manual workflow dispatch **publishes to NuGet** and creates a GitHub
+release; do not use a manual dispatch as a validation-only rehearsal. See the
+[publishing instructions](development.md#coverage-and-publishing).
+A local green run is not a GitHub/Linux CI result.
 
 Independent-server smoke evidence and its limits are recorded in the
 [server compatibility guide](compatibility.md). Keep authentication, TLS,
