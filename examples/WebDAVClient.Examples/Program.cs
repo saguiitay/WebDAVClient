@@ -9,7 +9,7 @@ public static class Program
     private static readonly string[] s_commands =
     {
         "getting-started", "authentication", "listing", "transfers",
-        "file-management", "locking", "collection-sync"
+        "file-management", "locking", "collection-sync", "nextcloud", "owncloud"
     };
 
     public static async Task<int> Main(string[] args)
@@ -22,6 +22,7 @@ public static class Program
             Console.WriteLine("WEBDAV_AUTH: anonymous (default), credentials, windows, bearer, provider.");
             Console.WriteLine("Credentials: WEBDAV_USERNAME + WEBDAV_PASSWORD; bearer/provider: WEBDAV_BEARER_TOKEN.");
             Console.WriteLine("getting-started: WEBDAV_REMOTE_FILE (one filename), WEBDAV_OUTPUT (new local file).");
+            Console.WriteLine("nextcloud/owncloud: same download settings; select credentials and use an app password.");
             Console.WriteLine("transfers: WEBDAV_INPUT (existing local file), WEBDAV_OUTPUT (new local file).");
             Console.WriteLine("collection-sync: optional WEBDAV_SYNC_TOKEN; tokens are never persisted.");
             Console.WriteLine("Writes require --allow-writes and use a unique run-owned collection.");
@@ -54,6 +55,12 @@ public static class Program
             {
                 case "getting-started":
                     await GettingStarted.RunAsync(client, DavPath.FromSegments(Required("WEBDAV_REMOTE_FILE")),
+                        Environment.GetEnvironmentVariable("WEBDAV_OUTPUT") ?? "download.bin", Console.Out, token);
+                    break;
+                case "nextcloud":
+                case "owncloud":
+                    await CloudStorage.RunAsync(client, command == "nextcloud",
+                        DavPath.FromSegments(Required("WEBDAV_REMOTE_FILE")),
                         Environment.GetEnvironmentVariable("WEBDAV_OUTPUT") ?? "download.bin", Console.Out, token);
                     break;
                 case "authentication":

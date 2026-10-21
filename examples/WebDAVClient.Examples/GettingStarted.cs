@@ -11,6 +11,12 @@ public static class GettingStarted
         {
             output.WriteLine(resource.Hrefs[0]);
         }
+        await DownloadAsync(client, remoteFile, localFile, output, token);
+    }
+
+    internal static async Task DownloadAsync(DavClient client, DavPath remoteFile,
+        string localFile, TextWriter output, CancellationToken token)
+    {
         using var download = await client.DownloadAsync(remoteFile, cancellationToken: token);
         download.EnsureHttpSuccess();
         var content = download.Content ?? throw new IOException("No downloadable content.");

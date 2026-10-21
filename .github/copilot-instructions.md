@@ -33,7 +33,7 @@ using a private test-only Roslyn dependency; the library still has no NuGet depe
 Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
 Version 3.0.0 was published on October 20, 2026 and includes the v3 API.
-Current source version 3.0.3 reorganizes documentation and adds runnable feature
+Current source version 3.0.4 adds Nextcloud/ownCloud integration guides and runnable
 examples in examples/WebDAVClient.Examples. The short README links to docs/README.md;
 docs/reference.md retains detailed modern/legacy contracts and release notes.
 Every example command has a matching guide. Keep server compatibility evidence

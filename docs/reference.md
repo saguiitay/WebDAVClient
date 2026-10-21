@@ -111,7 +111,7 @@ if (count == 0)
 `Client` and `IClient` remain available without renamed members or changed
 upload ownership. They use compatibility projections over shared XML reading.
 `DavClient` is a separate API: migration is explicit, not a constructor rename.
-The 3.0.3 assembly version is `3.0.3.0`; rebuild consumers when upgrading.
+The 3.0.4 assembly version is `3.0.4.0`; rebuild consumers when upgrading.
 
 | Concern | Existing API | Modern API |
 |---|---|---|
@@ -369,6 +369,13 @@ server-specific extensions and broader conformance checks separate from the
 basic transfer smoke result.
 
 ## Release Notes
+
++ **3.0.4** Nextcloud and ownCloud integration examples:
+  - Added runnable read-only remote workflows for vendor-specific metadata
+    listing and downloading a known file, with separate app-password setup guides.
+  - Linked both integrations from the README, documentation index and
+    authentication/compatibility guides.
+  - No new verified-server compatibility claims or library API/runtime changes.
 
 + **3.0.3** Developer documentation:
   - Replaced the long README with an authenticated list-and-download quickstart.

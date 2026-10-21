@@ -8,7 +8,8 @@ dotnet run --project examples\WebDAVClient.Examples -f net10.0 -- listing
 
 Configure the [endpoint and authentication](authentication.md) first. The command
 is read-only. It requests display name, resource type, ETag and an example custom
-property, prints statuses, and consumes a streaming listing to completion.
+property, prints qualified names, statuses and available text values, and consumes
+a streaming listing to completion. Structured XML values are not flattened.
 
 ## Select the right query
 
