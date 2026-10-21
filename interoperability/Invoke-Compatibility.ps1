@@ -59,7 +59,14 @@ try {
 }
 finally {
     foreach ($name in $names) {
-        [Environment]::SetEnvironmentVariable("WEBDAV_INTEROP_$name", $saved[$name])
+        if ($null -eq $saved[$name]) {
+            if (Test-Path -LiteralPath "Env:WEBDAV_INTEROP_$name") {
+                Remove-Item -LiteralPath "Env:WEBDAV_INTEROP_$name"
+            }
+        }
+        else {
+            [Environment]::SetEnvironmentVariable("WEBDAV_INTEROP_$name", $saved[$name])
+        }
     }
     Pop-Location
 }

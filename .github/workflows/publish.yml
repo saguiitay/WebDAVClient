@@ -57,6 +57,10 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet test tests/WebDAVClient.InteropTests/WebDAVClient.InteropTests.csproj -c Release --no-build --verbosity normal
 
+      - name: Test compatibility wrapper offline
+        shell: pwsh
+        run: ./interoperability/Test-CompatibilityWrapper.ps1
+
       - name: Test .NET 10
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet test tests/WebDAVClient.UnitTests/WebDAVClient.UnitTests.csproj -c Release -f net10.0 --no-build --verbosity normal -p:CollectCoverage=true
