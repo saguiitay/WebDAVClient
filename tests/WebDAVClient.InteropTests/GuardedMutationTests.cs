@@ -51,6 +51,8 @@ public sealed class GuardedMutationTests
     [DataRow("weak-etag")]
     [DataRow("malformed-etag")]
     [DataRow("wildcard-etag")]
+    [DataRow("duplicate-etag")]
+    [DataRow("combined-etag")]
     public async Task MissingStrongValidatorBlocksDependentWrites(string fault)
     {
         using var handler = new GuardedHandler(fault);
@@ -163,6 +165,26 @@ public sealed class GuardedMutationTests
         Assert.AreEqual("failed", result.Observations.Single(o => o.Operation == $"lock-{operation}-wrong-etag").Outcome);
         Assert.AreEqual("failed", result.Observations.Single(o => o.Operation == $"lock-{operation}-wrong-etag-integrity").Outcome);
         Assert.AreEqual("blocked", result.Observations.Single(o => o.Operation == $"lock-{operation}-valid").Outcome);
+    }
+
+    [DataTestMethod]
+    [DataRow("lock-rejection-dav", "passed")]
+    [DataRow("lock-rejection-other-namespace", "failed")]
+    [DataRow("lock-rejection-other-condition", "failed")]
+    [DataRow("lock-rejection-empty", "failed")]
+    public async Task LockedRejectionRequiresTheQualifiedLockCondition(string fault, string outcome)
+    {
+        using var handler = new GuardedHandler(fault);
+        var result = await RunAsync(handler, locks: true).ConfigureAwait(false);
+        foreach (string operation in new[] { "put", "delete", "move" })
+        {
+            var rejected = result.Observations.Single(o => o.Operation == $"lock-{operation}-wrong-token");
+            Assert.AreEqual(outcome, rejected.Outcome);
+            Assert.AreEqual<int?>(423, rejected.HttpStatus);
+            Assert.AreEqual("passed", result.Observations.Single(o => o.Operation == $"lock-{operation}-wrong-etag").Outcome);
+            Assert.AreEqual("passed", result.Observations.Single(o => o.Operation == $"lock-{operation}-valid").Outcome);
+        }
+        Assert.IsFalse(JsonSerializer.Serialize(result).Contains("sensitive-body-text", StringComparison.Ordinal));
     }
 
     [TestMethod]
@@ -288,11 +310,16 @@ public sealed class GuardedMutationTests
                     "weak-etag" => "W/" + entry.Tag,
                     "malformed-etag" => "private-invalid-etag",
                     "wildcard-etag" => "*",
+                    "combined-etag" => entry.Tag + ", \"private-other-etag\"",
                     _ => entry.Tag
                 };
                 if (tag != null)
                 {
                     response.Headers.TryAddWithoutValidation("ETag", tag);
+                    if (fault == "duplicate-etag")
+                    {
+                        response.Headers.TryAddWithoutValidation("ETag", "\"private-other-etag\"");
+                    }
                 }
                 return response;
             }
@@ -343,6 +370,24 @@ public sealed class GuardedMutationTests
             bool lying = rejected && (fault is "write-on-reject" or "body-on-reject" || fault == "lie-lock-" + method.ToLowerInvariant());
             if (rejected && !lying)
             {
+                if (fault.StartsWith("lock-rejection-", StringComparison.Ordinal) &&
+                    entry?.Token != null && conditions != null && !conditions.Contains(entry.Token, StringComparison.Ordinal))
+                {
+                    if (fault == "lock-rejection-empty")
+                    {
+                        return Reply(423);
+                    }
+                    XNamespace dav = "DAV:";
+                    XNamespace other = "urn:webdavclient:private";
+                    var condition = fault == "lock-rejection-other-namespace" ? other + "lock-token-submitted" :
+                        fault == "lock-rejection-other-condition" ? dav + "no-conflicting-lock" : dav + "lock-token-submitted";
+                    var xml = new XElement(dav + "error", new XElement(condition),
+                        new XElement(other + "message", "sensitive-body-text"));
+                    return new HttpResponseMessage((HttpStatusCode)423)
+                    {
+                        Content = new StringContent(xml.ToString(), Encoding.UTF8, "application/xml")
+                    };
+                }
                 if (fault == "etag-on-reject" && entry != null)
                 {
                     entry.Tag = NextTag();

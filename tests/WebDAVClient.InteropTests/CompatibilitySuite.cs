@@ -436,8 +436,8 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
                     ? DavIfConditions.Tagged(new DavTaggedConditions(file, wrong))
                     : DavIfConditions.Untagged(wrong);
                 await CheckAsync(prefix + "-wrong-token", async () =>
-                    Expected(prefix + "-wrong-token", await MutateAsync(operation, client, file, destination,
-                        wrongConditions, s_rejected, ct).ConfigureAwait(false), 412)).ConfigureAwait(false);
+                    ExpectedLockRejection(prefix + "-wrong-token", await MutateAsync(operation, client, file, destination,
+                        wrongConditions, s_rejected, ct).ConfigureAwait(false))).ConfigureAwait(false);
                 bool intact = await CheckAsync(prefix + "-wrong-token-integrity", async () =>
                 {
                     var result = await VerifyStateAsync(client, file, s_content, baselineTag, ct).ConfigureAwait(false);
@@ -625,7 +625,8 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
         var response = await client.HeadAsync(file, cancellationToken: ct).ConfigureAwait(false);
         response.EnsureHttpSuccess();
         Require(response.StatusCode == 200);
-        if (!EntityTagHeaderValue.TryParse(response.GetHeader("ETag"), out var tag) || tag.Tag == "*")
+        if (!response.Headers.TryGetValue("ETag", out var values) || values.Count != 1 ||
+            !EntityTagHeaderValue.TryParse(values[0], out var tag) || tag.Tag == "*")
         {
             throw new InvalidDataException("Guarded probes require one strong ETag.");
         }
@@ -773,6 +774,13 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
     private static Observation Expected(string name, DavResponse response, int status) =>
         new(name, response.StatusCode == status ? "passed" : Matrix.Classify(response.StatusCode, false, false), response.StatusCode,
             Detail: "Expected HTTP " + status);
+
+    private static Observation ExpectedLockRejection(string name, DavResponse response) =>
+        response.StatusCode == 423 && response.Errors.Count(e =>
+            e.ToElement().Name == XName.Get("lock-token-submitted", "DAV:")) == 1
+            ? new Observation(name, "passed", 423,
+                Detail: "HTTP 423 with DAV:lock-token-submitted; integrity and false-ETag checks remain separate.")
+            : Expected(name, response, 412);
 
     private static async Task<Observation> VerifyDownloadAsync(DavClient client, DavPath path, DownloadOptions? options,
         byte[] expected, CancellationToken ct)
