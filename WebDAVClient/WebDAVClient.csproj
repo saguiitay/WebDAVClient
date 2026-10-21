@@ -6,15 +6,19 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>WebDAVClient</PackageId>
-    <Version>3.0.1</Version>
-    <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
+    <Version>3.0.2</Version>
+    <Description>Browse WebDAV storage and transfer files from C#/.NET applications without hand-writing DAV requests or parsing XML. Upload, download, copy, move and delete remote files with strongly typed async APIs, streaming and cancellation support. Targets .NET 8 and .NET 10. Nextcloud and ownCloud compatibility is not verified; validate your server and configuration.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
     <PackageProjectUrl>https://github.com/saguiitay/WebDAVClient</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
-    <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>Version 3.0.1
+    <PackageTags>WebDAV;WebDAV-client;WebDAV-storage;file-transfer;file-management;upload;download;Nextcloud;ownCloud;.NET;dotnet;CSharp;c#;HttpClient</PackageTags>
+    <PackageReleaseNotes>Version 3.0.2
+* Discovery: Describe WebDAV storage and file-transfer use cases and expand NuGet search tags, without claiming verified Nextcloud or ownCloud compatibility.
+* Documentation: Explain server-specific compatibility limits in the README overview.
+* No public API or runtime behavior changes.
+Version 3.0.1:
 * Documentation: Correct the embedded README to identify 3.0.0 as released on October 20, 2026 and install v3 from NuGet without a local build.
 * Licensing: Declare MIT as the single package license with owner authorization; retain historical upstream attribution and the previous license record.
 * No public API or runtime behavior changes.
@@ -48,8 +52,8 @@ Historical context (already released in 2.7.0):
 * Feature: PROPFIND request-body variants — &lt;prop&gt; and &lt;propname/&gt; in addition to &lt;allprop/&gt; (RFC 4918 §9.1).
 * Feature: HTTP OPTIONS support — discover DAV compliance classes and allowed methods (RFC 4918 §9.1, RFC 9110 §9.3.7).
 * Feature: Bearer token / OAuth 2.0 authentication via new Client constructor overloads (static token or async refreshable provider).</PackageReleaseNotes>
-    <AssemblyVersion>3.0.1.0</AssemblyVersion>
-    <FileVersion>3.0.1.0</FileVersion>
+    <AssemblyVersion>3.0.2.0</AssemblyVersion>
+    <FileVersion>3.0.2.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>

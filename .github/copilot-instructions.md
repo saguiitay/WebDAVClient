@@ -33,7 +33,8 @@ using a private test-only Roslyn dependency; the library still has no NuGet depe
 Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
 Version 3.0.0 was published on October 20, 2026 and includes the v3 API.
-Current source version 3.0.1 corrects documentation and clarifies MIT licensing.
+Current source version 3.0.2 improves NuGet discovery metadata; 3.0.1 corrected
+documentation and clarified MIT licensing.
 The README is embedded in the NuGet package; correcting its published copy
 requires a new package version. Do not describe 3.0.0 as upcoming or require a
 local build to use its published APIs.
