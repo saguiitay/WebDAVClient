@@ -32,8 +32,11 @@ using a private test-only Roslyn dependency; the library still has no NuGet depe
 `GenerateDocumentationFile=true` ships XML beside both framework assemblies.
 Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
-Version 2.8.0 is published; current 3.0.0 is upcoming and retains those fixes.
-Do not imply that the v3 source has been published.
+Version 3.0.0 was published on October 20, 2026 and includes the v3 API.
+Current source version 3.0.1 corrects documentation and clarifies MIT licensing.
+The README is embedded in the NuGet package; correcting its published copy
+requires a new package version. Do not describe 3.0.0 as upcoming or require a
+local build to use its published APIs.
 
 ## Architecture
 
