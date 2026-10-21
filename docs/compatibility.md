@@ -14,6 +14,11 @@ Those records identify historical source revisions and configurations; they
 are not verification of every published package or deployment. The suite
 mutates disposable storage and requires explicit opt-in.
 
+The [prioritized gaps](../interoperability/GAPS.md) separate confirmed server
+restrictions from missing evidence. In particular, the tested nginx built-in
+DAV profile ignores `If-None-Match: *` on PUT. Do not use that configuration for
+safe conditional creation or assume a preliminary HEAD closes the write race.
+
 The [protocol support table](protocol-support.md) lists the client's supported
 operations and extensions. Your server must also support the features you use.
 

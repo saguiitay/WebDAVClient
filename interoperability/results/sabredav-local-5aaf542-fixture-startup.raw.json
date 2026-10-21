@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "profile": "sabredav",
+  "observedUtc": "2026-10-21T14:21:20.0982158+00:00",
+  "readiness": {
+    "ready": true,
+    "method": "OPTIONS",
+    "status": 200,
+    "attempts": 1,
+    "failure": null
+  }
+}

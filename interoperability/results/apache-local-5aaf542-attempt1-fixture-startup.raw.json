@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "profile": "apache",
+  "observedUtc": "2026-10-21T14:12:31.465315+00:00",
+  "readiness": {
+    "ready": false,
+    "method": "OPTIONS",
+    "status": null,
+    "attempts": 75,
+    "failure": "request-failed"
+  }
+}

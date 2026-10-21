@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Explicit loopback-owned-fixture synthetic wire diagnostic; not a compatibility pass.",
+  "profile": "sabredav",
+  "fixtureProject": "webdavclient-interop-b181680442434380b7b33c7273757293",
+  "runTree": "synthetic-wire-c3575d6f25924f9490a872840c2b774a/",
+  "byteCapPerResponse": 65536,
+  "capturedHeaders": false,
+  "acquiredLocks": false,
+  "cases": [
+    {
+      "case": "ascii",
+      "requestPath": "/synthetic-wire-c3575d6f25924f9490a872840c2b774a/ascii.bin",
+      "httpStatus": 207,
+      "responseBytes": 331
+    },
+    {
+      "case": "unicode",
+      "requestPath": "/synthetic-wire-c3575d6f25924f9490a872840c2b774a/caf%C3%A9%20%E4%B8%AD%E6%96%87%20%2B%20%25%20%23.bin",
+      "httpStatus": 207,
+      "responseBytes": 374
+    }
+  ],
+  "cleanupConfirmed": true,
+  "failure": null
+}

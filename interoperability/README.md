@@ -9,6 +9,9 @@ test doubles are never counted as independent-server results.
 Historical source revisions, server versions and raw fixtures remain unchanged;
 they are not reruns or certification of the published 3.2.0 package.
 
+See the [prioritized gaps and acceptance criteria](GAPS.md) for confirmed
+server restrictions, already-shipped fixes and the next validation work.
+
 ## Run an isolated fixture
 
 Requires both .NET 8 and .NET 10 SDKs, PowerShell 7, and either Python 3.12 or a
@@ -35,12 +38,20 @@ credentials, endpoints or response bodies, including when startup fails.
 WsgiDAV also verifies its backing share is empty. Results default to
 `artifacts\interop\*.json`. No package publication is performed.
 
-For Docker: `.\interoperability\Run-Fixture.ps1 -Profile apache`
-(or `nginx`, `sabredav`, `nextcloud`, `owncloud`). The Compose project name is
+For Docker: `.\interoperability\Run-Fixture.ps1 -Profile apache -ApachePathPlusAlias`.
+For `nginx`, `sabredav`, `nextcloud` or `owncloud`, select that profile and omit
+the Apache-only switch. Its [explicit alias policy](#explicit-apache-path-plus-profile)
+does not change the strict library default. The Compose project name is
 unique per invocation, ports bind **only** `127.0.0.1`, storage is fixture-owned,
 and `down --volumes` removes only that Compose project's resources. A busy fixture
 port fails before startup. No privileged containers, host networking, host
 document-directory mounts, or public destructive endpoints are used.
+
+In a reused Windows worktree, verify that `fixtures\apache\start.sh` and
+`fixtures\sabredav\start.sh` use LF, as required by `.gitattributes`. Adding or
+merging attributes does not rewrite an already checked-out file. CRLF
+entrypoints can build successfully but exit 127 before HTTP readiness; that
+startup failure is not a server protocol result.
 
 The dedicated **Opt-in independent WebDAV interoperability** GitHub workflow
 supports manual `workflow_dispatch` for one selected fixture, or applying the
@@ -242,6 +253,9 @@ results. This profile requires core commit 6dbc3dc or its integrated equivalent.
 After reviewing new result files, retain them in `interoperability\results` and
 run `.\interoperability\Update-Matrix.ps1`. This validates each run against the JSON
 schema and regenerates the summary without turning missing server rows green.
+New retained raw JSON uses `*.raw.json`; `.gitattributes` disables newline
+conversion and whitespace rewriting for those files and synthetic-wire captures.
+Keep authored environment companions and the generated matrix as ordinary JSON.
 The workflow applies the same validation to its artifact directory.
 The summary is an all-history ledger: **any retained failed run** leaves that
 server's summary `observed-nonpassing`, even when a later corrected/configured
@@ -250,12 +264,28 @@ than deleting negative history to make the summary green.
 
 ## Fixture status and limits
 
+After synchronizing PR #92 with `origin/master` at `a5dc243`, hosted run
+[39612921060](https://github.com/saguiitay/WebDAVClient/actions/runs/39612921060)
+repeated the positive Apache/SabreDAV/WsgiDAV subsets first retained in
+run 39514944772. nginx remains nonpassing. Both frameworks and cleanup were
+checked for every profile; this is not blanket compatibility certification.
+The [run companion](results/ci-39612921060-environment.json) records the actual
+execution merge revision and links to retained startup/image/wire evidence.
+
+With Docker available locally, Windows-client reruns at `5aaf542` confirm the
+same per-framework outcomes: native WsgiDAV and Linux-container Apache/SabreDAV
+pass their tested subsets; nginx's conditional PUT still fails. The
+[local companion](results/local-5aaf542-environment.json) records versions,
+image identities, cleanup and the initial CRLF-entrypoint startup failures
+before normalization to the committed LF bytes. No script content or historical
+evidence was rewritten to make these reruns pass.
+
 | Profile | Configuration | Execution evidence |
 | --- | --- | --- |
 | WsgiDAV 4.3.5 / Cheroot 11.1.2 | Python 3.12, property manager and exclusive locks; anonymous and Basic profiles | Windows anonymous/Basic and hosted Linux Basic, both TFMs; checked-in JSON |
-| Apache mod_dav 2.4.65 | Digest-pinned official httpd; DAV filesystem + lock DB, Basic, `/dav/` | Retained hosted strict-default runs: 18 passes/two optional unavailable/one target failure. Separately versioned native 2.4.66 with explicit path-plus option: 19 passes/two optional unavailable/zero nonpassing, both TFMs and cleanup; corrected Linux profile awaits execution |
+| Apache mod_dav 2.4.65 | Digest-pinned official httpd; DAV filesystem + lock DB, Basic, `/dav/` | Hosted Linux with explicit path-plus option: 19 passes/two optional unavailable/zero nonpassing, both TFMs and cleanup. Earlier strict-default failures and separate native 2.4.66 comparisons remain retained |
 | nginx 1.28.0 | Digest-pinned official nginx; built-in DAV module only, anonymous, `/` | Hosted Linux, both TFMs: 12 passes, seven unsupported probes, conditional PUT returned 204 instead of required 412; remains a failure |
-| SabreDAV 4.7.0 / PHP 8.3.25 | Digest-pinned PHP/Composer, frozen Composer dependencies, Basic, filesystem, lock/property storage, Sync plugin | Hosted OPTIONS readiness confirmed; retained container runs fail. Native Windows with corrected core 78c9e2a: 20 passes/1 evidenced sync-unavailable/0 nonpassing, both TFMs and confirmed cleanup; not a corrected Linux-container run |
+| SabreDAV 4.7.0 / PHP 8.3.25 | Digest-pinned PHP/Composer, frozen Composer dependencies, Basic, filesystem, lock/property storage, Sync plugin | Corrected hosted Linux: 20 passes/one evidenced sync-unavailable/zero nonpassing, both TFMs and cleanup; preceding property/lock/cleanup failures and native investigations remain retained |
 | Nextcloud 31.0.9 | Digest-pinned official image, disposable SQLite install, dedicated Basic account, `/remote.php/dav/files/{user}/` | Candidate, not run |
 | ownCloud 10.15.0 | Digest-pinned official server image, disposable SQLite, Redis disabled, dedicated Basic account | Candidate, not run |
 | IIS | Operator-owned Windows site, explicit Windows/Basic | Not run; no IIS/Windows-auth fixture available |
@@ -269,14 +299,20 @@ images are digest-pinned. Its image build
 succeeded in hosted run 39505211029. These old disposable fixture versions are
 not deployment advice.
 
+### Historical diagnosis
+
+These notes preserve the sequence that exposed the core fixes now shipped in
+3.2.0/#90. The current passing subsets above supersede the earlier missing
+Linux-container verification, not the historical raw files.
+
 Hosted runs **39505211029**, **39509017232** and **39511504385** are retained as evidence,
-including negative outcomes. Apache's remaining failure is specifically
-PROPPATCH target/property validation at HTTP 207; no raw Apache XML is yet
-available from that exact Linux build. Native Sabre XML identifies a real client target-comparison
+including negative outcomes. Apache's failure at that stage was specifically
+PROPPATCH target/property validation at HTTP 207; raw Apache XML was not yet
+available from that exact Linux build. Native Sabre XML identified a real client target-comparison
 bug (percent-escape hex case), corrected separately in core ce37580 and verified
-with actual PROPPATCH/readback on both TFMs. This is not yet proof of Apache's
+with actual PROPPATCH/readback on both TFMs. That was not proof of Apache's
 exact cause or correction. A separately versioned, publisher-checksum-verified
-**native Apache 2.4.66 Win64** now reproduces the same remaining failure on both
+**native Apache 2.4.66 Win64** then reproduced the failure on both
 frameworks: its exact successful property XML spells the request's `%2B` as a
 literal path `+`, in addition to lowercase percent escapes. This is a reserved
 character alias, not universally equivalent URI syntax, and strict default
@@ -284,7 +320,7 @@ target matching still rejects it. The
 [exact synthetic wire](fixtures/regressions/apache-2.4.66-native) makes the
 additional mismatch concrete; a safe explicit profile decision belongs in core,
 not a blanket decoded-URI comparison or an “unsupported” harness workaround.
-The new fixture-only capture obtains the still-missing exact Linux 2.4.65 wire.
+Later fixture-only captures retain the exact Linux 2.4.65 wire separately.
 With core 6dbc3dc, actual native 2.4.66 retests preserve **18/2/1** under strict
 defaults and verify **19/2/0** with the explicit path-plus profile on each
 framework. All four run trees were deleted over HTTP and absence confirmed.
@@ -303,6 +339,9 @@ were actually verified. Environment companions record exact core revisions and
 DLL/source hashes, since these retests combined this harness with separately
 built corrected core DLLs rather than claiming an integrated repository revision.
 They do not replace the retained failed hosted results.
+
+### Remaining restrictions and unverified configurations
+
 nginx's ignored
 conditional PUT is a server compatibility restriction, not made green by changing
 configuration or expectations. All completed Apache/nginx runs verified cleanup.
@@ -314,10 +353,11 @@ that enforces the required `If-Match`/`If-None-Match` behavior. A preliminary HE
 or ETag comparison cannot close the race before an unconditional PUT, and this
 suite does not retry without the condition or silently skip these assertions.
 
-No passing Apache 2.4.65 Linux-container, nginx or corrected SabreDAV **Linux-container** profile, HTTPS
-or Windows-authentication run is asserted here. The local Docker daemon remains unavailable; hosted evidence does
-not imply local container execution.
-Shared locks, lock-token conditioned writes, partial PUT, large/deep trees,
+No passing nginx conditional-write profile, Nextcloud/ownCloud, HTTPS or
+Windows-authentication run is asserted here. Hosted Linux and local execution
+are distinct evidence; neither establishes a different server/auth configuration.
+Positive independent-server RFC 6578, shared locks, lock-token conditioned
+writes, partial PUT, large/deep trees,
 chunking extensions, ACLs, quotas, CalDAV/CardDAV and full RFC conformance remain
 outside suite v1. Keep a failing result rather than widening “unsupported” to
 hide a real rejection or removing a server from the evidence ledger.

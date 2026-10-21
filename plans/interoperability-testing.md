@@ -37,6 +37,35 @@ packaging/documentation metadata without changing production APIs or runtime
 dependencies. The historical observations below retain their original source
 revisions and dates; they are not new runs against that published package.
 
+### Current status after synchronizing PR #92
+
+The branch now includes `origin/master` at `a5dc243`; release-note validation
+recognizes the prepared, unpublished 3.2.1. Code pushes and PRs validate only;
+publication requires manual dispatch. The current layout is `src`, `tests` and
+`examples`, and production C# remains unchanged from master.
+
+Hosted run [39612916156](https://github.com/saguiitay/WebDAVClient/actions/runs/39612916156)
+passed the synchronized validation. Live run
+[39612921060](https://github.com/saguiitay/WebDAVClient/actions/runs/39612921060)
+confirms passing WsgiDAV Basic, Apache 2.4.65 with explicit path-plus alias, and
+corrected SabreDAV Linux-container subsets on both frameworks. nginx still
+fails conditional PUT; every framework run confirms cleanup. Earlier passing
+run 39514944772 and all negative observations remain in the ledger.
+
+Local Docker is now available. Windows-client reruns at `5aaf542` confirm the
+same four profile outcomes on both frameworks, including Linux Apache/Sabre
+containers. The [local companion](../interoperability/results/local-5aaf542-environment.json)
+separately records initial CRLF-entrypoint startup failures and subsequent
+passing runs after LF normalization. This PR now versions LF checkout rules
+and raw-evidence byte-preservation attributes.
+
+The [prioritized backlog](../interoperability/GAPS.md) is the current follow-up
+plan: P0 deployment guardrail for nginx's ignored write preconditions; P1 real
+RFC 6578 evidence and stronger guarded/lock-conditioned writes; P2 product,
+HTTPS/Windows-auth and scale coverage; P3 optional production diagnostics.
+The package defects exposed by the original investigation shipped in 3.2.0/#90.
+PR #91's durable-sync implementation remains separate.
+
 Run the pinned independent WsgiDAV fixture on both target frameworks:
 
 ```powershell
@@ -45,8 +74,10 @@ interoperability\.venv\Scripts\python.exe -m pip install -r interoperability\fix
 .\interoperability\Run-Fixture.ps1 -Profile wsgidav
 ```
 
-`.\interoperability\Run-Fixture.ps1 -Profile apache` (and `nginx`, `sabredav`,
-`nextcloud`, `owncloud`) selects isolated container fixtures. The dedicated
+`.\interoperability\Run-Fixture.ps1 -Profile apache -ApachePathPlusAlias`
+selects the configured Apache container fixture. Select `nginx`, `sabredav`,
+`nextcloud` or `owncloud` without the Apache-only switch for other isolated
+container fixtures. The dedicated
 workflow supports explicit `workflow_dispatch` for one fixture or the
 `run-interoperability` PR label for independent WsgiDAV/Apache/nginx/SabreDAV jobs.
 Its unprivileged, read-only `pull_request: labeled` path uses no PR secrets;
@@ -65,10 +96,10 @@ unsupported methods.
 
 The [versioned matrix](../interoperability/results/compatibility-matrix.json)
 and per-run schema-v1 JSON files are evidence, not a promise of universal server
-support. Docker CLI and registry inspection are available, but the local Linux
-daemon is unavailable; **no container-server green results are claimed**.
-Nextcloud/ownCloud execution, corrected Sabre Linux-container verification and
-IIS/Windows authentication remain explicit evidence gaps. General production
+support. At the initial investigation, the local Linux daemon was unavailable;
+later hosted runs established the positive container subsets listed above.
+Nextcloud/ownCloud execution, HTTPS and IIS/Windows authentication remain
+explicit evidence gaps. General production
 diagnostics were deferred; normal result JSON remains sanitized. The explicitly
 scoped synthetic fixture-only body capture is described below.
 
@@ -95,7 +126,7 @@ An independent native SabreDAV 4.7.0/PHP 8.3.25 fixture produced exact synthetic
 PROPPATCH XML: lowercase percent escapes identify the same target bytes as the
 client's uppercase escapes. The protocol track corrected its target comparison
 in ce37580; actual retests on both TFMs confirm property/readback now passes.
-No Apache raw XML is yet available, so the same cause there remains unproven.
+At that stage Apache raw XML was unavailable, so its cause remained unproven.
 
 Sabre's Sync plugin is installed but its filesystem backend is not
 `ISyncCollection`. Empty report discovery plus actual DAV:supported-report and
@@ -131,8 +162,8 @@ unavailable/one target-confirmation failure on both TFMs, with clean run trees.
 This reserved-character alias is not generic RFC URI equivalence; the protocol
 track owns any explicit profile-only compatibility option. Exact no-header,
 no-lock synthetic XML and version provenance are checked in separately from
-hosted Apache 2.4.65. The new hosted fixture probe still captures the latter's
-exact wire; no native result is relabeled as Linux/container evidence.
+hosted Apache 2.4.65. Later hosted fixture probes capture the latter's exact
+wire; no native result is relabeled as Linux/container evidence.
 
 The harness now exposes the protocol track's explicit default-off policy as
 `Run-Fixture.ps1 -Profile apache -ApachePathPlusAlias` (and the same
@@ -150,5 +181,5 @@ while fresh strict-default runs remain 18/two/one. All four trees have successfu
 HTTP cleanup/absence checks. Both portable native servers are stopped, ports
 closed, and only their generated fixture data removed. Their raw fixtures and
 versioned positive/negative JSON remain durable. Corrected hosted Apache
-2.4.65/Sabre Linux execution awaits the final explicit opt-in rerun;
-nginx's conditional-write deviation remains a real failure.
+2.4.65/Sabre Linux execution subsequently passed in runs 39514944772 and
+39612921060; nginx's conditional-write deviation remains a real failure.

@@ -69,6 +69,7 @@ do not contact a WebDAV server:
 dotnet test tests\WebDAVClient.InteropTests\WebDAVClient.InteropTests.csproj -c Release
 .\interoperability\Test-FixtureReadiness.ps1
 .\interoperability\Test-SyntheticPropertyWire.ps1
+.\interoperability\Test-CompatibilityWrapper.ps1
 ```
 
 The [interoperability guide](../interoperability/README.md) covers explicit
@@ -76,6 +77,11 @@ mutation opt-in, disposable fixtures, bounded diagnostics and historical evidenc
 Live-server runs are not part of ordinary PR validation and do not publish
 packages. Never promote offline results or historical source runs to
 certification of a current package/server combination.
+
+The [prioritized interoperability gaps](../interoperability/GAPS.md) distinguish
+shipped fixes, server restrictions and unverified deployments. Use their
+acceptance criteria when extending the suite rather than broadening support
+claims from offline tests.
 
 ## Coverage and publishing
 
