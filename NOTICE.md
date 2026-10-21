@@ -50,14 +50,16 @@ a combined MIT/Apache file was added without a component-level scope explanation
 
 That file, including its `Copyright (c) 2021 Microsoft` notice and Apache 2.0
 text, is preserved unchanged in
-[`licenses/HISTORICAL-LICENSE.md`](licenses/HISTORICAL-LICENSE.md).
+[Git history](https://github.com/saguiitay/WebDAVClient/blob/f686e530f2bfea3d908686cc722e0048497d733e/licenses/HISTORICAL-LICENSE.md).
 The project owner has confirmed that the project is unrelated to Microsoft;
 that historical notice is not a current attribution of project ownership.
 The archived combined text does not designate the current distribution as a
 whole-package MIT/Apache dual-license choice.
 
-The 3.0.1 package declares `MIT` in its NuGet license metadata and includes
-`LICENSE.md`, this notice, and the historical record. This clarification does not
+The 3.0.1 package declared `MIT` in its NuGet license metadata and included
+`LICENSE.md`, this notice, and the historical record. Starting with 3.1.1, packages
+include the current `LICENSE.md` and this provenance notice; the superseded
+combined text is retained in Git history instead. This cleanup does not
 change previously published packages or withdraw permissions already granted
 with earlier distributions. Preserve the
 supplied license and attribution notices when redistributing.

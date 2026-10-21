@@ -122,6 +122,9 @@ certification. Neither API automatically retries mutations.
 
 ## Run the examples
 
+Library source is under `src`, automated tests under `tests`, and both runnable
+sample applications under `examples`.
+
 ```pwsh
 git clone https://github.com/saguiitay/WebDAVClient.git
 Set-Location WebDAVClient

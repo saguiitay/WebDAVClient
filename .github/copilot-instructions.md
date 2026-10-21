@@ -10,31 +10,32 @@ Targets `net8.0` and `net10.0` (multi-targeted, both LTS). The CI workflow (`.gi
 dotnet restore
 dotnet build -c Release --no-restore          # builds both TFMs
 dotnet test -c Release --no-build             # runs both test TFMs after building
-dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -p:CollectCoverage=true
+dotnet test tests\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -p:CollectCoverage=true
 dotnet format style WebDAVClient.sln --diagnostics IDE0011 --severity error --no-restore --verify-no-changes
-dotnet build WebDAVClient\WebDAVClient.csproj -c Release-Unsigned # library-only configuration
+dotnet build src\WebDAVClient\WebDAVClient.csproj -c Release-Unsigned # library-only configuration
 dotnet pack  -c Release -o Release/nuget      # produces .nupkg + .snupkg
 ```
 
-`WebDAVClient.UnitTests` is an MSTest project included in `WebDAVClient.sln`. Solution-level `dotnet test` runs its tests for both target frameworks. For focused regressions use `dotnet test WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release --no-restore --filter "FullyQualifiedName~TestClassName"`.
+`WebDAVClient.UnitTests` is an MSTest project included in `WebDAVClient.sln`. Solution-level `dotnet test` runs its tests for both target frameworks. For focused regressions use `dotnet test tests\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release --no-restore --filter "FullyQualifiedName~TestClassName"`.
 
-Coverage uses private `coverlet.msbuild` tooling. `CollectCoverage=true` enforces at least 98% line and 95% branch coverage separately for each production module (library and sample), on each framework. Reports go to `WebDAVClient.UnitTests\TestResults\coverage\<framework>\`; CI uploads them even after test/threshold failures. Do not add production-code exclusions to satisfy the gate. Release builds use portable PDBs for cross-platform instrumentation.
+Coverage uses private `coverlet.msbuild` tooling. `CollectCoverage=true` enforces at least 98% line and 95% branch coverage separately for each production module (library and sample), on each framework. Reports go to `tests\WebDAVClient.UnitTests\TestResults\coverage\<framework>\`; CI uploads them even after test/threshold failures. Do not add production-code exclusions to satisfy the gate. Release builds use portable PDBs for cross-platform instrumentation.
 
-`TestWebDAVClient/Program.cs` is a nonpackable smoke-test executable; its offline CLI paths and bounded loopback workflows also have automated coverage. Select a target explicitly: `dotnet run --project TestWebDAVClient -f net10.0 -- --help`. Help and `--validate` are offline. Configure server/base path via arguments or environment; reads are the default and only `--mutate` enables run-owned changes with bounded cleanup. Authentication is anonymous unless explicitly configured.
+`examples/TestWebDAVClient/Program.cs` is a nonpackable smoke-test executable; its offline CLI paths and bounded loopback workflows also have automated coverage. Select a target explicitly: `dotnet run --project examples\TestWebDAVClient -f net10.0 -- --help`. Help and `--validate` are offline. Configure server/base path via arguments or environment; reads are the default and only `--mutate` enables run-owned changes with bounded cleanup. Authentication is anonymous unless explicitly configured.
 
 Use `--modern` to exercise `DavClient`. Legacy mutation samples use full PUT by
 default; nonstandard partial PUT requires the additional `--partial-put` opt-in.
 The test suite compiles marked complete examples in the README and docs on both frameworks
 using a private test-only Roslyn dependency; the library still has no NuGet dependencies.
 
-`GeneratePackageOnBuild=true` is set on the library, so every Release build produces a `.nupkg` in `WebDAVClient/bin/Release`. Don't add a separate pack step in local workflows unless you need a custom output path.
+`GeneratePackageOnBuild=true` is set on the library, so every Release build produces a `.nupkg` in `src/WebDAVClient/bin/Release`. Don't add a separate pack step in local workflows unless you need a custom output path.
 
 `GenerateDocumentationFile=true` ships XML beside both framework assemblies.
 Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
 Version 3.0.0 was published on October 20, 2026 and includes the v3 API.
-Current source version 3.1.0 adds validated resumable file downloads and runnable
-examples in examples/WebDAVClient.Examples. The short README links to docs/README.md;
+Current source version 3.1.1 organizes the library under src/WebDAVClient, tests
+under tests/WebDAVClient.UnitTests and both runnable projects under examples.
+The short README links to docs/README.md;
 docs/reference.md retains detailed modern/legacy contracts and release notes.
 Every example command has a matching guide. Keep server compatibility evidence
 separate from protocol implementation; do not promote vendor documentation to
@@ -62,8 +63,8 @@ local build to use its published APIs.
 - **`Extensions.CollectionSync`** — one sync-level 1 REPORT batch, not durable sync.
   Apply changes durably before committing tokens; a 404 member is a deletion only
   in the report profile. Server/desktop/DI/managed-lease packages remain future work.
-- **`IClient` / `Client`** (`WebDAVClient/Client.cs`) — the public surface. `Client` implements `IDisposable`; it owns an `IHttpClientWrapper` and disposes it only when it created it itself (`m_shouldDispose`). Callers passing in their own wrapper retain ownership.
-- **`IHttpClientWrapper` / `HttpClientWrapper`** (`WebDAVClient/HttpClient/`) — thin abstraction over `System.Net.Http.HttpClient` so the client is testable and so a single `HttpClient` can be reused (avoids the well-known socket-exhaustion leak). Custom WebDAV verbs (`PROPFIND`, `MKCOL`, `MOVE`, `COPY`) are constructed as `static readonly HttpMethod` instances on `Client`.
+- **`IClient` / `Client`** (`src/WebDAVClient/Client.cs`) — the public surface. `Client` implements `IDisposable`; it owns an `IHttpClientWrapper` and disposes it only when it created it itself (`m_shouldDispose`). Callers passing in their own wrapper retain ownership.
+- **`IHttpClientWrapper` / `HttpClientWrapper`** (`src/WebDAVClient/HttpClient/`) — thin abstraction over `System.Net.Http.HttpClient` so the client is testable and so a single `HttpClient` can be reused (avoids the well-known socket-exhaustion leak). Custom WebDAV verbs (`PROPFIND`, `MKCOL`, `MOVE`, `COPY`) are constructed as `static readonly HttpMethod` instances on `Client`.
 - **`Model.Item`** — strongly-typed representation of a WebDAV resource returned by `PROPFIND`. Folders have a trailing `/` in `Href`; files do not (this distinction is load-bearing — see release notes 1.0.15 and the `IsCollection` checks in `README.md` examples).
 - **`Helpers/ResponseParser`** — parses multistatus XML asynchronously with whitespace-ignoring settings; tolerates missing/null fields (e.g. `CreationDate`). `CancellationReadStream` binds network reads to caller cancellation and `Client.ResponseBodyTimeout` (100 seconds by default). Keep synchronous parsing limited to buffered property values and internal compatibility entry points.
 - **`Helpers/WebDAVException` & `WebDAVConflictException`** — all server-side failures surface as `WebDAVException` (HTTP code accessible via `GetHttpCode()`); 409 responses surface as the more specific `WebDAVConflictException`. Preserve this mapping when adding new operations.
@@ -82,4 +83,4 @@ local build to use its published APIs.
 - **Disposal**: dispose requests and responses after use. Successful `Download`/`DownloadPartial` transfers response ownership to `ResponseOwnedStream`; do not dispose that response before returning the stream, but dispose it on acquisition/validation failure. Upload requests own and dispose their input streams; callers still need a using scope for pre-request failures.
 - **Recovery**: no automatic retries. DELETE/MOVE/COPY HTTP 207 remains a failure and retains member outcomes in `WebDAVException.ResourceStatuses`; malformed recovery XML is explicit through `InnerException`. Reconcile ambiguous/partial mutations before replaying and reopen upload content for every attempt.
 - **Versioning**: `Version`, `AssemblyVersion`, `FileVersion`, and `PackageReleaseNotes` in `WebDAVClient.csproj` are bumped together; `docs/reference.md`'s "Release Notes" section is the human-readable changelog and should be updated for any user-visible change.
-- **`ROADMAP.md`** separates current status from historical proposals (direct identity credentials, builder, retry/logging and other future APIs). LOCK/UNLOCK and PROPPATCH are implemented, not planned. Use README/IClient/XML docs for current contracts; archival signatures and dates are not API or release commitments.
+- **`plans/`** separates design proposals (direct identity credentials, builder, retry/logging and other future APIs) from user documentation under `docs/`. LOCK/UNLOCK and PROPPATCH are implemented, not planned. Use README/IClient/XML docs for current contracts; archival signatures and dates are not API or release commitments.
