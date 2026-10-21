@@ -75,10 +75,22 @@ pack step unless you need another output location. The README is embedded.
 Changing the published NuGet copy requires a new package version. Keep package,
 assembly/file versions, release notes and documentation synchronized.
 
-PRs targeting `master` run Linux validation without publishing. Successful
-code pushes to `master` and manual publication dispatches publish through the
-existing workflow. Do not use a publish dispatch as a validation-only rehearsal.
-Duplicate versions fail rather than masquerading as new releases.
+PRs targeting `master` and code pushes to `master` run Linux validation without
+publishing. Push code freely without bumping the package version.
+
+To publish, prepare a new package version and matching changelog entry, push the
+commit, then open **Actions > Validate and publish > Run workflow** and select
+the branch containing that commit. Equivalently, run:
+
+```pwsh
+gh workflow run publish.yml --ref master
+```
+
+Only this manual dispatch publishes to NuGet, after the same build, tests and
+coverage gates pass. It also creates the GitHub release. Do not use a manual
+dispatch as a validation-only rehearsal. Duplicate versions still fail rather
+than masquerading as new releases. Validation runs have separate concurrency
+groups, so a push cannot cancel an in-progress publication.
 
 ## GitHub releases
 
@@ -92,7 +104,7 @@ CI validates that the package version has exactly one nonempty changelog entry
 on PRs and before publishing. After a successful NuGet push, a separate job
 creates a `v<version>` tag at that exact commit and a GitHub release containing
 only that version's notes and its NuGet link. Only this post-publication job
-has repository write permission; PRs never create tags or releases.
+has repository write permission; pushes and PRs never create tags or releases.
 
 If GitHub release creation fails after NuGet publication, rerun only the failed
 release job. Do not republish the immutable NuGet version. An existing tag must

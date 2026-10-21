@@ -8,6 +8,11 @@ Historical GitHub releases from 2.3.0 through 3.2.0 were backfilled using the
 source commit embedded in each published NuGet package. Earlier packages remain
 available on NuGet but lack that metadata; no source tags were guessed for them.
 
+## [Unreleased]
+
+- Push code without publishing a NuGet package. Publication and GitHub release
+  creation now require a manual workflow run; pushes and PRs only validate.
+
 ## [3.2.0] - 2026-10-21
 
 - Manage WebDAV locks with `DavLockLease`: explicitly renew or release a lease

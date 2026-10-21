@@ -21,8 +21,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.event_name == 'pull_request' && format('validate-pr-{0}', github.event.pull_request.number) || 'publish-nuget' }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.event_name == 'workflow_dispatch' && 'publish-nuget' || github.event_name == 'pull_request' && format('validate-pr-{0}', github.event.pull_request.number) || format('validate-push-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 jobs:
   publish:
@@ -66,7 +66,7 @@ jobs:
           if-no-files-found: error
 
       - name: Pack
-        if: ${{ success() && github.event_name != 'pull_request' }}
+        if: ${{ success() && github.event_name == 'workflow_dispatch' }}
         run: dotnet pack src/WebDAVClient/WebDAVClient.csproj -c Release --no-build -o ${{ github.workspace }}/Release/nuget
 
       - name: Validate release notes
@@ -80,7 +80,7 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Push to NuGet
-        if: ${{ success() && github.event_name != 'pull_request' }}
+        if: ${{ success() && github.event_name == 'workflow_dispatch' }}
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
@@ -91,7 +91,7 @@ jobs:
 
   release:
     needs: publish
-    if: ${{ github.event_name != 'pull_request' }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

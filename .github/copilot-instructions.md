@@ -4,7 +4,7 @@ Strongly-typed, async WebDAV client library for .NET. Published as the [`WebDAVC
 
 ## Build, test, run
 
-Targets `net8.0` and `net10.0` (multi-targeted, both LTS). The CI workflow (`.github/workflows/publish.yml`) installs both SDKs and tests both targets before any publication. PR runs never publish; manual publication uses the same workflow and concurrency group. Duplicate package versions fail instead of being reported as a new release.
+Targets `net8.0` and `net10.0` (multi-targeted, both LTS). The CI workflow (`.github/workflows/publish.yml`) installs both SDKs and tests both targets before any publication. Pushes and PRs validate only; NuGet publication and GitHub releases require a manual workflow dispatch. Manual publications share a concurrency group separate from validation runs. Duplicate package versions fail instead of being reported as a new release.
 
 ```pwsh
 dotnet restore
