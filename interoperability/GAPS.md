@@ -81,22 +81,27 @@ the durable-sync work in #91. Keep #91's implementation out of this PR.
 
 ### P1: Strengthen guarded writes and lock-conditioned mutations
 
-**Type:** coverage gap around existing APIs. The current
-[`conditional-put` probe](../tests/WebDAVClient.InteropTests/CompatibilitySuite.cs)
-sends `If-None-Match: *`, not stale `If-Match`. It then checks stored bytes, but
-the rejected upload uses the same bytes, so an ignored guard could not be
-detected from content alone. Historical summaries calling this a stale
+**Type:** coverage gap around existing APIs, addressed by the suite **1.1**
+[guarded-mutation probes](../tests/WebDAVClient.InteropTests/CompatibilitySuite.cs).
+The retained suite 1.0 baseline above only sent `If-None-Match: *` with the same
+bytes as the stored resource. Historical summaries calling that a stale
 `If-Match` test are not evidence of that test.
 
-**Action:** send a distinct rejected payload; test matching and stale strong
-ETags, create-if-absent, valid lock-token-conditioned PUT/DELETE/MOVE, wrong or
-expired tokens, and composed DAV `If` conditions. Existing LOCK evidence covers
-acquisition, conflicting DELETE=423, refresh and UNLOCK, not that full matrix.
+**Implemented:** distinct rejected payloads; create-if-absent; matching/stale
+strong ETags; valid/wrong-token PUT, DELETE and tagged MOVE; AND/OR DAV `If`
+conditions; released-token rejection; and byte/validator integrity after
+rejected writes. Separate run-owned files prevent an unsafe server's overwrite
+from contaminating unrelated baseline operations. Missing strong validators or
+unconfirmed state block dependent work instead of triggering a repair/replay.
 
 **Done when:** both frameworks prove correct success/rejection statuses and
 byte/validator integrity after every rejected write on supporting servers.
 Unsupported features must stay distinct from violated advertised semantics.
 Add production changes only if a concrete client defect is reproduced.
+
+**Still separate:** actual timeout-expiry behavior, shared locks and multiple
+source/destination locks are not established by a released-token test. New
+live evidence must identify suite 1.1; the suite 1.0 records above are unchanged.
 
 ### P2: Verify product endpoints and authentication boundaries
 

@@ -7,7 +7,7 @@
   "required": ["schemaVersion", "suiteVersion", "startedUtc", "runtime", "operatingSystem", "architecture", "server", "serverVersion", "serverVersionSource", "authentication", "transport", "loopback", "sourceRevisionScope", "runTree", "advertisedDav", "advertisedMethods", "advertisedReports", "observations", "succeeded"],
   "properties": {
     "schemaVersion": { "const": 1 },
-    "suiteVersion": { "const": "1.0" },
+    "suiteVersion": { "enum": ["1.0", "1.1"] },
     "startedUtc": { "type": "string", "format": "date-time" },
     "runtime": { "type": "string" },
     "operatingSystem": { "type": "string" },
