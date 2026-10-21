@@ -24,7 +24,7 @@ Coverage uses private `coverlet.msbuild` tooling. `CollectCoverage=true` enforce
 
 Use `--modern` to exercise `DavClient`. Legacy mutation samples use full PUT by
 default; nonstandard partial PUT requires the additional `--partial-put` opt-in.
-The test suite compiles the README's marked complete examples on both frameworks
+The test suite compiles marked complete examples in the README and docs on both frameworks
 using a private test-only Roslyn dependency; the library still has no NuGet dependencies.
 
 `GeneratePackageOnBuild=true` is set on the library, so every Release build produces a `.nupkg` in `WebDAVClient/bin/Release`. Don't add a separate pack step in local workflows unless you need a custom output path.
@@ -32,8 +32,16 @@ using a private test-only Roslyn dependency; the library still has no NuGet depe
 `GenerateDocumentationFile=true` ships XML beside both framework assemblies.
 Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
-Version 2.8.0 is published; current 3.0.0 is upcoming and retains those fixes.
-Do not imply that the v3 source has been published.
+Version 3.0.0 was published on October 20, 2026 and includes the v3 API.
+Current source version 3.0.4 adds Nextcloud/ownCloud integration guides and runnable
+examples in examples/WebDAVClient.Examples. The short README links to docs/README.md;
+docs/reference.md retains detailed modern/legacy contracts and release notes.
+Every example command has a matching guide. Keep server compatibility evidence
+separate from protocol implementation; do not promote vendor documentation to
+tested-compatibility claims.
+The README is embedded in the NuGet package; correcting its published copy
+requires a new package version. Do not describe 3.0.0 as upcoming or require a
+local build to use its published APIs.
 
 ## Architecture
 
@@ -70,5 +78,5 @@ Do not imply that the v3 source has been published.
 - **User-Agent**: defaults to `WebDAVClient/<assembly-version>` via `s_defaultUserAgent`; `UserAgent` / `UserAgentVersion` properties override it. Keep the assembly-version fallback intact.
 - **Disposal**: dispose requests and responses after use. Successful `Download`/`DownloadPartial` transfers response ownership to `ResponseOwnedStream`; do not dispose that response before returning the stream, but dispose it on acquisition/validation failure. Upload requests own and dispose their input streams; callers still need a using scope for pre-request failures.
 - **Recovery**: no automatic retries. DELETE/MOVE/COPY HTTP 207 remains a failure and retains member outcomes in `WebDAVException.ResourceStatuses`; malformed recovery XML is explicit through `InnerException`. Reconcile ambiguous/partial mutations before replaying and reopen upload content for every attempt.
-- **Versioning**: `Version`, `AssemblyVersion`, `FileVersion`, and `PackageReleaseNotes` in `WebDAVClient.csproj` are bumped together; `README.md`'s "Release Notes" section is the human-readable changelog and should be updated for any user-visible change.
+- **Versioning**: `Version`, `AssemblyVersion`, `FileVersion`, and `PackageReleaseNotes` in `WebDAVClient.csproj` are bumped together; `docs/reference.md`'s "Release Notes" section is the human-readable changelog and should be updated for any user-visible change.
 - **`ROADMAP.md`** separates current status from historical proposals (direct identity credentials, builder, retry/logging and other future APIs). LOCK/UNLOCK and PROPPATCH are implemented, not planned. Use README/IClient/XML docs for current contracts; archival signatures and dates are not API or release commitments.
