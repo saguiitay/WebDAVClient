@@ -417,8 +417,9 @@ basic transfer smoke result.
   - Reduced per-resource LINQ allocations with single-pass response projection,
     direct XML-context traversal, ordered property iteration and allocation-free
     successful completion checks. Preserved legacy parsing and immutable results.
-  - Added the public REPORT seam and a single-batch sync-level 1 profile. No
-    automatic retry, lease renewal, durable synchronization or conformance claim.
+  - Added the public REPORT seam and a single-batch sync-level 1 profile. This
+    low-level seam does not persist checkpoints or automatically retry, and
+    does not claim full RFC conformance.
 
 + **2.8.0** _(released)_ Security, correctness and reliability improvements:
   - PROPPATCH outcomes and descriptions come only from direct `propstat` children; nested property values cannot overwrite success or failure.
