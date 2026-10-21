@@ -160,7 +160,9 @@ See the [documentation index](https://github.com/saguiitay/WebDAVClient/blob/mas
 ## Contribute and license
 
 See [development and testing](https://github.com/saguiitay/WebDAVClient/blob/master/docs/development.md)
-and [release notes](https://github.com/saguiitay/WebDAVClient/blob/master/docs/reference.md#release-notes).
+and [GitHub releases](https://github.com/saguiitay/WebDAVClient/releases)
+for short changelogs and versioned NuGet links. Detailed historical notes remain
+in the [API reference](https://github.com/saguiitay/WebDAVClient/blob/master/docs/reference.md#release-notes).
 WebDAVClient is distributed under [MIT](https://github.com/saguiitay/WebDAVClient/blob/master/LICENSE.md).
 The [provenance notice](https://github.com/saguiitay/WebDAVClient/blob/master/NOTICE.md)
 retains attribution for the original [kvdb/WebDAVClient](https://github.com/kvdb/WebDAVClient).

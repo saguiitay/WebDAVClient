@@ -27,6 +27,8 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release-notes.outputs.version }}
 
     steps:
       - uses: actions/checkout@v5
@@ -67,6 +69,16 @@ jobs:
         if: ${{ success() && github.event_name != 'pull_request' }}
         run: dotnet pack src/WebDAVClient/WebDAVClient.csproj -c Release --no-build -o ${{ github.workspace }}/Release/nuget
 
+      - name: Validate release notes
+        id: release-notes
+        shell: pwsh
+        run: |
+          & .\scripts\Test-ReleaseNotes.ps1
+          [xml]$project = Get-Content src/WebDAVClient/WebDAVClient.csproj
+          $version = $project.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
+          & .\scripts\Get-ReleaseNotes.ps1 -Version $version
+          "version=$version" >> $env:GITHUB_OUTPUT
+
       - name: Push to NuGet
         if: ${{ success() && github.event_name != 'pull_request' }}
         env:
@@ -76,3 +88,44 @@ jobs:
             dotnet nuget push -s https://api.nuget.org/v3/index.json -k "$NUGET_API_KEY" "$file"
             echo "Published $(basename "$file")" >> "$GITHUB_STEP_SUMMARY"
           done
+
+  release:
+    needs: publish
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Tag published version and create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.publish.outputs.version }}
+        run: |
+          $version = $env:VERSION
+          $tag = "v$version"
+          $existing = git tag --list $tag
+          if ($existing)
+          {
+              $target = git rev-parse "$tag^{commit}"
+              if ($LASTEXITCODE -ne 0 -or $target -ne $env:GITHUB_SHA)
+              {
+                  throw "Tag $tag does not point to the published commit."
+              }
+          }
+          $notes = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          & .\scripts\Get-ReleaseNotes.ps1 -Version $version | Set-Content $notes
+          $options = @()
+          if ($version.Contains('-'))
+          {
+              $options += '--prerelease'
+          }
+          gh release create $tag --target $env:GITHUB_SHA --title "WebDAVClient $version" --notes-file $notes @options
+          if ($LASTEXITCODE -ne 0)
+          {
+              throw "GitHub release creation failed. The NuGet package is already published; repair the release without republishing it."
+          }

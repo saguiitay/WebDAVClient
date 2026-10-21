@@ -79,3 +79,27 @@ PRs targeting `master` run Linux validation without publishing. Successful
 code pushes to `master` and manual publication dispatches publish through the
 existing workflow. Do not use a publish dispatch as a validation-only rehearsal.
 Duplicate versions fail rather than masquerading as new releases.
+
+## GitHub releases
+
+For each public version, add a short entry headed `## [x.y.z] - YYYY-MM-DD` to
+the root [CHANGELOG.md](../CHANGELOG.md). Lead with what users can now do,
+important fixes, and any breaking behavior or migration requirement. Keep old
+implementation details in the [historical reference](reference.md#release-notes),
+not in the new version's summary.
+
+CI validates that the package version has exactly one nonempty changelog entry
+on PRs and before publishing. After a successful NuGet push, a separate job
+creates a `v<version>` tag at that exact commit and a GitHub release containing
+only that version's notes and its NuGet link. Only this post-publication job
+has repository write permission; PRs never create tags or releases.
+
+If GitHub release creation fails after NuGet publication, rerun only the failed
+release job. Do not republish the immutable NuGet version. An existing tag must
+point to the original published commit; never retarget it to a later fix.
+
+Preview the generated notes without publishing:
+
+```pwsh
+.\scripts\Get-ReleaseNotes.ps1 -Version 3.2.0
+```
