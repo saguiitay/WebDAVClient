@@ -21,7 +21,7 @@ and its NuGet license metadata declares `MIT`.
 CC0 licensing requirement. The former combined MIT/Apache text is
 retained as a [historical record](licenses/HISTORICAL-LICENSE.md), not a
 whole-package dual-license declaration. All three files are included in the
-upcoming 3.0.0 NuGet package; previously published packages are unchanged.
+3.0.1 NuGet package; previously published packages are unchanged.
 
 ## Quickstart
 
@@ -29,17 +29,11 @@ upcoming 3.0.0 NuGet package; previously published packages are unchanged.
 dotnet add package WebDAVClient
 ```
 
-Current source targets **.NET 8 and .NET 10**. **2.8.0 is published**;
-**3.0.0 is the upcoming source version** and retains those fixes. The install
-command selects the published package; 2.8.0 does not contain `DavClient`.
-Until 3.0.0 is published, run the v3 examples using a project reference to this
-checkout, or build and install the local package:
-
-```pwsh
-dotnet build C:\Github\WebDAVClient\WebDAVClient\WebDAVClient.csproj -c Release
-# Run in your consumer project; adjust the checkout path as needed.
-dotnet add package WebDAVClient --version 3.0.0 --source C:\Github\WebDAVClient\WebDAVClient\bin\Release
-```
+WebDAVClient targets **.NET 8 and .NET 10**. **3.0.0 was released on
+October 20, 2026** and includes `DavClient` and the v3 APIs used below.
+Install from NuGet to run these examples; no local library build or project
+reference is required. Version 3.0.1 corrects the packaged documentation and
+clarifies MIT licensing without changing the public API.
 
 ### Version 3: resource-oriented API
 
@@ -105,7 +99,7 @@ if (count == 0)
 `Client` and `IClient` remain available without renamed members or changed
 upload ownership. They use compatibility projections over shared XML reading.
 `DavClient` is a separate API: migration is explicit, not a constructor rename.
-The assembly version is now `3.0.0.0`; rebuild consumers when upgrading.
+The 3.0.1 assembly version is `3.0.1.0`; rebuild consumers when upgrading.
 
 | Concern | Existing API | Modern API |
 |---|---|---|
@@ -364,7 +358,14 @@ basic transfer smoke result.
 
 ## Release Notes
 
-+ **3.0.0** _(upcoming)_ Protocol-first API redesign:
++ **3.0.1** Documentation and licensing patch:
+  - Corrected the packaged README to identify 3.0.0 as released on October 20,
+    2026 and use the published NuGet package for v3 examples, without a local build.
+  - Declared MIT as the single package license with the owner's authorization,
+    retaining historical upstream attribution and the previous license record.
+  - No public API or runtime behavior changes.
+
++ **3.0.0** _(released 2026-10-20)_ Protocol-first API redesign:
   - Reject property-only DELETE/MOVE/COPY multistatus responses rather than
     treating property success as confirmation of a namespace mutation.
   - Reject nested XML in LOCK depth, timeout and token/root href values, including
@@ -375,8 +376,6 @@ basic transfer smoke result.
   - Added a runnable `--modern` sample and automated compilation of complete
     README examples. Legacy partial PUT now requires `--partial-put`; ordinary
     mutation smoke runs use standard full PUT.
-  - Declared MIT as the single package license with the owner's authorization,
-    retaining historical upstream attribution and the previous license record.
   - Added `DavClient` with an immutable endpoint, explicit escaped `DavPath`
     references, resource-oriented operations and request-local options.
   - Added faithful XML/status/error results, typed property codecs, HTTP/DAV

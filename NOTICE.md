@@ -56,7 +56,7 @@ that historical notice is not a current attribution of project ownership.
 The archived combined text does not designate the current distribution as a
 whole-package MIT/Apache dual-license choice.
 
-The upcoming 3.0.0 package declares `MIT` in its NuGet license metadata and includes
+The 3.0.1 package declares `MIT` in its NuGet license metadata and includes
 `LICENSE.md`, this notice, and the historical record. This clarification does not
 change previously published packages or withdraw permissions already granted
 with earlier distributions. Preserve the
