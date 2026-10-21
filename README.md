@@ -255,8 +255,43 @@ truncation. It does not persist checkpoints, follow continuations automatically,
 infer stable IDs, or resolve conflicts. Apply changes durably before committing
 the returned token; invalid-token errors require explicit reconciliation.
 
+### Durable file synchronization
+
+<!-- compile-example: modern-file-sync -->
+```csharp
+using System;
+using System.IO;
+using System.Threading;
+using WebDAVClient;
+using WebDAVClient.Sync;
+
+string mirror = Path.GetFullPath("mirror");
+string state = Path.GetFullPath("mirror-state");
+Directory.CreateDirectory(mirror);
+Directory.CreateDirectory(state);
+
+using var client = new DavClient(new Uri("https://dav.example.com/dav/"));
+var sync = new FileSyncSession(client, DavPath.Root, mirror, state);
+using var cancellation = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+await sync.PullAsync(cancellation.Token);
+```
+
+`FileSyncSession` durably applies one RFC 6578 batch of immediate files before
+advancing its checkpoint. The existing directories must be disjoint, caller-owned,
+non-link roots on the same filesystem. The session retains, but does not own,
+the client. Its journal supports process-restart recovery, not guaranteed
+power-loss durability; replay can apply some files before the entire batch commits.
+
+Local edits affecting incoming changes raise `FileSyncConflictException`.
+Subcollections, denied or ambiguous members, truncated reports and invalid tokens
+are explicit failures, not reasons to delete files or reset synchronization.
+Outgoing uploads and deletes require explicit calls and validators; inspect their
+results. Serialize outgoing operations and prevent concurrent local edits.
+Recursive synchronization, rename inference and an automatic outbound queue are
+not implemented. See the [synchronization contract](plans/File-synchronization.md).
+
 The v3 package is still lightweight: no new NuGet dependencies or separate
-protocol package. Server hosting, DI adapters, managed lock renewal, durable sync,
+protocol package. Server hosting, DI adapters, managed lock renewal,
 desktop providers, SEARCH/ACL/DeltaV and other completeness-plan milestones remain
 separate work. Unit/wire-contract coverage is not independent-server interoperability
 evidence or a full RFC conformance certification.
@@ -341,7 +376,7 @@ The MSTest suite runs on both .NET 8 and .NET 10 without an external WebDAV
 server. It covers protocol outcomes, XML structure, cancellation and deadlines,
 stream ownership, authentication, configuration changes, and sample CLI behavior.
 Bounded loopback tests also exercise actual HTTP transport and authentication.
-The eight complete C# examples marked `compile-example` in this README are
+The nine complete C# examples marked `compile-example` in this README are
 compiled by the test suite against each target framework. Other C# blocks are
 contextual fragments that require the surrounding client/application variables.
 
@@ -389,6 +424,8 @@ basic transfer smoke result.
 + **3.0.0** _(upcoming)_ Protocol-first API redesign:
   - Added durable resumable file downloads with strong validators, verified
     checkpoints, bounded streaming and atomic no-overwrite completion.
+  - Added explicit durable immediate-file synchronization with journaled
+    recovery, conflict detection and conditional outgoing operations.
   - Reject property-only DELETE/MOVE/COPY multistatus responses rather than
     treating property success as confirmation of a namespace mutation.
   - Reject nested XML in LOCK depth, timeout and token/root href values, including
