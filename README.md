@@ -2,7 +2,14 @@
 
 ## Overview
 
-WebDAV Client for .Net Core, strongly typed, async and open-sourced, implemented in C#.
+WebDAVClient lets C#/.NET applications browse WebDAV storage and transfer files
+without hand-writing DAV requests or parsing XML. Upload, download, copy, move
+and delete remote files with strongly typed asynchronous APIs, streaming and
+cancellation support.
+
+Nextcloud and ownCloud compatibility has not been verified by this project.
+Validate the operations your application needs against your server version,
+authentication and configuration before deployment.
 
 WebDAVClient is based originally on <https://github.com/kvdb/WebDAVClient>. I've added Async support (instead of Callback), as well strong-types responses.
 
@@ -99,7 +106,7 @@ if (count == 0)
 `Client` and `IClient` remain available without renamed members or changed
 upload ownership. They use compatibility projections over shared XML reading.
 `DavClient` is a separate API: migration is explicit, not a constructor rename.
-The 3.0.1 assembly version is `3.0.1.0`; rebuild consumers when upgrading.
+The 3.0.2 assembly version is `3.0.2.0`; rebuild consumers when upgrading.
 
 | Concern | Existing API | Modern API |
 |---|---|---|
@@ -357,6 +364,14 @@ server-specific extensions and broader conformance checks separate from the
 basic transfer smoke result.
 
 ## Release Notes
+
++ **3.0.2** Package discovery:
+  - Expanded the NuGet description with WebDAV storage, file-transfer and
+    remote-file management use cases.
+  - Added relevant search tags, including Nextcloud, ownCloud, WebDAV storage,
+    file transfer and .NET, without claiming verified server compatibility.
+  - Documented server-specific compatibility limits in the README overview.
+  - No public API or runtime behavior changes.
 
 + **3.0.1** Documentation and licensing patch:
   - Corrected the packaged README to identify 3.0.0 as released on October 20,
