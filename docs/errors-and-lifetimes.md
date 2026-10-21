@@ -46,6 +46,12 @@ failure; they do not use false as a general rejection result. Its
 Finish in-flight operations and returned streams before disposing their
 transport. Reopen upload content for each separately reconciled retry.
 
+The 3.1+ [resumable-download helper](resumable-downloads.md) owns its response and
+disk streams. Invalid checkpoints, staged prefixes or representation metadata
+can throw `InvalidDataException`; other protocol failures use `WebDAVException`.
+Keep matching resume artifacts after an interrupted attempt. Do not discard them
+or automatically restart when a representation changes.
+
 ## Cancellation and budgets
 
 Pass a trailing cancellation token to I/O operations, then pass it again to

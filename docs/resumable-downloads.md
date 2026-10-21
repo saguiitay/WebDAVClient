@@ -1,19 +1,106 @@
 # Reliable resumable file transfers
 
-## Available contract (upcoming 3.0.0)
+Requires **WebDAVClient 3.1.0 or later**. Download a file to disk and explicitly
+resume a verified checkpoint after an interruption. Remote storage is read-only;
+the workflow creates local staging, checkpoint and lock files.
 
-The dependency-free `WebDAVClient.Transfers` namespace adds one operation:
+**Example:** [ResumableDownloads.cs](../examples/WebDAVClient.Examples/ResumableDownloads.cs).
+Authentication, error handling and the 60-second example deadline are configured
+by the shared [example host](../examples/WebDAVClient.Examples/Program.cs).
 
+## Run the example
+
+Configure your [endpoint and authentication](authentication.md), then choose an
+existing remote file and a local destination whose parent directory exists:
+
+```pwsh
+$env:WEBDAV_REMOTE_FILE = "backup.zip"
+$env:WEBDAV_OUTPUT = ".\backup.zip"
+dotnet run --project examples\WebDAVClient.Examples -f net10.0 -- resumable-downloads --validate
+dotnet run --project examples\WebDAVClient.Examples -f net10.0 -- resumable-downloads
+```
+
+Run from the repository root with the .NET 10 SDK. Use `net8.0` instead to execute
+on an installed .NET 8 runtime. `--validate` checks endpoint/authentication
+configuration offline, not server support, file existence or checkpoint health.
+The remote filename is a single unescaped segment; use the containing collection
+as the endpoint.
+
+After interruption, rerun the same command with the **same endpoint, filename
+and local destination**. The command does not retry itself. Success prints
+`Download complete.` and leaves the `.davlock` sentinel in place. An error
+returns a nonzero exit code without deleting valid resume state. A forced process
+termination can leave orphan artifacts; use the recovery table below.
+
+The getting-started, vendor-specific and ordinary transfer examples still write
+plain local files; they do not create compatible checkpoints. Do not rename one
+of their partial files to `.davpart` and expect this workflow to resume it.
+
+## Complete application
+
+Install `WebDAVClient` 3.1.0 or later in a console application and set
+`WEBDAV_ENDPOINT`, `WEBDAV_USERNAME`, `WEBDAV_PASSWORD`, `WEBDAV_REMOTE_FILE` and
+optionally `WEBDAV_OUTPUT`. This credential-based program has a ten-minute budget;
+the CLI example above uses the host's shorter budget.
+
+<!-- compile-example: modern-resumable-download -->
 ```csharp
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
 using WebDAVClient;
+using WebDAVClient.Helpers;
 using WebDAVClient.Transfers;
 
-using var client = new DavClient(new Uri("https://example.com/dav/"));
-await client.DownloadFileAsync(
-    DavPath.FromSegments("archives", "backup.zip"),
-    @"C:\Downloads\backup.zip",
-    cancellationToken);
+try
+{
+    string Required(string name) => Environment.GetEnvironmentVariable(name)
+        ?? throw new ArgumentException("Set " + name + ".");
+    var endpoint = new Uri(Required("WEBDAV_ENDPOINT"));
+    if (endpoint.Scheme != Uri.UriSchemeHttps)
+    {
+        throw new ArgumentException("Use HTTPS for credentials.");
+    }
+    using var http = new HttpClient(new HttpClientHandler
+    {
+        Credentials = new NetworkCredential(
+            Required("WEBDAV_USERNAME"), Required("WEBDAV_PASSWORD")),
+        UseDefaultCredentials = false,
+        AllowAutoRedirect = false,
+        AutomaticDecompression = DecompressionMethods.None,
+        UseCookies = false
+    });
+    using var client = new DavClient(endpoint, http);
+    using var cancellation = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+    await client.DownloadFileAsync(
+        DavPath.FromSegments(Required("WEBDAV_REMOTE_FILE")),
+        Environment.GetEnvironmentVariable("WEBDAV_OUTPUT") ?? "backup.zip",
+        cancellation.Token);
+    Console.WriteLine("Download complete.");
+    return 0;
+}
+catch (WebDAVException ex)
+{
+    Console.Error.WriteLine($"WebDAV failed: HTTP {ex.ResponseStatusCode ?? ex.GetHttpCode()}.");
+    return 1;
+}
+catch (OperationCanceledException)
+{
+    Console.Error.WriteLine("Cancelled. Keep matching transfer artifacts for a later attempt.");
+    return 130;
+}
+catch (Exception ex) when (ex is InvalidDataException || ex is IOException
+    || ex is HttpRequestException || ex is UnauthorizedAccessException
+    || ex is ArgumentException || ex is UriFormatException)
+{
+    Console.Error.WriteLine(ex.Message);
+    return 1;
+}
 ```
+
+## Available contract
 
 The parent directory must already exist. The destination must **not** exist.
 The client remains caller-owned. With an injected `HttpClient`, configure
@@ -25,9 +112,8 @@ Call the same method with the same remote resource and local destination after
 an interruption, including in a new process. There is no in-memory session to
 restore and no automatic retry. A new cancellation token can be supplied.
 
-This implements the conservative download portion of protocol plan P-06 using
-the existing metadata-rich `DavClient.DownloadAsync` range contract. It does not
-change legacy `Client.DownloadPartial` or `UploadPartial` behavior.
+The helper builds on `DavClient.DownloadAsync` without changing legacy
+`Client.DownloadPartial` or `UploadPartial` behavior.
 
 ## Representation and validation requirements
 

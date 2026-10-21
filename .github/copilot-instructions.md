@@ -33,12 +33,15 @@ using a private test-only Roslyn dependency; the library still has no NuGet depe
 Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
 Version 3.0.0 was published on October 20, 2026 and includes the v3 API.
-Current source version 3.0.4 adds Nextcloud/ownCloud integration guides and runnable
+Current source version 3.1.0 adds validated resumable file downloads and runnable
 examples in examples/WebDAVClient.Examples. The short README links to docs/README.md;
 docs/reference.md retains detailed modern/legacy contracts and release notes.
 Every example command has a matching guide. Keep server compatibility evidence
 separate from protocol implementation; do not promote vendor documentation to
 tested-compatibility claims.
+`DavFileTransfers.DownloadFileAsync` adds explicit file checkpoints in 3.1;
+ordinary stream downloads and the collection-sync REPORT do not persist them.
+The resumable guide is docs/resumable-downloads.md with a matching CLI command.
 The README is embedded in the NuGet package; correcting its published copy
 requires a new package version. Do not describe 3.0.0 as upcoming or require a
 local build to use its published APIs.

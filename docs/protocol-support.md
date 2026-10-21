@@ -14,6 +14,7 @@ and setup guidance. Differences in the legacy `Client` API are called out below.
 | HEAD metadata | Implemented | `HeadAsync`; check outer status |
 | GET / full downloads | Implemented | `DownloadAsync`; response owner, 304 has no content |
 | Single byte-range GET | Implemented | One validated bytes range, optional strong/date If-Range; no automatic append/resume |
+| Durable resumable file downloads | Implemented (3.1+) | `DavFileTransfers.DownloadFileAsync`; strong ETag, known length, verified checkpoints and atomic no-overwrite publication; [guide](resumable-downloads.md) |
 | Full PUT | Implemented | `UploadAsync`; streaming, caller-owned input by default |
 | MKCOL | Implemented | `CreateCollectionAsync`; bodyless request, no recursive parent creation |
 | DELETE | Implemented | `DeleteAsync`; collection infinity semantics and member outcomes |
@@ -48,7 +49,7 @@ bearer handlers are provided, but OAuth acquisition/refresh is application-owned
 | RFC 4437 redirect references | Not implemented | Ordinary HTTP redirects are not a redirect-reference profile |
 | RFC 4331 quota properties | Raw property access only | Can request qualified properties; no typed quota profile or server-support guarantee |
 | Vendor chunked/resumable uploads | Not implemented | Full PUT only on the modern API |
-| Durable local mirroring / resumable file checkpoints | Not implemented | Application-owned; not implied by ranges or one sync REPORT |
+| Durable local directory mirroring | Not implemented | Application-owned; not implied by file checkpoints or one sync REPORT |
 | Automatic retries / managed lock leases | Not implemented | Explicit reconciliation and lifecycle remain caller-owned |
 
 Unknown XML and custom properties can be retained without implementing the

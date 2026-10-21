@@ -38,9 +38,10 @@ For conditional GET, handle `NotModified` first: 304 has no content and isn't a
 normal 2xx download. Pass cancellation to `CopyToAsync` / `ReadAsync` after the
 method returns. The metadata body deadline does not limit download stream reads.
 
-For production atomic completion, write a run-owned temporary file and rename
-without replacement only after validation. Do not equate the existence of a
-destination file with a complete transfer.
+For validated atomic completion and durable checkpoints in 3.1+, use the
+[resumable-download helper](resumable-downloads.md). Plain streaming downloads
+remain caller-managed: validate a run-owned temporary file before renaming it
+without replacement. File existence alone does not prove transfer completion.
 
 ## Ranges are not durable resume
 
@@ -51,7 +52,8 @@ mismatch must be reconciled, not appended blindly.
 
 The example reads its range separately, never appends it. It does **not** persist
 checkpoints, reconcile changed entities, automatically retry, or promise durable
-resumability. Such functionality is not part of the released client described here.
+resumability. The separate `DownloadFileAsync` workflow adds durable file
+checkpoints in 3.1+; ordinary range GETs do not.
 The modern API has no partial PUT. Legacy `UploadPartial` is a nonstandard,
 server-dependent agreement; see the [legacy reference](reference.md).
 

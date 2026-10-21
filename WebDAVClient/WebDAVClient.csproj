@@ -6,7 +6,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>WebDAVClient</PackageId>
-    <Version>3.0.4</Version>
+    <Version>3.1.0</Version>
     <Description>Browse WebDAV storage and transfer files from C#/.NET applications without hand-writing DAV requests or parsing XML. Upload, download, copy, move and delete remote files with strongly typed async APIs, streaming and cancellation support. Targets .NET 8 and .NET 10. Nextcloud and ownCloud compatibility is not verified; validate your server and configuration.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
@@ -14,7 +14,12 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
     <PackageTags>WebDAV;WebDAV-client;WebDAV-storage;file-transfer;file-management;upload;download;Nextcloud;ownCloud;.NET;dotnet;CSharp;c#;HttpClient</PackageTags>
-    <PackageReleaseNotes>Version 3.0.4
+    <PackageReleaseNotes>Version 3.1.0
+* Transfers: Add DownloadFileAsync with strong validators, verified durable checkpoints, bounded streaming and atomic no-overwrite completion.
+* Downloads: Add opt-in identity representation enforcement through DownloadOptions.RequireIdentityEncoding.
+* Documentation: Add a resumable-download guide, complete application and runnable example in the current documentation layout.
+* No automatic retries, resumable uploads or durable directory synchronization.
+Version 3.0.4
 * Examples: Add Nextcloud and ownCloud Server listing/download commands with vendor-specific property selection and app-password setup guides.
 * Documentation: Link server integration guides from the embedded README; no new verified-server compatibility claims.
 * No library API or runtime behavior changes.
@@ -36,7 +41,6 @@ Version 3.0.0 (released 2026-10-20):
 * Lossless XML property values, exact resource/property outcomes, typed property codecs and structured DAV errors.
 * Conditional requests, full structured DAV If expressions, ordered atomic PROPPATCH and safe namespace replacement defaults.
 * HEAD, response-owning downloads, verified byte ranges, explicit upload ownership, shared/exclusive locks and streamed listings with completion tracking.
-* Durable resumable file downloads with strong validators, verified checkpoints and atomic no-overwrite completion; no automatic retries or partial PUT.
 * Public REPORT execution seam and an explicit sync-level 1 collection synchronization batch profile; no durable sync or automatic retries.
 * Shared XML readers with legacy compatibility projections; existing Client/IClient signatures and transport ownership retained.
 * Migration guidance and contract tests for both .NET 8 and .NET 10. This release does not claim full RFC conformance.
@@ -62,8 +66,8 @@ Historical context (already released in 2.7.0):
 * Feature: PROPFIND request-body variants — &lt;prop&gt; and &lt;propname/&gt; in addition to &lt;allprop/&gt; (RFC 4918 §9.1).
 * Feature: HTTP OPTIONS support — discover DAV compliance classes and allowed methods (RFC 4918 §9.1, RFC 9110 §9.3.7).
 * Feature: Bearer token / OAuth 2.0 authentication via new Client constructor overloads (static token or async refreshable provider).</PackageReleaseNotes>
-    <AssemblyVersion>3.0.4.0</AssemblyVersion>
-    <FileVersion>3.0.4.0</FileVersion>
+    <AssemblyVersion>3.1.0.0</AssemblyVersion>
+    <FileVersion>3.1.0.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>

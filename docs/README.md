@@ -19,6 +19,7 @@ All commands use the same [configuration and authentication](authentication.md);
 | [Authentication](authentication.md) | `authentication` | [Authentication.cs](../examples/WebDAVClient.Examples/Authentication.cs), [transport setup](../examples/WebDAVClient.Examples/Program.cs) | OPTIONS only |
 | [Listing and properties](listing-and-properties.md) | `listing` | [ListingAndProperties.cs](../examples/WebDAVClient.Examples/ListingAndProperties.cs) | PROPFIND only |
 | [Transfers](transfers.md) | `transfers --allow-writes` | [Transfers.cs](../examples/WebDAVClient.Examples/Transfers.cs) | Run-owned remote collection and new local file |
+| [Resumable downloads (3.1+)](resumable-downloads.md) | `resumable-downloads` | [ResumableDownloads.cs](../examples/WebDAVClient.Examples/ResumableDownloads.cs) | GET only; local staging/checkpoint files and new destination |
 | [File management](file-management.md) | `file-management --allow-writes` | [FileManagement.cs](../examples/WebDAVClient.Examples/FileManagement.cs) | Run-owned remote collection |
 | [Locking](locking.md) | `locking --allow-writes` | [Locking.cs](../examples/WebDAVClient.Examples/Locking.cs) | Run-owned remote collection and lock |
 | [Collection synchronization](collection-sync.md) | `collection-sync` | [CollectionSynchronization.cs](../examples/WebDAVClient.Examples/CollectionSynchronization.cs) | REPORT only; no checkpoint saved |
