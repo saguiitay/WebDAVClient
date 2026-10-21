@@ -24,7 +24,7 @@
 * Migration guidance and contract tests for both .NET 8 and .NET 10. This release does not claim full RFC conformance.
 * Release hardening: Reject property-only namespace mutation outcomes and nested LOCK scalar markup; preserve streamed-listing rejection errors with bounded reads.
 * Examples: Add a modern sample, require explicit legacy partial-PUT opt-in, and compile complete README examples on both targets.
-* Packaging: Reference the existing license file while preserving all notices.
+* Licensing: Declare MIT as the single package license with owner authorization; retain historical upstream attribution and the previous license record.
 Legacy improvements already released in 2.8.0:
 * Developer experience: Ship XML documentation for both targets, safe configurable examples, early argument validation, qualified property statuses, explicit authentication factories, sanitized exception context, and complete configuration/ownership guidance.
 * Configuration: Reject ineffective client TLS callbacks on injected transports and validate owned upload timeouts before transport allocation.
@@ -47,7 +47,7 @@ Historical context (already released in 2.7.0):
 * Feature: Bearer token / OAuth 2.0 authentication via new Client constructor overloads (static token or async refreshable provider).</PackageReleaseNotes>
     <AssemblyVersion>3.0.0.0</AssemblyVersion>
     <FileVersion>3.0.0.0</FileVersion>
-    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
@@ -63,6 +63,8 @@ Historical context (already released in 2.7.0):
     
   <ItemGroup>
     <None Include="..\LICENSE.md" Pack="true" PackagePath="LICENSE.md" />
+    <None Include="..\NOTICE.md" Pack="true" PackagePath="NOTICE.md" />
+    <None Include="..\licenses\HISTORICAL-LICENSE.md" Pack="true" PackagePath="licenses\HISTORICAL-LICENSE.md" />
     <None Include="..\README.md" Pack="true" PackagePath="$(PackageReadmeFile)" />
   </ItemGroup>
 

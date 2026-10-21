@@ -12,9 +12,16 @@ WebDAVClient is available as a [NuGet package](https://www.nuget.org/packages/We
 
 ## License
 
-NuGet references the packaged [LICENSE.md](LICENSE.md) as the license text.
-All existing MIT and Apache 2.0 notices are retained; the package does not
-replace that combined text with a single-license SPDX declaration.
+WebDAVClient is licensed under the [MIT License](LICENSE.md): free to use,
+including commercially, modify, and redistribute, subject to its terms and
+retention of its notices. MIT is the single license for the current package,
+and its NuGet license metadata declares `MIT`.
+
+[NOTICE.md](NOTICE.md) preserves historical upstream attribution, not a separate
+CC0 licensing requirement. The former combined MIT/Apache text is
+retained as a [historical record](licenses/HISTORICAL-LICENSE.md), not a
+whole-package dual-license declaration. All three files are included in the
+upcoming 3.0.0 NuGet package; previously published packages are unchanged.
 
 ## Quickstart
 
@@ -368,7 +375,8 @@ basic transfer smoke result.
   - Added a runnable `--modern` sample and automated compilation of complete
     README examples. Legacy partial PUT now requires `--partial-put`; ordinary
     mutation smoke runs use standard full PUT.
-  - NuGet now references the existing license file, preserving all notices.
+  - Declared MIT as the single package license with the owner's authorization,
+    retaining historical upstream attribution and the previous license record.
   - Added `DavClient` with an immutable endpoint, explicit escaped `DavPath`
     references, resource-oriented operations and request-local options.
   - Added faithful XML/status/error results, typed property codecs, HTTP/DAV
