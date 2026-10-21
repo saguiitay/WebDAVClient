@@ -1,9 +1,9 @@
 # RFC 4918 client requirement ledger
 
-Review date: 2026-10-21. Scope: upcoming 3.0.0 source, principally `DavClient`,
+Review date: 2026-10-21. Scope: the 3.2.0 source, principally `DavClient`,
 `Protocol`, and the explicit `DavLockLease` lifecycle. This is a durable
 implementation/evidence reference, **not** a claim of complete RFC conformance,
-a server certification, or a statement that 3.0.0 has been published.
+a server certification, or a release announcement.
 Core implementation anchors: `dd9b7f0` (managed lifecycle) and `a632d04`
 (core wire/XML/timeout corrections).
 
@@ -30,7 +30,7 @@ atomicity, persistence, authorization, or lock compatibility.
 
 ### Evidence anchors
 
-All files below are in `WebDAVClient.UnitTests`. Tests run against both `net8.0`
+All files below are in `tests\WebDAVClient.UnitTests`. Tests run against both `net8.0`
 and `net10.0`. Handler/loopback tests are not independent server implementations.
 
 | ID | Deterministic evidence |
@@ -42,7 +42,7 @@ and `net10.0`. Handler/loopback tests are not independent server implementations
 | E-IF | `DavProtocolTests`: `Conditions_preserve_tagging_alternatives_negation_and_validate_every_origin`, `Invalid_arguments_fail_before_network_io`; `DavCoreCompletenessTests`: `If_conditions_always_prevent_non_dav_proxy_cache_hits_without_losing_custom_directives`. |
 | E-NAMESPACE | `DavClientTests`: `Namespace_operations_have_no_spurious_body_and_preserve_rejections`, `Recursive_mutation_failure_retains_successful_and_denied_resources`; `DavFailureContractTests` covers operation-specific success confirmation, missing patch outcomes, and invalid namespace multistatus shapes. |
 | E-LOCK | `DavClientTests`: `Lock_observations_preserve_granted_timeout_and_structured_owner`, `Refresh_has_no_request_body_and_rejects_missing_response_confirmation`, `Recursive_lock_failure_is_not_a_granted_tree_lock`; `DavFailureContractTests` covers malformed lock XML and omitted metadata. |
-| E-LEASE | `DavLockLeaseTests`: acquisition header/token/scope/depth checks; finite/infinite/omitted timeouts; conservative monotonic deadlines; explicit renewals; lost/changed confirmation; cancellation; serialization; at-most-one release attempt. See [lifecycle reference](LOCK-LIFECYCLE.md). |
+| E-LEASE | `DavLockLeaseTests`: acquisition header/token/scope/depth checks; finite/infinite/omitted timeouts; conservative monotonic deadlines; explicit renewals; lost/changed confirmation; cancellation; serialization; at-most-one release attempt. See [lifecycle reference](lock-lifecycle.md). |
 | E-CORE | `DavCoreCompletenessTests`: `Lock_timeout_supports_the_entire_unsigned_seconds_range`, `Empty_locked_resources_accept_204_without_acquiring_a_body_and_keep_response_owned`, `No_content_cannot_be_used_as_appendable_or_contradictory_content`, `Capabilities_keep_compliance_classes_and_coded_extension_uris_with_embedded_commas`, `Lock_kind_decoding_ignores_extensions_without_promoting_lookalikes_or_ambiguous_kinds`, `Every_core_condition_preserves_qualified_details_without_following_error_hrefs`. |
 | E-HTTP | `DavClientTests`: `Downloads_keep_metadata_and_conditional_outcomes_without_fake_streams`, `Download_validates_closed_open_and_suffix_ranges`, `Unsafe_range_responses_are_never_returned_as_appendable_content`, `Upload_ownership_is_explicit_and_nonseekable_streams_work`, `Seekable_upload_uses_remaining_length_and_does_not_replay_after_transport_failure`. |
 | E-LIFETIME | `DavLifetimeTests`, `DavLoopbackTests`, and `DavResourceProjectionTests`; `DavClientTests`: `Streaming_completion_requires_full_enumeration_and_error_tail_cannot_certify_a_snapshot`, `Early_break_releases_listing_but_does_not_certify_completion`. |

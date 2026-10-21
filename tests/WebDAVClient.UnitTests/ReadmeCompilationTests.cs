@@ -14,17 +14,23 @@ namespace WebDAVClient.UnitTests
     {
         public static IEnumerable<object[]> Examples()
         {
-            string readme = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "README.md"));
-            var matches = Regex.Matches(readme,
-                @"(?ms)<!-- compile-example: (?<name>[\w-]+) -->\s*```csharp\r?\n(?<code>.*?)^```");
-            Assert.AreEqual(7, matches.Count, "Keep the standalone README example inventory explicit.");
-            foreach (Match match in matches)
+            var documents = new[] { Path.Combine(AppContext.BaseDirectory, "README.md") }
+                .Concat(Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "docs"), "*.md", SearchOption.AllDirectories));
+            int count = 0;
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string document in documents)
             {
-                yield return new object[]
+                var matches = Regex.Matches(File.ReadAllText(document),
+                    @"(?ms)<!-- compile-example: (?<name>[\w-]+) -->\s*```csharp\r?\n(?<code>.*?)^```");
+                foreach (Match match in matches)
                 {
-                    match.Groups["name"].Value, match.Groups["code"].Value
-                };
+                    string name = match.Groups["name"].Value;
+                    Assert.IsTrue(names.Add(name), "Duplicate complete example: " + name);
+                    count++;
+                    yield return new object[] { name, match.Groups["code"].Value };
+                }
             }
+            Assert.AreEqual(10, count, "Keep the complete README and guide example inventory explicit.");
         }
 
         [DataTestMethod]

@@ -1,34 +1,59 @@
-# Managed lock lifecycle
+# Explicit lock lifecycle
 
-This reference describes the upcoming 3.0.0 source API, not a published package.
-`DavClient` remains the low-level, result-oriented surface.
-`DavLockLease` adds an explicitly renewed lifecycle for one RFC 4918 write lock.
+`DavLockLease` adds an explicitly renewed lifecycle for one RFC 4918 write lock
+in **3.2.0**. This addition is not available in earlier packages.
+`DavClient` remains the low-level, result-oriented surface; the
+[locking example](locking.md) demonstrates that API with configured authentication
+and run-owned cleanup.
 
+The complete program below uses an anonymous endpoint. Configure an authenticated
+transport as described in [authentication](authentication.md) when required.
+It changes the display-name property of an existing `document.txt`; use a
+disposable test endpoint. No timer is started and no mutation is retried.
+
+<!-- compile-example: explicit-lock-lifecycle -->
 ```csharp
 using System;
+using System.Threading;
 using WebDAVClient;
 using WebDAVClient.Protocol;
 
 using var client = new DavClient(new Uri("https://example.com/dav/"));
+using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 var path = DavPath.FromSegments("document.txt");
-await using var lease = await DavLockLease.AcquireAsync(client, path);
+var lease = await DavLockLease.AcquireAsync(
+    client, path, cancellationToken: deadline.Token);
 
-// No timer is started. Renew explicitly before the observed timeout expires.
-await lease.RenewAsync();
-var conditions = lease.CreateConditions("\"previous-etag\"");
-var result = await client.UpdatePropertiesAsync(
-    path,
-    new[]
-    {
-        DavPropertyChange.Set(DavXmlValue.Text(
-            new WebDAVClient.Model.PropertyName("DAV:", "displayname"), "Document"))
-    },
-    new DavRequestOptions { Conditions = conditions });
-result.EnsureSucceeded();
+try
+{
+    await lease.RenewAsync(cancellationToken: deadline.Token);
+    var conditions = lease.CreateConditions();
+    var result = await client.UpdatePropertiesAsync(
+        path,
+        new[]
+        {
+            DavPropertyChange.Set(DavXmlValue.Text(
+                new WebDAVClient.Model.PropertyName("DAV:", "displayname"), "Document"))
+        },
+        new DavRequestOptions { Conditions = conditions }, deadline.Token);
+    result.EnsureSucceeded();
+}
+finally
+{
+    using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+    await lease.ReleaseAsync(cleanup.Token);
+}
 ```
+
+Acquisition, renewal, mutation and release failures propagate to the caller.
+The explicit release has its own deadline and is attempted even if renewal or
+mutation fails. A release failure can mask an earlier exception; production
+error handling should preserve/report both failures. `await using` is also
+supported, but `DisposeAsync` has no caller-supplied cancellation deadline.
 
 An ETag is useful even with a lock: acquiring a lock does not establish that the
 representation still matches the version the application previously read.
+Pass that previously observed ETag to `CreateConditions(entityTag)` when needed.
 `CreateConditions()` tags the original lock target, optionally ANDing the token
 with the supplied entity tag. For a depth-infinity lock, use these conditions on
 an affected descendant; for a MOVE/COPY involving other locked bindings, construct
@@ -109,7 +134,7 @@ build their own explicit, cancellation-aware policy above this API.
 
 ## Evidence
 
-`WebDAVClient.UnitTests\DavLockLeaseTests.cs` exercises grant validation, finite/
+`tests\WebDAVClient.UnitTests\DavLockLeaseTests.cs` exercises grant validation, finite/
 infinite/omitted timeouts, monotonic acquisition/renewal cost, expired-state
 reconciliation, tagged validators, rejection/transport/cancellation outcomes,
 serialization, and one-attempt cleanup on both target frameworks.

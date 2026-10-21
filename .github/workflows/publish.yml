@@ -14,6 +14,8 @@ on:
       - '!.github/workflows/publish.yml'
   workflow_dispatch:
   pull_request:
+    branches:
+      - master
 
 permissions:
   contents: read
@@ -47,23 +49,23 @@ jobs:
         run: dotnet build -c Release --no-restore
 
       - name: Test .NET 8
-        run: dotnet test WebDAVClient.UnitTests/WebDAVClient.UnitTests.csproj -c Release -f net8.0 --no-build --verbosity normal -p:CollectCoverage=true
+        run: dotnet test tests/WebDAVClient.UnitTests/WebDAVClient.UnitTests.csproj -c Release -f net8.0 --no-build --verbosity normal -p:CollectCoverage=true
 
       - name: Test .NET 10
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test WebDAVClient.UnitTests/WebDAVClient.UnitTests.csproj -c Release -f net10.0 --no-build --verbosity normal -p:CollectCoverage=true
+        run: dotnet test tests/WebDAVClient.UnitTests/WebDAVClient.UnitTests.csproj -c Release -f net10.0 --no-build --verbosity normal -p:CollectCoverage=true
 
       - name: Upload coverage reports
         if: ${{ always() && steps.build.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
-          path: WebDAVClient.UnitTests/TestResults/coverage/**/*.cobertura.xml
+          path: tests/WebDAVClient.UnitTests/TestResults/coverage/**/*.cobertura.xml
           if-no-files-found: error
 
       - name: Pack
         if: ${{ success() && github.event_name != 'pull_request' }}
-        run: dotnet pack WebDAVClient/WebDAVClient.csproj -c Release --no-build -o ${{ github.workspace }}/Release/nuget
+        run: dotnet pack src/WebDAVClient/WebDAVClient.csproj -c Release --no-build -o ${{ github.workspace }}/Release/nuget
 
       - name: Push to NuGet
         if: ${{ success() && github.event_name != 'pull_request' }}

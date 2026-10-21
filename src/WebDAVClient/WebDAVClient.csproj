@@ -6,29 +6,56 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>WebDAVClient</PackageId>
-    <Version>3.0.0</Version>
-    <Description>WebDAVClient is a strongly-typed, async, C# client for WebDAV.</Description>
+    <Version>3.2.0</Version>
+    <Description>Browse WebDAV storage and transfer files from C#/.NET applications without hand-writing DAV requests or parsing XML. Upload, download, copy, move and delete remote files with strongly typed async APIs, streaming and cancellation support. Targets .NET 8 and .NET 10. Nextcloud and ownCloud compatibility is not verified; validate your server and configuration.</Description>
     <Authors>Sagui Itay</Authors>
     <Company></Company>
     <PackageProjectUrl>https://github.com/saguiitay/WebDAVClient</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Copyright © 2026 Sagui Itay</Copyright>
-    <PackageTags>WebDAV HttpClient c#</PackageTags>
-    <PackageReleaseNotes>Version 3.0.0
+    <PackageTags>WebDAV;WebDAV-client;WebDAV-storage;file-transfer;file-management;upload;download;Nextcloud;ownCloud;.NET;dotnet;CSharp;c#;HttpClient</PackageTags>
+    <PackageReleaseNotes>Version 3.2.0
+* Add DavLockLease with explicit renewal, conservative observed expiry and at most one release attempt; no background scheduling, retries or reacquisition.
+* Validate core response hrefs/cardinalities and confirmed lock acquisition; successful refresh now requires HTTP 200 with lockdiscovery XML, not an empty response.
+* Support full-resource GET 204, unsigned timeout seconds, DAV If cache directives and coded capability URIs.
+* Preserve escaped Unicode and escape-hex case identity; bare acquisition tokens require matching discovery evidence.
+* Add default-off PROPPATCH path-plus alias policy and an RFC 4918 requirement ledger; no full conformance claim.
+Version 3.1.1
+* Repository: Organize library, tests and sample applications under src, tests and examples; update build, CI and documentation paths.
+* Packaging: Keep the current MIT license and provenance notice; retain the former combined-license record in Git history rather than shipping it.
+* Remove unused legacy NuGet restore tooling. No library API or runtime behavior changes.
+Version 3.1.0
+* Transfers: Add DownloadFileAsync with strong validators, verified durable checkpoints, bounded streaming and atomic no-overwrite completion.
+* Downloads: Add opt-in identity representation enforcement through DownloadOptions.RequireIdentityEncoding.
+* Documentation: Add a resumable-download guide, complete application and runnable example in the current documentation layout.
+* No automatic retries, resumable uploads or durable directory synchronization.
+Version 3.0.4
+* Examples: Add Nextcloud and ownCloud Server listing/download commands with vendor-specific property selection and app-password setup guides.
+* Documentation: Link server integration guides from the embedded README; no new verified-server compatibility claims.
+* No library API or runtime behavior changes.
+Version 3.0.3
+* Documentation: Lead with an authenticated list-and-download application and move detailed contracts and legacy recipes into focused guides.
+* Examples: Add runnable authentication, listing/properties, transfer, file-management, locking and collection-sync examples with matching guides and regression coverage.
+* Compatibility: Separate server verification evidence from implemented protocol and extension support; no unverified compatibility or conformance claims.
+* No library API or runtime behavior changes.
+Version 3.0.2:
+* Discovery: Describe WebDAV storage and file-transfer use cases and expand NuGet search tags, without claiming verified Nextcloud or ownCloud compatibility.
+* Documentation: Explain server-specific compatibility limits in the README overview.
+* No public API or runtime behavior changes.
+Version 3.0.1:
+* Documentation: Correct the embedded README to identify 3.0.0 as released on October 20, 2026 and install v3 from NuGet without a local build.
+* Licensing: Declare MIT as the single package license with owner authorization; retain historical upstream attribution and the previous license record.
+* No public API or runtime behavior changes.
+Version 3.0.0 (released 2026-10-20):
 * New resource-oriented DavClient with immutable endpoints, request-scoped options and no implicit discovery.
 * Lossless XML property values, exact resource/property outcomes, typed property codecs and structured DAV errors.
 * Conditional requests, full structured DAV If expressions, ordered atomic PROPPATCH and safe namespace replacement defaults.
-* Explicit lock lease lifecycle, DAV If proxy-cache directives, empty-resource GET support and core response validation.
-* Traceable RFC 4918 requirement ledger; no full RFC conformance claim.
-* Valid escaped Unicode and percent-escape hex-case identity; bare lock-token compatibility requires exactly matching discovery evidence.
-* Explicit opt-in PROPPATCH path-plus alias comparison for known server profiles; default URI identity and query/origin checks remain strict.
 * HEAD, response-owning downloads, verified byte ranges, explicit upload ownership, shared/exclusive locks and streamed listings with completion tracking.
 * Public REPORT execution seam and an explicit sync-level 1 collection synchronization batch profile; no durable sync or automatic retries.
 * Shared XML readers with legacy compatibility projections; existing Client/IClient signatures and transport ownership retained.
 * Migration guidance and contract tests for both .NET 8 and .NET 10. This release does not claim full RFC conformance.
 * Release hardening: Reject property-only namespace mutation outcomes and nested LOCK scalar markup; preserve streamed-listing rejection errors with bounded reads.
 * Examples: Add a modern sample, require explicit legacy partial-PUT opt-in, and compile complete README examples on both targets.
-* Packaging: Reference the existing license file while preserving all notices.
 Legacy improvements already released in 2.8.0:
 * Developer experience: Ship XML documentation for both targets, safe configurable examples, early argument validation, qualified property statuses, explicit authentication factories, sanitized exception context, and complete configuration/ownership guidance.
 * Configuration: Reject ineffective client TLS callbacks on injected transports and validate owned upload timeouts before transport allocation.
@@ -49,9 +76,9 @@ Historical context (already released in 2.7.0):
 * Feature: PROPFIND request-body variants — &lt;prop&gt; and &lt;propname/&gt; in addition to &lt;allprop/&gt; (RFC 4918 §9.1).
 * Feature: HTTP OPTIONS support — discover DAV compliance classes and allowed methods (RFC 4918 §9.1, RFC 9110 §9.3.7).
 * Feature: Bearer token / OAuth 2.0 authentication via new Client constructor overloads (static token or async refreshable provider).</PackageReleaseNotes>
-    <AssemblyVersion>3.0.0.0</AssemblyVersion>
-    <FileVersion>3.0.0.0</FileVersion>
-    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <AssemblyVersion>3.2.0.0</AssemblyVersion>
+    <FileVersion>3.2.0.0</FileVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
@@ -66,8 +93,9 @@ Historical context (already released in 2.7.0):
   </PropertyGroup>
     
   <ItemGroup>
-    <None Include="..\LICENSE.md" Pack="true" PackagePath="LICENSE.md" />
-    <None Include="..\README.md" Pack="true" PackagePath="$(PackageReadmeFile)" />
+    <None Include="..\..\LICENSE.md" Pack="true" PackagePath="LICENSE.md" />
+    <None Include="..\..\NOTICE.md" Pack="true" PackagePath="NOTICE.md" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="$(PackageReadmeFile)" />
   </ItemGroup>
 
   <ItemGroup>
