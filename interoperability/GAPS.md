@@ -90,7 +90,9 @@ bytes as the stored resource. Historical summaries calling that a stale
 **Implemented:** distinct rejected payloads; create-if-absent; matching/stale
 strong ETags; valid/wrong-token PUT, DELETE and tagged MOVE; AND/OR DAV `If`
 conditions; released-token rejection; and byte/validator integrity after
-rejected writes. Separate run-owned files prevent an unsafe server's overwrite
+rejected writes. Valid-token/false-ETag pairs also check PUT, DELETE and tagged
+MOVE: token authorization alone must not mask an ignored condition.
+Separate run-owned files prevent an unsafe server's overwrite
 from contaminating unrelated baseline operations. Missing strong validators or
 unconfirmed state block dependent work instead of triggering a repair/replay.
 

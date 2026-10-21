@@ -34,6 +34,7 @@ public sealed class GuardedMutationTests
     [DataRow("ignore-none", "conditional-put", "conditional-integrity", "failed")]
     [DataRow("ignore-match", "conditional-stale-put", "conditional-stale-integrity", "failed")]
     [DataRow("write-on-reject", "conditional-put", "conditional-integrity", "passed")]
+    [DataRow("body-on-reject", "conditional-put", "conditional-integrity", "passed")]
     [DataRow("etag-on-reject", "conditional-stale-put", "conditional-stale-integrity", "passed")]
     public async Task RejectionsRequireStatusBytesAndValidatorIntegrity(string fault, string status, string integrity, string outcome)
     {
@@ -49,11 +50,12 @@ public sealed class GuardedMutationTests
     [DataRow("missing-etag")]
     [DataRow("weak-etag")]
     [DataRow("malformed-etag")]
+    [DataRow("wildcard-etag")]
     public async Task MissingStrongValidatorBlocksDependentWrites(string fault)
     {
         using var handler = new GuardedHandler(fault);
         var result = await RunAsync(handler, locks: false).ConfigureAwait(false);
-        Assert.IsTrue(result.Observations.Any(o => o.Detail == "strong-etag-unavailable"));
+        Assert.IsTrue(result.Observations.Any(o => o.Detail == (fault == "weak-etag" ? "weak-etag" : "strong-etag-unavailable")));
         Assert.AreEqual("blocked", result.Observations.Single(o => o.Operation == "conditional-stale-put").Outcome);
         Assert.AreEqual(2, handler.Requests.Count(r => r.Method == "PUT"));
         Assert.IsTrue(handler.Requests.Where(r => r.Method == "PUT").All(r => r.IfNoneMatch == "*"));
@@ -101,19 +103,19 @@ public sealed class GuardedMutationTests
     {
         using var handler = new GuardedHandler();
         var result = await RunAsync(handler, locks: true).ConfigureAwait(false);
-        Assert.AreEqual(23, result.Observations.Count);
+        Assert.AreEqual(29, result.Observations.Count);
         Assert.IsTrue(result.Observations.All(o => o.Outcome == "passed"));
         Assert.AreEqual(3, handler.Requests.Count(r => r.Method == "LOCK"));
         Assert.AreEqual(1, handler.Requests.Count(r => r.Method == "UNLOCK"));
         var moves = handler.Requests.Where(r => r.Method == "MOVE").ToArray();
-        Assert.AreEqual(2, moves.Length);
+        Assert.AreEqual(3, moves.Length);
         Assert.IsTrue(moves.All(r => r.Conditions!.StartsWith("<http://localhost" + r.Path + "> ", StringComparison.Ordinal)));
         var conditionedPuts = handler.Requests.Where(r => r.Method == "PUT" && r.Conditions != null).ToArray();
-        Assert.AreEqual(4, conditionedPuts.Length);
-        Assert.AreEqual(2, Regex.Matches(conditionedPuts[1].Conditions!, @"\([^()]*\)").Count, "Alternative lists must be OR, conditions within a list AND.");
-        Assert.IsTrue(conditionedPuts[1].Conditions!.Contains("[\"", StringComparison.Ordinal));
-        Assert.IsFalse(conditionedPuts[0].Body.SequenceEqual(conditionedPuts[1].Body));
-        Assert.IsFalse(conditionedPuts[1].Body.SequenceEqual(conditionedPuts[2].Body));
+        Assert.AreEqual(5, conditionedPuts.Length);
+        Assert.AreEqual(2, Regex.Matches(conditionedPuts[2].Conditions!, @"\([^()]*\)").Count, "Alternative lists must be OR, conditions within a list AND.");
+        Assert.IsTrue(conditionedPuts[2].Conditions!.Contains("[\"", StringComparison.Ordinal));
+        Assert.IsFalse(conditionedPuts[0].Body.SequenceEqual(conditionedPuts[2].Body));
+        Assert.IsFalse(conditionedPuts[2].Body.SequenceEqual(conditionedPuts[3].Body));
         string json = JsonSerializer.Serialize(result);
         foreach (string token in handler.Tokens)
         {
@@ -148,6 +150,19 @@ public sealed class GuardedMutationTests
         Assert.AreEqual("failed", result.Observations.Single(o => o.Operation == "lock-put-stale-condition-integrity").Outcome);
         Assert.AreEqual("blocked", result.Observations.Single(o => o.Operation == "lock-put-released-token").Outcome);
         Assert.AreEqual(1, handler.Requests.Count(r => r.Method == "UNLOCK"), "A confirmed held lock still needs bounded cleanup.");
+    }
+
+    [DataTestMethod]
+    [DataRow("put")]
+    [DataRow("delete")]
+    [DataRow("move")]
+    public async Task ValidTokenCannotMaskAnIgnoredFalseEntityTag(string operation)
+    {
+        using var handler = new GuardedHandler("ignore-unknown-dav-etag");
+        var result = await RunAsync(handler, locks: true).ConfigureAwait(false);
+        Assert.AreEqual("failed", result.Observations.Single(o => o.Operation == $"lock-{operation}-wrong-etag").Outcome);
+        Assert.AreEqual("failed", result.Observations.Single(o => o.Operation == $"lock-{operation}-wrong-etag-integrity").Outcome);
+        Assert.AreEqual("blocked", result.Observations.Single(o => o.Operation == $"lock-{operation}-valid").Outcome);
     }
 
     [TestMethod]
@@ -272,6 +287,7 @@ public sealed class GuardedMutationTests
                     "missing-etag" => null,
                     "weak-etag" => "W/" + entry.Tag,
                     "malformed-etag" => "private-invalid-etag",
+                    "wildcard-etag" => "*",
                     _ => entry.Tag
                 };
                 if (tag != null)
@@ -324,7 +340,7 @@ public sealed class GuardedMutationTests
             bool rejected = badNone && fault != "ignore-none" || badMatch && fault != "ignore-match" ||
                 badCondition && !ignoreCondition || fault == "reject-match" && match != null ||
                 fault == "reject-lock-" + method.ToLowerInvariant() && conditions != null;
-            bool lying = rejected && (fault == "write-on-reject" || fault == "lie-lock-" + method.ToLowerInvariant());
+            bool lying = rejected && (fault is "write-on-reject" or "body-on-reject" || fault == "lie-lock-" + method.ToLowerInvariant());
             if (rejected && !lying)
             {
                 if (fault == "etag-on-reject" && entry != null)
@@ -338,7 +354,7 @@ public sealed class GuardedMutationTests
             {
                 case "PUT":
                     status = entry == null ? 201 : 204;
-                    m_files[path] = new Entry(body, NextTag()) { Token = entry?.Token };
+                    m_files[path] = new Entry(body, lying && fault == "body-on-reject" && entry != null ? entry.Tag : NextTag()) { Token = entry?.Token };
                     break;
                 case "DELETE":
                     status = m_files.Remove(path) ? 204 : 404;
@@ -365,7 +381,9 @@ public sealed class GuardedMutationTests
             var alternatives = Regex.Matches(header, @"\(([^()]*)\)").Select(list =>
                 Regex.Matches(list.Groups[1].Value, @"<([^>]+)>|\[([^\]]+)\]").All(condition =>
                     condition.Groups[1].Success ? condition.Groups[1].Value == entry?.Token :
-                    fault == "ignore-dav-etag" || condition.Groups[2].Value == entry?.Tag));
+                    fault == "ignore-unknown-dav-etag" ||
+                    fault == "ignore-dav-etag" && condition.Groups[2].Value.StartsWith("\"private-etag-", StringComparison.Ordinal) ||
+                    condition.Groups[2].Value == entry?.Tag));
             return fault == "and-alternatives" ? alternatives.All(value => value) : alternatives.Any(value => value);
         }
 

@@ -138,7 +138,9 @@ dependencies and the production-module coverage gate are unchanged.
   observation does not relax or replace the library's lock validation.
 * Suite **1.1** also checks valid/wrong lock-token PUT, DELETE and tagged-source
   MOVE on separate run-owned files. DAV `If` alternatives are OR; a token and
-  ETag within one list are AND. A released token must no longer authorize PUT.
+  ETag within one list are AND. Each method must reject a valid token paired
+  with a false ETag; accepting a real token alone does not prove that the
+  condition was evaluated. A released token must no longer authorize PUT.
   Every rejected mutation checks source bytes/ETag and a rejected MOVE also
   checks destination absence. No unconditional repair/replay follows a failure.
   Cleanup still attempts held-lock release on a separate bounded deadline.

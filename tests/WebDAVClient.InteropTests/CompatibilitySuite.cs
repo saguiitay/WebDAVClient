@@ -457,6 +457,33 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
                     continue;
                 }
 
+                var wrongTag = new DavConditionList(DavCondition.StateToken(confirmedToken),
+                    DavCondition.EntityTag("\"webdavclient-never-issued-" + Guid.NewGuid().ToString("N") + "\""));
+                var wrongTagConditions = operation == "move"
+                    ? DavIfConditions.Tagged(new DavTaggedConditions(file, wrongTag))
+                    : DavIfConditions.Untagged(wrongTag);
+                await CheckAsync(prefix + "-wrong-etag", async () =>
+                    Expected(prefix, await MutateAsync(operation, client, file, destination,
+                        wrongTagConditions, s_rejected, ct).ConfigureAwait(false), 412)).ConfigureAwait(false);
+                bool tagIntact = await CheckAsync(prefix + "-wrong-etag-integrity", async () =>
+                {
+                    var result = await VerifyStateAsync(client, file, s_content, baselineTag, ct).ConfigureAwait(false);
+                    if (operation == "move")
+                    {
+                        var absent = Expected(prefix, await client.HeadAsync(destination, cancellationToken: ct).ConfigureAwait(false), 404);
+                        if (absent.Outcome != "passed")
+                        {
+                            return absent with { Detail = "Rejected MOVE created a destination." };
+                        }
+                    }
+                    return result;
+                }).ConfigureAwait(false);
+                if (!tagIntact)
+                {
+                    Block(prefix + "-valid", "False ETag condition changed the baseline; no repair or replay attempted.");
+                    continue;
+                }
+
                 var conjunction = new DavConditionList(DavCondition.StateToken(confirmedToken), DavCondition.EntityTag(baselineTag));
                 var conditions = operation == "put" ? DavIfConditions.Untagged(wrong, conjunction) :
                     operation == "move" ? DavIfConditions.Tagged(new DavTaggedConditions(file, conjunction)) :
@@ -598,9 +625,13 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
         var response = await client.HeadAsync(file, cancellationToken: ct).ConfigureAwait(false);
         response.EnsureHttpSuccess();
         Require(response.StatusCode == 200);
-        if (!EntityTagHeaderValue.TryParse(response.GetHeader("ETag"), out var tag) || tag.IsWeak || tag.Tag == "*")
+        if (!EntityTagHeaderValue.TryParse(response.GetHeader("ETag"), out var tag) || tag.Tag == "*")
         {
             throw new InvalidDataException("Guarded probes require one strong ETag.");
+        }
+        if (tag.IsWeak)
+        {
+            throw new InvalidDataException("Guarded probes cannot use a weak ETag.");
         }
         return tag.ToString();
     }
@@ -677,6 +708,7 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
             "LOCK requires DAV:lockdiscovery." => "missing-lock-discovery",
             "No active locks were reported." => "empty-lock-discovery",
             "Guarded probes require one strong ETag." => "strong-etag-unavailable",
+            "Guarded probes cannot use a weak ETag." => "weak-etag",
             "Changed probe bytes require a changed strong ETag." => "unchanged-strong-etag",
             _ => ex.GetType().Name
         };
