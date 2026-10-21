@@ -11,6 +11,9 @@ guarantee. Check your deployment before using it with production data.
 The [protocol support table](protocol-support.md) lists the client's supported
 operations and extensions. Your server must also support the features you use.
 
+For complete connection examples, see the [Nextcloud](nextcloud.md) and
+[ownCloud Server](owncloud.md) guides.
+
 ## Products and deployment considerations
 
 | Server/product | Endpoint and setup | Authentication and feature considerations |

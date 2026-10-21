@@ -64,8 +64,9 @@ all outstanding operations and returned streams finish.
 Nextcloud app passwords normally accompany a username through HTTP Basic
 authentication. Select `credentials`, not `bearer`; see the
 [vendor's authentication guidance](https://docs.nextcloud.com/server/latest/developer_manual/client_apis/WebDAV/basic.html).
-An OAuth access token is a different credential. These configuration instructions
-are not evidence that a server version has been compatibility-tested.
+An OAuth access token is a different credential. For complete endpoint setup and
+runnable commands, see the [Nextcloud](nextcloud.md) and
+[ownCloud Server](owncloud.md) integration guides.
 
 ## Providers, refresh and secrets
 

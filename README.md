@@ -102,6 +102,8 @@ Use an app password, not a bearer token, when your server requires one.
 
 | Task | Guide and matching runnable example |
 |---|---|
+| Connect to Nextcloud with an app password and read file metadata | [Nextcloud integration](https://github.com/saguiitay/WebDAVClient/blob/master/docs/nextcloud.md) |
+| Connect to ownCloud Server and read file metadata | [ownCloud integration](https://github.com/saguiitay/WebDAVClient/blob/master/docs/owncloud.md) |
 | Choose anonymous, credentials, Windows or bearer authentication | [Authentication](https://github.com/saguiitay/WebDAVClient/blob/master/docs/authentication.md) |
 | List folders, stream large listings and read typed/custom properties | [Listing and properties](https://github.com/saguiitay/WebDAVClient/blob/master/docs/listing-and-properties.md) |
 | Upload, download and request byte ranges | [File transfers](https://github.com/saguiitay/WebDAVClient/blob/master/docs/transfers.md) |

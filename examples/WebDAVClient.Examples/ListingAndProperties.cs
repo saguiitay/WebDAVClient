@@ -5,17 +5,23 @@ namespace WebDAVClient.Examples;
 
 public static class ListingAndProperties
 {
-    public static async Task RunAsync(DavClient client, TextWriter output, CancellationToken token)
+    public static Task RunAsync(DavClient client, TextWriter output, CancellationToken token)
+    {
+        return RunAsync(client, new[]
+        {
+            DavProperties.DisplayName.Name, DavProperties.ResourceTypes.Name,
+            DavProperties.ETag.Name, new PropertyName("https://example.com/ns", "author")
+        }, output, token);
+    }
+
+    internal static async Task RunAsync(DavClient client, IReadOnlyList<PropertyName> properties,
+        TextWriter output, CancellationToken token)
     {
         using var listing = await client.OpenListingAsync(DavPath.Root, new PropFindOptions
         {
             Depth = DavDepth.One,
             Selection = DavPropertySelection.Selected,
-            Properties = new[]
-            {
-                DavProperties.DisplayName.Name, DavProperties.ResourceTypes.Name,
-                DavProperties.ETag.Name, new PropertyName("https://example.com/ns", "author")
-            }
+            Properties = properties
         }, token);
         listing.EnsureHttpSuccess();
         bool failed = false;
@@ -37,7 +43,11 @@ public static class ListingAndProperties
             {
                 foreach (var property in group.Properties)
                 {
-                    output.WriteLine($"{property.Name.Namespace}{property.Name.LocalName}: HTTP {property.StatusCode}");
+                    output.WriteLine($"{property.Name}: HTTP {property.StatusCode}");
+                    if (property.StatusCode is >= 200 and < 300 && property.Value.TryGetText(out var text))
+                    {
+                        output.WriteLine("  Value: " + text);
+                    }
                     if (property.StatusCode != 404 && (property.StatusCode is < 200 or >= 300))
                     {
                         failed = true;

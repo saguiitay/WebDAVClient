@@ -14,6 +14,8 @@ All commands use the same [configuration and authentication](authentication.md);
 | Guide | Example command | Source | Side effects |
 |---|---|---|---|
 | [Getting started](getting-started.md) | `getting-started` | [GettingStarted.cs](../examples/WebDAVClient.Examples/GettingStarted.cs) | Writes a new local file |
+| [Nextcloud integration](nextcloud.md) | `nextcloud` | [CloudStorage.cs](../examples/WebDAVClient.Examples/CloudStorage.cs) | PROPFIND/GET; writes a new local file |
+| [ownCloud Server integration](owncloud.md) | `owncloud` | [CloudStorage.cs](../examples/WebDAVClient.Examples/CloudStorage.cs) | PROPFIND/GET; writes a new local file |
 | [Authentication](authentication.md) | `authentication` | [Authentication.cs](../examples/WebDAVClient.Examples/Authentication.cs), [transport setup](../examples/WebDAVClient.Examples/Program.cs) | OPTIONS only |
 | [Listing and properties](listing-and-properties.md) | `listing` | [ListingAndProperties.cs](../examples/WebDAVClient.Examples/ListingAndProperties.cs) | PROPFIND only |
 | [Transfers](transfers.md) | `transfers --allow-writes` | [Transfers.cs](../examples/WebDAVClient.Examples/Transfers.cs) | Run-owned remote collection and new local file |
