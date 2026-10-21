@@ -107,6 +107,7 @@ Use an app password, not a bearer token, when your server requires one.
 | Choose anonymous, credentials, Windows or bearer authentication | [Authentication](https://github.com/saguiitay/WebDAVClient/blob/master/docs/authentication.md) |
 | List folders, stream large listings and read typed/custom properties | [Listing and properties](https://github.com/saguiitay/WebDAVClient/blob/master/docs/listing-and-properties.md) |
 | Upload, download and request byte ranges | [File transfers](https://github.com/saguiitay/WebDAVClient/blob/master/docs/transfers.md) |
+| Resume interrupted file downloads with validated checkpoints (3.1+) | [Resumable downloads](https://github.com/saguiitay/WebDAVClient/blob/master/docs/resumable-downloads.md) |
 | Create folders, copy, move and delete safely | [File management](https://github.com/saguiitay/WebDAVClient/blob/master/docs/file-management.md) |
 | Acquire, refresh and release a lock; make conditional writes | [Locking](https://github.com/saguiitay/WebDAVClient/blob/master/docs/locking.md) |
 | Request an RFC 6578 change batch | [Collection synchronization](https://github.com/saguiitay/WebDAVClient/blob/master/docs/collection-sync.md) |

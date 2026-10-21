@@ -30,7 +30,7 @@ namespace WebDAVClient.UnitTests
                     yield return new object[] { name, match.Groups["code"].Value };
                 }
             }
-            Assert.AreEqual(8, count, "Keep the complete README and guide example inventory explicit.");
+            Assert.AreEqual(9, count, "Keep the complete README and guide example inventory explicit.");
         }
 
         [DataTestMethod]

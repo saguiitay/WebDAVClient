@@ -111,7 +111,7 @@ if (count == 0)
 `Client` and `IClient` remain available without renamed members or changed
 upload ownership. They use compatibility projections over shared XML reading.
 `DavClient` is a separate API: migration is explicit, not a constructor rename.
-The 3.0.4 assembly version is `3.0.4.0`; rebuild consumers when upgrading.
+The 3.1.0 assembly version is `3.1.0.0`; rebuild consumers when upgrading.
 
 | Concern | Existing API | Modern API |
 |---|---|---|
@@ -196,7 +196,9 @@ reject ignored-range 200 responses and returned ETag/Last-Modified values that
 contradict the supplied `IfRange` validator. Resuming an existing file requires
 a stable validator and explicit caller reconciliation. Ordinary transfers
 support non-seekable input and 64-bit sizes without full buffering; the modern
-surface does not expose partial PUT or promise automatic resumability.
+surface does not expose partial PUT or automatically resume plain streams.
+For explicit durable file checkpoints in 3.1+, see
+[resumable downloads](resumable-downloads.md).
 
 `OpenListingAsync` returns a single-use enumeration. `IsComplete` becomes true
 only after every resource and the end of the document have been validated.
@@ -369,6 +371,14 @@ server-specific extensions and broader conformance checks separate from the
 basic transfer smoke result.
 
 ## Release Notes
+
++ **3.1.0** Durable resumable file downloads:
+  - Added the `DownloadFileAsync` extension in `WebDAVClient.Transfers` with strong validators,
+    known-length checks, verified checkpoints and atomic no-overwrite completion.
+  - Added `DownloadOptions.RequireIdentityEncoding` for explicit identity GETs.
+  - Added a focused guide, complete application and runnable `resumable-downloads`
+    command alongside the current task and vendor integration examples.
+  - No automatic retries, resumable uploads or durable directory synchronization.
 
 + **3.0.4** Nextcloud and ownCloud integration examples:
   - Added runnable read-only remote workflows for vendor-specific metadata
