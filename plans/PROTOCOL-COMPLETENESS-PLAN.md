@@ -5,7 +5,7 @@ repository commit `ac0ef8a7b637b03114cf18a16a1e60d9a53396a1`, reviewed 2026-10-1
 
 ### Core requirement and lifecycle update (2026-10-21)
 
-The durable [RFC 4918 client requirement ledger](../docs/RFC4918-REQUIREMENTS.md)
+The durable [RFC 4918 client requirement ledger](../docs/rfc4918-requirements.md)
 now maps sections 4–18 to concrete APIs, deterministic test evidence, server-only
 responsibilities and explicit unsupported/partial scope. It does not certify
 server conformance or claim every historical milestone complete.
@@ -14,7 +14,7 @@ server conformance or claim every historical milestone complete.
 lifecycle with validated acquisition identity/scope/depth, conservative monotonic
 expiry, uncertainty on failed renewal/release, serialized operations and at most
 one release attempt. There is no timer, automatic retry, reacquisition or durable
-lease store. See [lock lifecycle reference](../docs/LOCK-LIFECYCLE.md).
+lease store. See [lock lifecycle reference](../docs/lock-lifecycle.md).
 
 Core corrections also cover RFC 4918 empty-resource GET 204, no-cache directives
 for DAV If requests through non-DAV-aware proxies, coded capability URIs containing
@@ -56,7 +56,8 @@ resource-oriented surface, shared bounded XML reading, rich outcomes, typed
 properties/conditions, ordered PROPPATCH, metadata-rich transfers, lock options,
 and streamed listing completion. Existing `Client`/`IClient` remain compatibility
 APIs. A public REPORT seam and a single-batch sync-level 1 profile exercise the
-extension boundary. See the README's v3 migration section for current contracts.
+extension boundary. See the [v3 migration reference](../docs/reference.md#v3-migration-and-contracts)
+for current contracts.
 This is not completion of P-01 through P-10: independent server conformance
 evidence, DI/resilience integration, and the broader extension portfolio remain
 outstanding. The ledger
@@ -118,7 +119,7 @@ The target is protocol capability and evidence. It does not imply that every ser
 | Transport/auth | Reusable HTTP wrapper, caller ownership, bearer handler, `ICredentials`, TLS callback, origin validation. | Request-scoped options, replay policy, credential isolation, cancellation through initial path resolution, diagnostics and DI adapters. |
 | Automated tests | MSTest suite in solution for both target frameworks. | Requirement coverage, real-server integration, failure injection, native-client traces, large-resource fixtures. |
 
-Evidence locations: `WebDAVClient\IClient.cs`; `Client.cs:254-1390`; `Model\Item.cs`; `Model\ServerOptions.cs`; helpers under `WebDAVClient\Helpers`; and `WebDAVClient.UnitTests`.
+Evidence locations: `src\WebDAVClient\IClient.cs`; `Client.cs:254-1390`; `Model\Item.cs`; `Model\ServerOptions.cs`; helpers under `src\WebDAVClient\Helpers`; and `tests\WebDAVClient.UnitTests`.
 
 Specific design constraints visible in current code:
 
@@ -353,8 +354,8 @@ The site explicitly documents these as specialized behavior:
 Existing targeted commands remain:
 
 ```powershell
-dotnet test .\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -f net8.0
-dotnet test .\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -f net10.0
+dotnet test .\tests\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -f net8.0
+dotnet test .\tests\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj -c Release -f net10.0
 ```
 
 Add any new integration-test projects to the solution before relying on solution-level test runs. Keep networked suites explicitly selected; public demonstration endpoints are not stable CI fixtures and must not receive destructive tests.

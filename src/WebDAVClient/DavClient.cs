@@ -255,13 +255,18 @@ namespace WebDAVClient
             using var request = CreateRequest("GET", path, options);
             request.Headers.Range = range;
             request.Headers.IfRange = ifRange;
-            if (range != null)
+            if (range != null || options.RequireIdentityEncoding)
             {
                 request.Headers.AcceptEncoding.ParseAdd("identity");
             }
             var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
             try
             {
+                if (options.RequireIdentityEncoding && response.IsSuccessStatusCode &&
+                    response.Content.Headers.ContentEncoding.Any(e => !string.Equals(e, "identity", StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw ProtocolError(response, request, "An identity representation was required.");
+                }
                 if (range != null && (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent))
                 {
                     ValidateRange(response, request, range.Ranges.Single(), ifRange);

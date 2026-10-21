@@ -27,12 +27,15 @@ Publish a compatibility matrix in the README, including known limitations. Devel
 
 I'd also add an optional diagnostics facility that captures sanitized DAV request/response information, capability discovery, and structured failure reasons. That would reduce your support burden.
 
-## Implementation update — upcoming v3 source, 2026-10-20
+## Implementation update — interoperability tooling
 
 The original proposal above is preserved. An opt-in executable compatibility
-suite now lives in `WebDAVClient.InteropTests`, with offline harness regressions
+suite now lives in `tests\WebDAVClient.InteropTests`, with offline harness regressions
 included in the solution. Ordinary `dotnet test` does not contact a server.
-No production package dependencies or publication/version metadata were changed.
+The baseline library **3.2.0 is published**. This integration prepares 3.2.1
+packaging/documentation metadata without changing production APIs or runtime
+dependencies. The historical observations below retain their original source
+revisions and dates; they are not new runs against that published package.
 
 Run the pinned independent WsgiDAV fixture on both target frameworks:
 

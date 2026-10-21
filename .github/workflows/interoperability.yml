@@ -55,7 +55,7 @@ jobs:
       - name: Offline harness regressions
         shell: pwsh
         run: |
-          dotnet test WebDAVClient.InteropTests -c Release --verbosity quiet
+          dotnet test tests/WebDAVClient.InteropTests -c Release --verbosity quiet
           if ($LASTEXITCODE -ne 0) { throw 'Offline harness tests failed.' }
           ./interoperability/Test-FixtureReadiness.ps1
           ./interoperability/Test-SyntheticPropertyWire.ps1

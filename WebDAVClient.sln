@@ -3,13 +3,21 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.7.33913.275
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebDAVClient", "WebDAVClient\WebDAVClient.csproj", "{F21EB154-C84E-4390-87CF-271E3DF4F059}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebDAVClient", "src\WebDAVClient\WebDAVClient.csproj", "{F21EB154-C84E-4390-87CF-271E3DF4F059}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestWebDAVClient", "TestWebDAVClient\TestWebDAVClient.csproj", "{C8999849-83F9-4B2A-AFD6-1C6ED43A4B87}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestWebDAVClient", "examples\TestWebDAVClient\TestWebDAVClient.csproj", "{C8999849-83F9-4B2A-AFD6-1C6ED43A4B87}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebDAVClient.UnitTests", "WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj", "{1C433922-C455-42C5-941D-1234E9292890}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebDAVClient.UnitTests", "tests\WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj", "{1C433922-C455-42C5-941D-1234E9292890}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebDAVClient.InteropTests", "WebDAVClient.InteropTests\WebDAVClient.InteropTests.csproj", "{F0E14F29-3F76-4C19-A335-28BF9EBEB492}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebDAVClient.InteropTests", "tests\WebDAVClient.InteropTests\WebDAVClient.InteropTests.csproj", "{F0E14F29-3F76-4C19-A335-28BF9EBEB492}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{6D2D773F-BC36-4DBB-8EBD-BD145F068105}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{CD33ECAB-D5B7-4337-B845-118325A839BA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{B36A84DF-456D-A817-6EDD-3EC3E7F6E11F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebDAVClient.Examples", "examples\WebDAVClient.Examples\WebDAVClient.Examples.csproj", "{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,6 +65,18 @@ Global
 		{1C433922-C455-42C5-941D-1234E9292890}.Release|x64.Build.0 = Release|Any CPU
 		{1C433922-C455-42C5-941D-1234E9292890}.Release|x86.ActiveCfg = Release|Any CPU
 		{1C433922-C455-42C5-941D-1234E9292890}.Release|x86.Build.0 = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|x64.Build.0 = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|x86.Build.0 = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|x64.ActiveCfg = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|x64.Build.0 = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|x86.ActiveCfg = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|x86.Build.0 = Release|Any CPU
 		{F0E14F29-3F76-4C19-A335-28BF9EBEB492}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F0E14F29-3F76-4C19-A335-28BF9EBEB492}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0E14F29-3F76-4C19-A335-28BF9EBEB492}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -72,6 +92,13 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F21EB154-C84E-4390-87CF-271E3DF4F059} = {6D2D773F-BC36-4DBB-8EBD-BD145F068105}
+		{1C433922-C455-42C5-941D-1234E9292890} = {CD33ECAB-D5B7-4337-B845-118325A839BA}
+		{F0E14F29-3F76-4C19-A335-28BF9EBEB492} = {CD33ECAB-D5B7-4337-B845-118325A839BA}
+		{C8999849-83F9-4B2A-AFD6-1C6ED43A4B87} = {B36A84DF-456D-A817-6EDD-3EC3E7F6E11F}
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3} = {B36A84DF-456D-A817-6EDD-3EC3E7F6E11F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A49CDF2B-0E22-490F-97BF-6F614A4445B0}

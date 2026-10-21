@@ -9,8 +9,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="..\interoperability\fixtures\regressions\sabredav-4.7.0\sabredav-report-response.xml" Link="sabredav-report-response.xml" CopyToOutputDirectory="PreserveNewest" />
-    <ProjectReference Include="..\WebDAVClient\WebDAVClient.csproj" />
+    <None Include="..\..\interoperability\fixtures\regressions\sabredav-4.7.0\sabredav-report-response.xml" Link="sabredav-report-response.xml" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="..\..\src\WebDAVClient\WebDAVClient.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.6.4" />
     <PackageReference Include="MSTest.TestFramework" Version="3.6.4" />

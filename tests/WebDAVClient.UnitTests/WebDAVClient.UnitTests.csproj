@@ -26,9 +26,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\README.md" Link="README.md" CopyToOutputDirectory="PreserveNewest" />
-    <ProjectReference Include="..\WebDAVClient\WebDAVClient.csproj" />
-    <ProjectReference Include="..\TestWebDAVClient\TestWebDAVClient.csproj" />
+    <None Include="..\..\README.md" Link="README.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\docs\**\*.md" Link="docs\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="..\..\src\WebDAVClient\WebDAVClient.csproj" />
+    <ProjectReference Include="..\..\examples\TestWebDAVClient\TestWebDAVClient.csproj" />
+    <ProjectReference Include="..\..\examples\WebDAVClient.Examples\WebDAVClient.Examples.csproj" />
   </ItemGroup>
 
 </Project>

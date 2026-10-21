@@ -10,6 +10,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
+$project = Join-Path (Join-Path $root 'tests') 'WebDAVClient.InteropTests'
 Push-Location $root
 $names = @('RUN', 'ENDPOINT', 'SERVER', 'VERSION', 'AUTH', 'REVISION', 'OUTPUT', 'APACHE_PATH_PLUS_ALIAS')
 $saved = @{}
@@ -42,14 +43,14 @@ try {
         $env:WEBDAV_INTEROP_ENDPOINT = "http://127.0.0.1:$($profileData.port)$path"
     }
     $env:WEBDAV_INTEROP_REVISION = (& git rev-parse HEAD)
-    & dotnet build WebDAVClient.InteropTests -c Release --nologo --verbosity quiet
+    & dotnet build $project -c Release --nologo --verbosity quiet
     if ($LASTEXITCODE -ne 0) {
         throw 'Suite build failed.'
     }
     $failed = $false
     foreach ($tfm in $Framework) {
         $env:WEBDAV_INTEROP_OUTPUT = Join-Path $OutputDirectory "$Profile-$($env:WEBDAV_INTEROP_AUTH)-$tfm.json"
-        & dotnet run --project WebDAVClient.InteropTests -c Release -f $tfm --no-build -- --run
+        & dotnet run --project $project -c Release -f $tfm --no-build -- --run
         $failed = $failed -or $LASTEXITCODE -ne 0
     }
     if ($failed) {

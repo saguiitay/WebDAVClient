@@ -1,10 +1,13 @@
 # Independent WebDAV interoperability suite
 
 This is an **opt-in mutating compatibility suite**, not a complete RFC 4918
-conformance certification. The v3 library source is upcoming, not a published
-3.0.0 package. [Checked-in evidence](results/compatibility-matrix.json) records
+conformance certification. **WebDAVClient 3.2.0 is published on NuGet**; this
+checkout adds separate, nonpackable compatibility tooling.
+[Checked-in evidence](results/compatibility-matrix.json) records
 actual observations, including missing server evidence. Unit tests and loopback
 test doubles are never counted as independent-server results.
+Historical source revisions, server versions and raw fixtures remain unchanged;
+they are not reruns or certification of the published 3.2.0 package.
 
 ## Run an isolated fixture
 
@@ -91,8 +94,8 @@ For the executable directly, set `WEBDAV_INTEROP_RUN=1`, `ENDPOINT`, `SERVER`,
 (all with the `WEBDAV_INTEROP_` prefix), then:
 
 ```powershell
-dotnet run --project WebDAVClient.InteropTests -c Release -f net8.0 -- --run
-dotnet run --project WebDAVClient.InteropTests -c Release -f net10.0 -- --run
+dotnet run --project tests\WebDAVClient.InteropTests -c Release -f net8.0 -- --run
+dotnet run --project tests\WebDAVClient.InteropTests -c Release -f net10.0 -- --run
 ```
 
 Without `--run` **and** the mutation opt-in the executable makes no requests.

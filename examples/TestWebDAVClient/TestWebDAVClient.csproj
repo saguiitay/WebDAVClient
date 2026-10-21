@@ -11,7 +11,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="WebDAVClient.UnitTests" />
-    <ProjectReference Include="..\WebDAVClient\WebDAVClient.csproj">
+    <ProjectReference Include="..\..\src\WebDAVClient\WebDAVClient.csproj">
       <Project>{F21EB154-C84E-4390-87CF-271E3DF4F059}</Project>
       <Name>WebDAVClient</Name>
     </ProjectReference>
