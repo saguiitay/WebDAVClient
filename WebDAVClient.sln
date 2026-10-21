@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestWebDAVClient", "TestWeb
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebDAVClient.UnitTests", "WebDAVClient.UnitTests\WebDAVClient.UnitTests.csproj", "{1C433922-C455-42C5-941D-1234E9292890}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{B36A84DF-456D-A817-6EDD-3EC3E7F6E11F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebDAVClient.Examples", "examples\WebDAVClient.Examples\WebDAVClient.Examples.csproj", "{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,9 +59,24 @@ Global
 		{1C433922-C455-42C5-941D-1234E9292890}.Release|x64.Build.0 = Release|Any CPU
 		{1C433922-C455-42C5-941D-1234E9292890}.Release|x86.ActiveCfg = Release|Any CPU
 		{1C433922-C455-42C5-941D-1234E9292890}.Release|x86.Build.0 = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|x64.Build.0 = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Debug|x86.Build.0 = Debug|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|x64.ActiveCfg = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|x64.Build.0 = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|x86.ActiveCfg = Release|Any CPU
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DCD4E938-F23A-4CEE-9D64-0BCDCA9A84F3} = {B36A84DF-456D-A817-6EDD-3EC3E7F6E11F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A49CDF2B-0E22-490F-97BF-6F614A4445B0}
