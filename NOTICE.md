@@ -2,10 +2,13 @@
 
 ## Current distribution
 
-WebDAVClient's project-authored code is licensed under the [MIT License](LICENSE.md).
-The project owner has confirmed ownership of those contributions and authorized
-their distribution under MIT. Commercial use, modification, and redistribution
+WebDAVClient is distributed under the [MIT License](LICENSE.md). MIT is the single
+license offered for the current package, not a choice between MIT and CC0 or
+Apache 2.0. The project owner has confirmed ownership of the project and
+authorized distribution under MIT. Commercial use, modification, and redistribution
 are permitted subject to the license's notice and other terms.
+
+## Historical upstream attribution
 
 The inherited client implementation originated in
 [`kvdb/WebDAVClient`](https://github.com/kvdb/WebDAVClient). Its original source
@@ -21,10 +24,12 @@ Feel free to use this code however you like.
 http://creativecommons.org/license/zero/
 ```
 
-That notice is preserved for inherited portions; MIT covers this project's
-adaptations and additions, not a replacement of the upstream notice. The
-historical URL above is reproduced as written. The original README describes
-the adaptations as task-based async support and strongly typed responses.
+That notice is retained as historical provenance, not as a separate CC0 license
+requirement for the current package. The current distribution, including the
+adapted inherited implementation, is offered under MIT; this does not revoke
+the upstream author's original permissions. The historical URL above is
+reproduced as written. The original README describes the adaptations as
+task-based async support and strongly typed responses.
 
 The header can be verified in the
 [upstream source at `aab7b278`](https://github.com/kvdb/WebDAVClient/blob/aab7b278185d2a8b7d3bda1a4485e59101c94f0c/WebDAVClient/WebDAVClient.cs)
@@ -51,7 +56,8 @@ that historical notice is not a current attribution of project ownership.
 The archived combined text does not designate the current distribution as a
 whole-package MIT/Apache dual-license choice.
 
-The upcoming 3.0.0 package includes `LICENSE.md`, this notice, and the historical
-record. This clarification does not change previously published packages or
-withdraw permissions already granted with earlier distributions. Preserve the
+The upcoming 3.0.0 package declares `MIT` in its NuGet license metadata and includes
+`LICENSE.md`, this notice, and the historical record. This clarification does not
+change previously published packages or withdraw permissions already granted
+with earlier distributions. Preserve the
 supplied license and attribution notices when redistributing.
