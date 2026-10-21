@@ -21,6 +21,8 @@ available on NuGet but lack that metadata; no source tags were guessed for them.
   and prioritized interoperability follow-up work.
 - Verify guarded-write content/ETag integrity and valid/invalid lock-conditioned
   mutations with the versioned interoperability suite.
+- Document newly observed WsgiDAV tagged-MOVE and Apache validator limits,
+  and confirm nginx overwrites after ignored write preconditions.
 - No production API/runtime changes or automatic package publication.
 
 ## [3.2.0] - 2026-10-21

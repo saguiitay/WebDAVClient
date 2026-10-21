@@ -285,6 +285,16 @@ than deleting negative history to make the summary green.
 
 ## Fixture status and limits
 
+The latest **suite 1.1** runs at `b3e2e5e` pass 55 checks with one evidenced
+optional sync rejection on SabreDAV, on both frameworks. Stronger conditions
+expose WsgiDAV's ignored false ETag on tagged MOVE, Apache's weak-validator
+prerequisite and nginx's actual overwrites after both false HTTP conditions.
+See the [current outcome table and priorities](GAPS.md#current-evidence) and
+[source/environment companion](results/local-b3e2e5e-environment.json).
+None of these observations changes the production library or publishes a package.
+
+### Historical suite 1.0
+
 After synchronizing PR #92 with `origin/master` at `a5dc243`, hosted run
 [39612921060](https://github.com/saguiitay/WebDAVClient/actions/runs/39612921060)
 repeated the positive Apache/SabreDAV/WsgiDAV subsets first retained in

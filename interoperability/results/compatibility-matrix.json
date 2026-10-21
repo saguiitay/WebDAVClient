@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "suiteVersion": "1.1",
-  "generatedUtc": "2026-10-21T15:02:54.7198345+00:00",
+  "generatedUtc": "2026-10-21T15:26:49.9092296+00:00",
   "scope": "Independent-server observations only; not full RFC conformance, publication, or unobserved configuration support.",
   "servers": [
     {
       "server": "wsgidav",
       "configuredVersion": "4.3.5+cheroot-11.1.2",
-      "executionStatus": "observed-compatible-subset",
+      "executionStatus": "observed-nonpassing",
       "evidenceGap": null,
       "runs": [
         {
@@ -328,6 +328,282 @@
             "sync-discovery"
           ],
           "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-local-6e1dc48-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:09:30.3830421+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "6e1dc489c82f6f5bf96571bb65c0f9d0bd7369c3",
+          "succeeded": false,
+          "passed": 47,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-local-6e1dc48-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:09:23.6959470+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "6e1dc489c82f6f5bf96571bb65c0f9d0bd7369c3",
+          "succeeded": false,
+          "passed": 47,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-local-b3e2e5e-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:24:55.5395681+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "b3e2e5e80e38876767ac9e82c3a9bdca01e4e5b4",
+          "succeeded": false,
+          "passed": 49,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag",
+              "outcome": "failed",
+              "httpStatus": 201,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Rejected MOVE created a destination."
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "False ETag condition changed the baseline; no repair or replay attempted."
+            },
+            {
+              "operation": "lock-move-cleanup-unlock",
+              "outcome": "failed",
+              "httpStatus": 404,
+              "memberStatuses": [],
+              "propertyStatuses": []
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-local-b3e2e5e-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:24:48.1577987+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "b3e2e5e80e38876767ac9e82c3a9bdca01e4e5b4",
+          "succeeded": false,
+          "passed": 49,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag",
+              "outcome": "failed",
+              "httpStatus": 201,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Rejected MOVE created a destination."
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "False ETag condition changed the baseline; no repair or replay attempted."
+            },
+            {
+              "operation": "lock-move-cleanup-unlock",
+              "outcome": "failed",
+              "httpStatus": 404,
+              "memberStatuses": [],
+              "propertyStatuses": []
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-local-ee58c59-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:19:05.0461049+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "ee58c5955e3e4525b8b639002af3c070cdb6298e",
+          "succeeded": false,
+          "passed": 49,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag",
+              "outcome": "failed",
+              "httpStatus": 201,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Rejected MOVE created a destination."
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "False ETag condition changed the baseline; no repair or replay attempted."
+            },
+            {
+              "operation": "lock-move-cleanup-unlock",
+              "outcome": "failed",
+              "httpStatus": 404,
+              "memberStatuses": [],
+              "propertyStatuses": []
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-local-ee58c59-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:18:58.1153858+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "ee58c5955e3e4525b8b639002af3c070cdb6298e",
+          "succeeded": false,
+          "passed": 49,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag",
+              "outcome": "failed",
+              "httpStatus": 201,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Rejected MOVE created a destination."
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "False ETag condition changed the baseline; no repair or replay attempted."
+            },
+            {
+              "operation": "lock-move-cleanup-unlock",
+              "outcome": "failed",
+              "httpStatus": 404,
+              "memberStatuses": [],
+              "propertyStatuses": []
+            }
+          ],
           "cleanup": [
             "passed"
           ]
@@ -700,6 +976,570 @@
             "sync-discovery"
           ],
           "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-local-6e1dc48-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:12:28.6815063+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "2.4.65",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "6e1dc489c82f6f5bf96571bb65c0f9d0bd7369c3",
+          "succeeded": false,
+          "passed": 17,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "conditional-create",
+              "outcome": "failed",
+              "detail": "strong-etag-unavailable"
+            },
+            {
+              "operation": "conditional-put",
+              "outcome": "blocked",
+              "detail": "Guarded creation, bytes and strong validator were not confirmed."
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed guarded-write baseline."
+            },
+            {
+              "operation": "conditional-etag-create",
+              "outcome": "failed",
+              "detail": "strong-etag-unavailable"
+            },
+            {
+              "operation": "conditional-if-match",
+              "outcome": "blocked",
+              "detail": "No confirmed strong-validator baseline."
+            },
+            {
+              "operation": "conditional-if-match-integrity",
+              "outcome": "blocked",
+              "detail": "Matching-validator replacement was not confirmed."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "blocked",
+              "detail": "No confirmed replacement with a new strong validator."
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed stale-validator baseline."
+            },
+            {
+              "operation": "lock-put-create",
+              "outcome": "failed",
+              "detail": "strong-etag-unavailable"
+            },
+            {
+              "operation": "lock-put-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-delete-create",
+              "outcome": "failed",
+              "detail": "strong-etag-unavailable"
+            },
+            {
+              "operation": "lock-delete-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-move-create",
+              "outcome": "failed",
+              "detail": "strong-etag-unavailable"
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-local-6e1dc48-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:12:27.0291158+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "2.4.65",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "6e1dc489c82f6f5bf96571bb65c0f9d0bd7369c3",
+          "succeeded": false,
+          "passed": 17,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "conditional-create",
+              "outcome": "failed",
+              "detail": "strong-etag-unavailable"
+            },
+            {
+              "operation": "conditional-put",
+              "outcome": "blocked",
+              "detail": "Guarded creation, bytes and strong validator were not confirmed."
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed guarded-write baseline."
+            },
+            {
+              "operation": "conditional-etag-create",
+              "outcome": "failed",
+              "detail": "strong-etag-unavailable"
+            },
+            {
+              "operation": "conditional-if-match",
+              "outcome": "blocked",
+              "detail": "No confirmed strong-validator baseline."
+            },
+            {
+              "operation": "conditional-if-match-integrity",
+              "outcome": "blocked",
+              "detail": "Matching-validator replacement was not confirmed."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "blocked",
+              "detail": "No confirmed replacement with a new strong validator."
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed stale-validator baseline."
+            },
+            {
+              "operation": "lock-put-create",
+              "outcome": "failed",
+              "detail": "strong-etag-unavailable"
+            },
+            {
+              "operation": "lock-put-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-delete-create",
+              "outcome": "failed",
+              "detail": "strong-etag-unavailable"
+            },
+            {
+              "operation": "lock-delete-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-move-create",
+              "outcome": "failed",
+              "detail": "strong-etag-unavailable"
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-local-b3e2e5e-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:25:15.8522198+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "2.4.65",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "b3e2e5e80e38876767ac9e82c3a9bdca01e4e5b4",
+          "succeeded": false,
+          "passed": 17,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "conditional-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "conditional-put",
+              "outcome": "blocked",
+              "detail": "Guarded creation, bytes and strong validator were not confirmed."
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed guarded-write baseline."
+            },
+            {
+              "operation": "conditional-etag-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "conditional-if-match",
+              "outcome": "blocked",
+              "detail": "No confirmed strong-validator baseline."
+            },
+            {
+              "operation": "conditional-if-match-integrity",
+              "outcome": "blocked",
+              "detail": "Matching-validator replacement was not confirmed."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "blocked",
+              "detail": "No confirmed replacement with a new strong validator."
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed stale-validator baseline."
+            },
+            {
+              "operation": "lock-put-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-put-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-delete-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-delete-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-move-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-local-b3e2e5e-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:25:13.8692525+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "2.4.65",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "b3e2e5e80e38876767ac9e82c3a9bdca01e4e5b4",
+          "succeeded": false,
+          "passed": 17,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "conditional-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "conditional-put",
+              "outcome": "blocked",
+              "detail": "Guarded creation, bytes and strong validator were not confirmed."
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed guarded-write baseline."
+            },
+            {
+              "operation": "conditional-etag-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "conditional-if-match",
+              "outcome": "blocked",
+              "detail": "No confirmed strong-validator baseline."
+            },
+            {
+              "operation": "conditional-if-match-integrity",
+              "outcome": "blocked",
+              "detail": "Matching-validator replacement was not confirmed."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "blocked",
+              "detail": "No confirmed replacement with a new strong validator."
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed stale-validator baseline."
+            },
+            {
+              "operation": "lock-put-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-put-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-delete-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-delete-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-move-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-local-ee58c59-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:19:21.2953872+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "2.4.65",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "ee58c5955e3e4525b8b639002af3c070cdb6298e",
+          "succeeded": false,
+          "passed": 17,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "conditional-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "conditional-put",
+              "outcome": "blocked",
+              "detail": "Guarded creation, bytes and strong validator were not confirmed."
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed guarded-write baseline."
+            },
+            {
+              "operation": "conditional-etag-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "conditional-if-match",
+              "outcome": "blocked",
+              "detail": "No confirmed strong-validator baseline."
+            },
+            {
+              "operation": "conditional-if-match-integrity",
+              "outcome": "blocked",
+              "detail": "Matching-validator replacement was not confirmed."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "blocked",
+              "detail": "No confirmed replacement with a new strong validator."
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed stale-validator baseline."
+            },
+            {
+              "operation": "lock-put-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-put-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-delete-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-delete-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-move-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "apache-basic-local-ee58c59-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:19:19.6869990+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "2.4.65",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "ee58c5955e3e4525b8b639002af3c070cdb6298e",
+          "succeeded": false,
+          "passed": 17,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "conditional-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "conditional-put",
+              "outcome": "blocked",
+              "detail": "Guarded creation, bytes and strong validator were not confirmed."
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed guarded-write baseline."
+            },
+            {
+              "operation": "conditional-etag-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "conditional-if-match",
+              "outcome": "blocked",
+              "detail": "No confirmed strong-validator baseline."
+            },
+            {
+              "operation": "conditional-if-match-integrity",
+              "outcome": "blocked",
+              "detail": "Matching-validator replacement was not confirmed."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "blocked",
+              "detail": "No confirmed replacement with a new strong validator."
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "blocked",
+              "detail": "No confirmed stale-validator baseline."
+            },
+            {
+              "operation": "lock-put-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-put-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-delete-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-delete-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            },
+            {
+              "operation": "lock-move-create",
+              "outcome": "failed",
+              "detail": "weak-etag"
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "No confirmed run-owned resource/validator for lock-conditioned mutations."
+            }
+          ],
           "cleanup": [
             "passed"
           ]
@@ -1285,6 +2125,324 @@
           "cleanup": [
             "passed"
           ]
+        },
+        {
+          "evidence": "nginx-anonymous-local-6e1dc48-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:12:56.0271730+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "1.28.0",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "6e1dc489c82f6f5bf96571bb65c0f9d0bd7369c3",
+          "succeeded": false,
+          "passed": 16,
+          "unsupported": [
+            "options",
+            "propfind-statuses",
+            "streamed-listing",
+            "dead-property",
+            "lock-unlock",
+            "lock-put-acquire",
+            "sync-discovery",
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "conditional-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "nginx-anonymous-local-6e1dc48-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:12:54.3069940+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "1.28.0",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "6e1dc489c82f6f5bf96571bb65c0f9d0bd7369c3",
+          "succeeded": false,
+          "passed": 16,
+          "unsupported": [
+            "options",
+            "propfind-statuses",
+            "streamed-listing",
+            "dead-property",
+            "lock-unlock",
+            "lock-put-acquire",
+            "sync-discovery",
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "conditional-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "nginx-anonymous-local-b3e2e5e-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:25:44.3547662+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "1.28.0",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "b3e2e5e80e38876767ac9e82c3a9bdca01e4e5b4",
+          "succeeded": false,
+          "passed": 16,
+          "unsupported": [
+            "options",
+            "propfind-statuses",
+            "streamed-listing",
+            "dead-property",
+            "lock-unlock",
+            "lock-put-acquire",
+            "sync-discovery",
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "conditional-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "nginx-anonymous-local-b3e2e5e-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:25:42.3661603+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "1.28.0",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "b3e2e5e80e38876767ac9e82c3a9bdca01e4e5b4",
+          "succeeded": false,
+          "passed": 16,
+          "unsupported": [
+            "options",
+            "propfind-statuses",
+            "streamed-listing",
+            "dead-property",
+            "lock-unlock",
+            "lock-put-acquire",
+            "sync-discovery",
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "conditional-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "nginx-anonymous-local-ee58c59-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:19:49.7606506+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "1.28.0",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "ee58c5955e3e4525b8b639002af3c070cdb6298e",
+          "succeeded": false,
+          "passed": 16,
+          "unsupported": [
+            "options",
+            "propfind-statuses",
+            "streamed-listing",
+            "dead-property",
+            "lock-unlock",
+            "lock-put-acquire",
+            "sync-discovery",
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "conditional-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "nginx-anonymous-local-ee58c59-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:19:48.2963991+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "1.28.0",
+          "authentication": "anonymous",
+          "transport": "http",
+          "sourceRevision": "ee58c5955e3e4525b8b639002af3c070cdb6298e",
+          "succeeded": false,
+          "passed": 16,
+          "unsupported": [
+            "options",
+            "propfind-statuses",
+            "streamed-listing",
+            "dead-property",
+            "lock-unlock",
+            "lock-put-acquire",
+            "sync-discovery",
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "conditional-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            },
+            {
+              "operation": "conditional-stale-put",
+              "outcome": "failed",
+              "httpStatus": 204,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "conditional-stale-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Byte-for-byte body and range metadata checked."
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
         }
       ]
     },
@@ -1620,6 +2778,208 @@
           ],
           "unavailableProperties": [],
           "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "sabredav-basic-local-6e1dc48-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:12:42.8922743+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "6e1dc489c82f6f5bf96571bb65c0f9d0bd7369c3",
+          "succeeded": false,
+          "passed": 46,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "lock-put-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-delete-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "sabredav-basic-local-6e1dc48-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:12:41.1682753+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "6e1dc489c82f6f5bf96571bb65c0f9d0bd7369c3",
+          "succeeded": false,
+          "passed": 46,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "lock-put-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-delete-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "sabredav-basic-local-b3e2e5e-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:25:31.3290394+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "b3e2e5e80e38876767ac9e82c3a9bdca01e4e5b4",
+          "succeeded": true,
+          "passed": 55,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "sabredav-basic-local-b3e2e5e-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:25:29.0988310+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "b3e2e5e80e38876767ac9e82c3a9bdca01e4e5b4",
+          "succeeded": true,
+          "passed": 55,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "sabredav-basic-local-ee58c59-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:19:35.6055299+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "ee58c5955e3e4525b8b639002af3c070cdb6298e",
+          "succeeded": false,
+          "passed": 52,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "lock-put-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-delete-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "sabredav-basic-local-ee58c59-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-21T15:19:33.6437074+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "ee58c5955e3e4525b8b639002af3c070cdb6298e",
+          "succeeded": false,
+          "passed": 52,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [
+            {
+              "operation": "lock-put-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-delete-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            }
+          ],
           "cleanup": [
             "passed"
           ]
