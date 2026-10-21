@@ -350,6 +350,33 @@ including a 100,000-resource streaming case. Use the generated reports for curre
 measurements. Coverage is a regression signal, not proof of correctness; unexecuted
 defensive branches are not forced through reflection just to reach 100%.
 
+### Independent-server compatibility
+
+The opt-in [interoperability harness](interoperability/README.md) creates only
+isolated run-owned resources and writes schema-validated JSON results. Normal
+solution tests remain offline and include the harness's configuration, outcome
+and redaction tests. Real-server runs are separate from the coverage gate.
+
+| Server | Recorded evidence and limits |
+|---|---|
+| WsgiDAV 4.3.5 / Cheroot 11.1.2 | Basic: 19 passing cases; anonymous: 18, on both .NET 8 and .NET 10. REPORT unsupported; report discovery unavailable. A bare lock-token header is accepted only when confirmed by one matching discovery token; the wire deviation is recorded. |
+| Apache mod_dav 2.4.65 / native 2.4.66 | Basic profile passes on both frameworks with explicit PROPPATCH path-plus alias compatibility. Strict-default rejection is retained as evidence. |
+| nginx WebDAV | Basic-method fixture runs, but stale conditional PUT returns 204 instead of 412. This profile is incompatible with safe conditional updates; the failed observation is retained. |
+| SabreDAV 4.7.0 / PHP 8.3.25 | Basic profile: 20 passing cases on both frameworks, on Linux and native Windows. Optional sync REPORT is concretely unsupported; no RFC 6578 coverage claimed. |
+| Nextcloud / ownCloud | Container profiles provided; no execution evidence yet. |
+| Windows IIS WebDAV | Manual setup/profile; Windows authentication and HTTPS remain unverified. |
+
+The [versioned compatibility matrix](interoperability/results/compatibility-matrix.json)
+records observations, not server certification. An advertised capability does not
+guarantee success; an unavailable property does not prove an extension is absent.
+Never use public demonstration endpoints for destructive tests.
+
+The [final hosted run](https://github.com/saguiitay/WebDAVClient/actions/runs/39514944772)
+passes the configured Apache, SabreDAV and WsgiDAV profiles. Its overall result
+remains failed because nginx ignores the conditional PUT validator; that unsafe
+server behavior is not skipped or relabeled as success. Earlier failed runs and
+the corrected results remain in the matrix with their actual source revisions.
+
 `DavProcessingPerformanceTests` records warmed allocation and timing samples for
 resource projection, property lookup and completion checks. Allocation budgets
 guard these hot paths; elapsed times are diagnostic, not CI pass/fail criteria.
@@ -386,6 +413,8 @@ basic transfer smoke result.
     README examples. Legacy partial PUT now requires `--partial-put`; ordinary
     mutation smoke runs use standard full PUT.
   - NuGet now references the existing license file, preserving all notices.
+  - Added opt-in independent-server compatibility fixtures, bounded wire
+    diagnostics and a versioned matrix retaining known server incompatibilities.
   - Added `DavClient` with an immutable endpoint, explicit escaped `DavPath`
     references, resource-oriented operations and request-local options.
   - Added faithful XML/status/error results, typed property codecs, HTTP/DAV

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:webdavclient:interop:result:1",
+  "title": "WebDAVClient independent-server compatibility observation, schema v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "suiteVersion", "startedUtc", "runtime", "operatingSystem", "architecture", "server", "serverVersion", "serverVersionSource", "authentication", "transport", "loopback", "sourceRevisionScope", "runTree", "advertisedDav", "advertisedMethods", "advertisedReports", "observations", "succeeded"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "suiteVersion": { "const": "1.0" },
+    "startedUtc": { "type": "string", "format": "date-time" },
+    "runtime": { "type": "string" },
+    "operatingSystem": { "type": "string" },
+    "architecture": { "type": "string" },
+    "server": { "type": "string", "pattern": "^[A-Za-z0-9._+-]{1,100}$" },
+    "serverVersion": { "type": "string", "pattern": "^[A-Za-z0-9._+-]{1,100}$" },
+    "serverVersionSource": { "const": "fixture-pin-or-operator-label" },
+    "authentication": { "enum": ["anonymous", "basic", "windows"] },
+    "transport": { "enum": ["http", "https"] },
+    "loopback": { "type": "boolean" },
+    "sourceRevision": { "type": "string", "pattern": "^[a-fA-F0-9]{40}$" },
+    "sourceRevisionScope": { "type": "string" },
+    "runTree": { "type": "string", "pattern": "^webdavclient-interop-[a-f0-9]{32}$" },
+    "advertisedDav": { "type": "array", "items": { "type": "string" } },
+    "advertisedMethods": { "type": "array", "items": { "type": "string" } },
+    "advertisedReports": { "type": "array", "items": { "type": "string" } },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operation", "outcome"],
+        "properties": {
+          "operation": { "type": "string" },
+          "outcome": { "enum": ["passed", "unsupported", "unavailable-property", "denied", "redirected", "failed", "timed-out", "blocked"] },
+          "httpStatus": { "type": "integer", "minimum": 100, "maximum": 599 },
+          "memberStatuses": { "type": "array", "items": { "type": "integer", "minimum": 100, "maximum": 599 } },
+          "propertyStatuses": { "type": "array", "items": { "type": "integer", "minimum": 100, "maximum": 599 } },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "succeeded": { "type": "boolean" }
+  }
+}

@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "suiteVersion": "1.0",
+  "startedUtc": "2026-10-20T22:03:54.6104074+00:00",
+  "runtime": ".NET 8.0.32",
+  "operatingSystem": "Ubuntu 24.04.5 LTS",
+  "architecture": "X64",
+  "server": "nginx",
+  "serverVersion": "1.28.0",
+  "serverVersionSource": "fixture-pin-or-operator-label",
+  "authentication": "anonymous",
+  "transport": "http",
+  "loopback": true,
+  "sourceRevision": "7731b859abe2e05416f25756344a7ea3c5938b93",
+  "sourceRevisionScope": "repository revision at execution; result-only commit may follow",
+  "runTree": "webdavclient-interop-26cd31633fe7451a9a85885ad7ce6168",
+  "advertisedDav": [],
+  "advertisedMethods": [],
+  "advertisedReports": [],
+  "observations": [
+    {
+      "operation": "options",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "isolation-preflight",
+      "outcome": "passed",
+      "httpStatus": 404,
+      "detail": "Expected HTTP 404"
+    },
+    {
+      "operation": "create-tree",
+      "outcome": "passed",
+      "httpStatus": 201,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "unicode-put",
+      "outcome": "passed",
+      "httpStatus": 201,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "unicode-get",
+      "outcome": "passed",
+      "httpStatus": 200,
+      "detail": "Byte-for-byte body and range metadata checked."
+    },
+    {
+      "operation": "head-metadata",
+      "outcome": "passed",
+      "httpStatus": 200,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "range-get",
+      "outcome": "passed",
+      "httpStatus": 206,
+      "detail": "Byte-for-byte body and range metadata checked."
+    },
+    {
+      "operation": "conditional-put",
+      "outcome": "failed",
+      "httpStatus": 204,
+      "detail": "Expected HTTP 412"
+    },
+    {
+      "operation": "conditional-integrity",
+      "outcome": "passed",
+      "httpStatus": 200,
+      "detail": "Byte-for-byte body and range metadata checked."
+    },
+    {
+      "operation": "propfind-statuses",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "streamed-listing",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "dead-property",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "lock-unlock",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "copy",
+      "outcome": "passed",
+      "httpStatus": 204,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "copy-no-overwrite",
+      "outcome": "passed",
+      "httpStatus": 412,
+      "detail": "Expected HTTP 412"
+    },
+    {
+      "operation": "move",
+      "outcome": "passed",
+      "httpStatus": 204,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "sync-discovery",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "sync-report",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "delete-file",
+      "outcome": "passed",
+      "httpStatus": 204,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "cleanup-tree",
+      "outcome": "passed",
+      "httpStatus": 204,
+      "memberStatuses": [],
+      "propertyStatuses": [],
+      "detail": "Only confirmed run-owned tree deleted; absence verified."
+    }
+  ],
+  "succeeded": false
+}

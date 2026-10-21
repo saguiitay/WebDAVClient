@@ -1,0 +1,54 @@
+{
+  "workflowRunId": 39514944772,
+  "workflowRunUrl": "https://github.com/saguiitay/WebDAVClient/actions/runs/39514944772",
+  "pullRequest": 88,
+  "pullRequestHeadRevision": "745d049d2fd96f702c09bd99a62fa4c6fdea1dbe",
+  "checkedOutMergeRevision": "348b16f8c9b4d9c289ad5b0c761adf6eb0aeb0e7",
+  "sourceRevisionExplanation": "GitHub checked out the pull-request merge revision. Each framework result retains that actual execution revision; a result-only commit follows.",
+  "operatingSystem": "Ubuntu 24.04.5 LTS",
+  "frameworks": [
+    "net8.0",
+    "net10.0"
+  ],
+  "profiles": [
+    {
+      "server": "apache",
+      "serverVersion": "2.4.65",
+      "authentication": "basic",
+      "allowPathPlusEncodingAlias": true,
+      "workflowJobConclusion": "success",
+      "optionalSync": "Discovery property unavailable; REPORT returned 501. No RFC 6578 coverage."
+    },
+    {
+      "server": "sabredav",
+      "serverVersion": "4.7.0+php-8.3.25",
+      "authentication": "basic",
+      "workflowJobConclusion": "success",
+      "optionalSync": "HTTP 415 retained with DAV:supported-report, ReportNotSupported, empty advertised report set and a backend without ISyncCollection. No RFC 6578 coverage."
+    },
+    {
+      "server": "wsgidav",
+      "serverVersion": "4.3.5+cheroot-11.1.2",
+      "authentication": "basic",
+      "workflowJobConclusion": "success",
+      "wireDeviation": "A bare Lock-Token header is accepted only with one exactly matching validated lockdiscovery token; tokens are not recorded.",
+      "optionalSync": "Discovery property unavailable; REPORT returned 405. No RFC 6578 coverage."
+    },
+    {
+      "server": "nginx",
+      "serverVersion": "1.28.0",
+      "authentication": "anonymous",
+      "workflowJobConclusion": "failure",
+      "knownIncompatibility": "Stale If-Match PUT returned 204 instead of 412 on both frameworks. This profile is unsafe for conditional updates; the assertion and failed observations remain unchanged."
+    }
+  ],
+  "cleanup": "Every framework result confirms deletion and absence of its run-owned tree. Fixture startup/image records and bounded synthetic PROPPATCH wire captures are retained separately.",
+  "unverified": [
+    "Nextcloud",
+    "ownCloud",
+    "Windows IIS WebDAV",
+    "HTTPS and Windows authentication",
+    "Independent-server RFC 6578 synchronization",
+    "Full RFC 4918 conformance"
+  ]
+}

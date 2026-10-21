@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "observedUtcDate": "2026-10-20",
+  "scope": "Historical local-tooling observation before hosted CI. Later hosted execution evidence is recorded separately in the per-run files and compatibility matrix; missingEvidence below describes only this local observation.",
+  "platform": "Windows 11 build 26300 x64",
+  "dotnetSdks": ["8.0.426", "10.0.402"],
+  "python": "3.12.10",
+  "independentServer": {
+    "implementation": "WsgiDAV",
+    "version": "4.3.5",
+    "httpServer": "Cheroot",
+    "httpServerVersion": "11.1.2",
+    "configuration": "fixtures/wsgidav/serve.py; filesystem share, property manager, lock storage, loopback IPv4 only",
+    "dependencyVersions": "fixtures/wsgidav/requirements.txt",
+    "shareStateAfterRuns": "empty"
+  },
+  "docker": {
+    "clientVersion": "29.5.3",
+    "daemonAvailable": false,
+    "failure": "Docker Desktop Linux engine named pipe not found",
+    "manifestInspectionAvailable": true,
+    "manifestInspectionIsExecutionEvidence": false,
+    "registryVerifiedImages": [
+      "httpd:2.4.65-bookworm",
+      "nginx:1.28.0-alpine",
+      "php:8.3.25-apache",
+      "composer:2.8.12",
+      "nextcloud:31.0.9-apache",
+      "owncloud/server:10.15.0"
+    ]
+  },
+  "offlineValidation": {
+    "command": "dotnet test WebDAVClient.sln -c Release --no-restore",
+    "environment": "WEBDAV_INTEROP_RUN=1; WEBDAV_INTEROP_ENDPOINT=http://127.0.0.1:1/",
+    "baselineUnitTestsPassedPerFramework": 831,
+    "harnessUnitTestsPassedPerFramework": 36,
+    "frameworks": ["net8.0", "net10.0"],
+    "formatting": "IDE0011 verification passed",
+    "productionCoverage": "Unchanged production code and thresholds; integrated coverage gate is a separate validation."
+  },
+  "missingEvidence": [
+    "Apache mod_dav execution",
+    "nginx built-in WebDAV execution",
+    "SabreDAV image build/execution and locked Composer transitive dependencies",
+    "Nextcloud initialization/execution",
+    "ownCloud initialization/execution",
+    "IIS installation/execution",
+    "Windows integrated authentication",
+    "HTTPS",
+    "Linux/container runtime execution"
+  ]
+}

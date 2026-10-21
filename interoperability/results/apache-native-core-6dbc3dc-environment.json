@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Independent native Apache explicit policy comparison, not hosted2.4.65 or container execution",
+  "server": "Apache2.4.66 Win64",
+  "publisher": "Apache Lounge",
+  "archiveUrl": "https://www.apachelounge.com/download/VS17/binaries/httpd-2.4.66-251206-Win64-VS17.zip",
+  "archiveSha256": "2cd1f349b6705e43e784e876a233eeb1a859fa6b8abc693a91f87b35a368f7f9",
+  "archiveVerification": "SHA256 matches publisher HTTPS checksum document",
+  "authentication": "explicit fixture-only Basic",
+  "binding": "127.0.0.1 only; no service installation",
+  "coreSourceRevision": "6dbc3dc20339ea73a87c20b09f5e4eb1e2acb48f",
+  "integratedHarnessRevision": "af576a4b287bd491b4e9865c2d42ae6d5cadf00e",
+  "coreBinaries": [
+    {
+      "framework": "net8.0",
+      "sha256": "e4412f300d56f65ee98297a0c0ba852516ad5e43763a483d48a89ce0b80b4281"
+    },
+    {
+      "framework": "net10.0",
+      "sha256": "76699666d4b70861bcd21cebfb93f2ad2b8acad54b3733b9139c9f7c7615de0e"
+    }
+  ],
+  "strictDefault": "18 passed,2 optional unavailable,1 PROPPATCH target failure on each framework",
+  "explicitProfile": "19 passed,2 optional unavailable,0 nonpassing on each framework",
+  "policy": "Explicit PropPatchOptions.AllowPathPlusEncodingAlias=true, path-only assumption; no automatic replay or generic reserved-character equivalence",
+  "inheritedWrapperFlagRemainedDefaultOff": true,
+  "allRunTreesCleaned": true,
+  "composeExecuted": false,
+  "hosted2_4_65PostCorrectionExecuted": false,
+  "fixtureTeardown": {
+    "serverProcessStopped": true,
+    "portClosed": true,
+    "allRunTreesPreviouslyDeletedOverHttp": true,
+    "ownedSiteAndLockDatabaseRemoved": true,
+    "serviceInstalled": false
+  }
+}

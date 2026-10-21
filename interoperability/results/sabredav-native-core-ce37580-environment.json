@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Independent native Sabre retest, not container execution",
+  "server": "SabreDAV 4.7.0",
+  "runtime": "Official PHP 8.3.25 Windows NTS built-in HTTP server",
+  "authentication": "explicit Basic, generated fixture-only values",
+  "coreSourceRevision": "ce37580eceda3ce0a5e54b6425f7d4585217a980",
+  "harness": "This interoperability worktree with narrow REPORT evidence and static protocol codes; separate from core DLL revision",
+  "coreBinaries": [
+    {
+      "framework": "net8.0",
+      "sha256": "b47fa3fdb2c89b23647d1c67cd6cdffbd1d07a6c5c97d58568d0cdd6a82b6498"
+    },
+    {
+      "framework": "net10.0",
+      "sha256": "a9a63cd0161c18bb8c75cf807f7a13c36c66ee20a12af347817802679a66aa21"
+    }
+  ],
+  "composeExecuted": false,
+  "syntheticProbeCleanupConfirmed": true,
+  "shareEmpty": false,
+  "harnessSourceFiles": [
+    {
+      "file": "CompatibilitySuite.cs",
+      "sha256": "2e2eb7c6d64de1c45c37c5e7bd166b9556c9cb9ff77133789012bb8427699088"
+    },
+    {
+      "file": "Configuration.cs",
+      "sha256": "b75170043053b3e401570079b7038d2364d2d3a7a3261ff6c96c3138f0d58807"
+    },
+    {
+      "file": "Matrix.cs",
+      "sha256": "e626c91a573e24a7ba0a39612bb732def8ae3ba5b6b53676922a05f2c812d3b3"
+    },
+    {
+      "file": "OfflineTests.cs",
+      "sha256": "2736600a174e1b988ee8bc6cfa17f58884cd63a1faccacb0244bca1a790656ea"
+    },
+    {
+      "file": "Program.cs",
+      "sha256": "2aaff20ac4d60f4c9773fb49aeaded9428e99b1dc3386de3621deea98f63f6b5"
+    },
+    {
+      "file": "SyncReportEvidence.cs",
+      "sha256": "4450176f2e6ab9b3d68b21d23a0de2e96bb621a1e0415e65f4ac4d3eee252845"
+    },
+    {
+      "file": "SyncReportEvidenceTests.cs",
+      "sha256": "41f8b5ad0bd4dcdd625fbb892ef6acd834936b226a1fc2dd2853d8912435600a"
+    },
+    {
+      "file": "WebDAVClient.InteropTests.csproj",
+      "sha256": "434d8093801e1234f661a02eabd397e178f033142f0cc2bdf9ea7ba547442bc6"
+    }
+  ],
+  "fixtureTeardown": {
+    "serverProcessStopped": true,
+    "portClosed": true,
+    "ownGeneratedDataRemoved": true,
+    "shareEmpty": true,
+    "cleanupFailuresInEarlierRunsRetained": true,
+    "method": "Stopped only tracked native server process, then destroyed only generated native fixture data; does not replace protocol cleanup evidence."
+  }
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<d:error xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns">
+  <s:sabredav-version>4.7.0</s:sabredav-version>
+  <s:exception>Sabre\DAV\Exception\ReportNotSupported</s:exception>
+  <s:message>The {DAV:}sync-collection REPORT is not supported on this url.</s:message>
+  <d:supported-report/>
+</d:error>

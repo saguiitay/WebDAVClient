@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "suiteVersion": "1.0",
+  "startedUtc": "2026-10-20T23:26:31.8654746+00:00",
+  "runtime": ".NET 8.0.32",
+  "operatingSystem": "Ubuntu 24.04.5 LTS",
+  "architecture": "X64",
+  "server": "nginx",
+  "serverVersion": "1.28.0",
+  "serverVersionSource": "fixture-pin-or-operator-label",
+  "authentication": "anonymous",
+  "transport": "http",
+  "loopback": true,
+  "sourceRevision": "348b16f8c9b4d9c289ad5b0c761adf6eb0aeb0e7",
+  "sourceRevisionScope": "repository revision at execution; result-only commit may follow",
+  "runTree": "webdavclient-interop-f1654984a1134a82b42d8d95bc45bd2b",
+  "advertisedDav": [],
+  "advertisedMethods": [],
+  "advertisedReports": [],
+  "observations": [
+    {
+      "operation": "options",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "isolation-preflight",
+      "outcome": "passed",
+      "httpStatus": 404,
+      "detail": "Expected HTTP 404"
+    },
+    {
+      "operation": "create-tree",
+      "outcome": "passed",
+      "httpStatus": 201,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "unicode-put",
+      "outcome": "passed",
+      "httpStatus": 201,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "unicode-get",
+      "outcome": "passed",
+      "httpStatus": 200,
+      "detail": "Byte-for-byte body and range metadata checked."
+    },
+    {
+      "operation": "head-metadata",
+      "outcome": "passed",
+      "httpStatus": 200,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "range-get",
+      "outcome": "passed",
+      "httpStatus": 206,
+      "detail": "Byte-for-byte body and range metadata checked."
+    },
+    {
+      "operation": "conditional-put",
+      "outcome": "failed",
+      "httpStatus": 204,
+      "detail": "Expected HTTP 412"
+    },
+    {
+      "operation": "conditional-integrity",
+      "outcome": "passed",
+      "httpStatus": 200,
+      "detail": "Byte-for-byte body and range metadata checked."
+    },
+    {
+      "operation": "propfind-statuses",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "streamed-listing",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "dead-property",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": [],
+      "detail": ""
+    },
+    {
+      "operation": "lock-unlock",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "copy",
+      "outcome": "passed",
+      "httpStatus": 204,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "copy-no-overwrite",
+      "outcome": "passed",
+      "httpStatus": 412,
+      "detail": "Expected HTTP 412"
+    },
+    {
+      "operation": "move",
+      "outcome": "passed",
+      "httpStatus": 204,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "sync-discovery",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "sync-report",
+      "outcome": "unsupported",
+      "httpStatus": 405,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "delete-file",
+      "outcome": "passed",
+      "httpStatus": 204,
+      "memberStatuses": [],
+      "propertyStatuses": []
+    },
+    {
+      "operation": "cleanup-tree",
+      "outcome": "passed",
+      "httpStatus": 204,
+      "memberStatuses": [],
+      "propertyStatuses": [],
+      "detail": "Only confirmed run-owned tree deleted; absence verified."
+    }
+  ],
+  "succeeded": false
+}
