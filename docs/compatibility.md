@@ -1,54 +1,53 @@
 # Server compatibility
 
-**Scope:** the released v3 client and the code on `master`. This is a server
-assessment checklist, **not a list of certified compatible products**.
-As of this documentation update, this branch has no release-scoped,
-independent-server test matrix establishing compatibility with the products
-below. Mocked and loopback HTTP tests validate client contracts, not a vendor's
-server, authentication stack or deployment.
+Use this guide to find your server's WebDAV endpoint, choose authentication and
+check the operations your application needs. Available features depend on the
+server version, enabled modules, account permissions and proxy configuration.
 
-The separate [protocol support table](protocol-support.md) describes implemented
-client features. A server's documentation or DAV advertisement does not prove
-that a feature works for your account, resource, version or proxy configuration.
+**Compatibility status:** the servers below have not been verified with this
+package. The setup notes are based on vendor documentation, not a compatibility
+guarantee. Check your deployment before using it with production data.
+
+The [protocol support table](protocol-support.md) lists the client's supported
+operations and extensions. Your server must also support the features you use.
 
 ## Products and deployment considerations
 
-| Server/product | Vendor-documented setup / endpoint hint | Verification for this release | What to check |
-|---|---|---|---|
-| [Nextcloud](https://docs.nextcloud.com/server/latest/developer_manual/client_apis/WebDAV/basic.html) | Common authenticated file endpoint: `/remote.php/dav/files/{user}/` | Not verified | App password via Basic authentication where required; reverse-proxy prefix, public-share endpoints and headers differ |
-| [ownCloud](https://doc.owncloud.com/server/11.0/developer_manual/webdav_api/index.html) | Use the WebDAV URL published by your ownCloud deployment | Not verified | Product/version-specific endpoint and authentication; do not infer compatibility from Nextcloud lineage |
-| [Apache HTTP Server `mod_dav` / `mod_dav_fs`](https://httpd.apache.org/docs/2.4/mod/mod_dav.html) | DAV-enabled location, filesystem provider and lock database | Not verified | Filesystem/authz permissions, lock database, property persistence and URI encoding |
-| [Microsoft IIS WebDAV](https://learn.microsoft.com/en-us/iis/install/installing-publishing-technologies/installing-and-configuring-webdav-on-iis) | Enable publishing and configure authentication/authoring rules | Not verified | Request filtering, verb permissions, Windows/Basic authentication and TLS |
-| [nginx built-in `ngx_http_dav_module`](https://nginx.org/en/docs/http/ngx_http_dav_module.html) | Documents PUT, DELETE, MKCOL, COPY and MOVE, not a complete DAV server | Not verified; built-in module alone lacks required listing methods | PROPFIND/LOCK need an additional implementation; identify the actual modules instead of assuming full WebDAV |
-| [sabre/dav](https://sabre.io/dav/) | A configurable PHP framework; actual capabilities depend on plugins and application | Not verified | Enabled plugins, authentication backend, properties, locks and optional sync REPORT profile |
-| [rclone `serve webdav`](https://rclone.org/commands/rclone_serve_webdav/) | Serves an rclone remote through a configured WebDAV listener | Not verified | Backend-specific ETags, permissions, ranges, filesystem behavior and authentication |
-| NAS/vendor WebDAV packages (for example Synology) | Use the vendor-provided HTTPS WebDAV service URL, not the browser file-manager URL | Not verified | Package/version, enabled port, TLS chain, permissions and advertised methods |
+| Server/product | Endpoint and setup | Authentication and feature considerations |
+|---|---|---|
+| [Nextcloud](https://docs.nextcloud.com/server/latest/developer_manual/client_apis/WebDAV/basic.html) | Common authenticated file endpoint: `/remote.php/dav/files/{user}/` | Use an app password via Basic authentication where required. Reverse-proxy prefixes and public-share endpoints may differ. |
+| [ownCloud](https://doc.owncloud.com/server/11.0/developer_manual/webdav_api/index.html) | Use the WebDAV URL published by your ownCloud deployment | Check the endpoint and authentication for your product/version; Nextcloud settings may not apply. |
+| [Apache HTTP Server `mod_dav` / `mod_dav_fs`](https://httpd.apache.org/docs/2.4/mod/mod_dav.html) | Use the configured DAV-enabled location | Access depends on filesystem and authorization permissions. Locking also requires a configured lock database. Check property persistence and URI encoding if your application depends on them. |
+| [Microsoft IIS WebDAV](https://learn.microsoft.com/en-us/iis/install/installing-publishing-technologies/installing-and-configuring-webdav-on-iis) | WebDAV publishing and authoring rules must be enabled | Check Windows/Basic authentication, TLS, request filtering and permissions for each HTTP verb you need. |
+| [nginx built-in `ngx_http_dav_module`](https://nginx.org/en/docs/http/ngx_http_dav_module.html) | The built-in module supports PUT, DELETE, MKCOL, COPY and MOVE | The built-in module alone cannot provide directory listing (PROPFIND) or locking (LOCK); these require an additional implementation. |
+| [sabre/dav](https://sabre.io/dav/) | Use the endpoint provided by the application built on sabre/dav | Authentication, properties, locks and collection sync depend on the application's enabled plugins. |
+| [rclone `serve webdav`](https://rclone.org/commands/rclone_serve_webdav/) | Use the configured WebDAV listener URL | Authentication is configured on the listener. ETags, permissions, ranges and filesystem behavior depend on the storage backend. |
+| NAS/vendor WebDAV packages (for example Synology) | Use the vendor-provided HTTPS WebDAV service URL, not the browser file-manager URL | Check the WebDAV package/version, enabled port, TLS certificate chain, permissions and supported methods. |
 
 Endpoint examples are hints, not defaults that the library discovers for you.
 For a product not listed, use its actual WebDAV URL and the same checklist.
-Historical references to 4shared or SVN in old release notes are not current
-certification.
 
-## Verify a deployment
+## Check your connection
 
-1. Record the package version, server product/version, endpoint profile,
-   authentication mode, TLS/proxy setup and required operations.
-2. Use the [authentication example](authentication.md) to check OPTIONS; absence
-   of an advertisement remains unknown, not definitive lack of support.
+1. Configure your WebDAV endpoint and credentials using the
+   [authentication guide](authentication.md).
+2. Use the authentication example to inspect the server's OPTIONS response.
+   Missing capability headers do not necessarily mean a feature is unsupported.
 3. Run [listing](listing-and-properties.md) and a
    [known-file download](getting-started.md) with the target account.
-4. On disposable storage, separately test [transfers](transfers.md),
+4. If your application needs to write files or use optional features, use
+   disposable storage to try [transfers](transfers.md),
    [namespace/property operations](file-management.md), [locks](locking.md) and
    [sync](collection-sync.md) only if your application depends on them.
-5. Include spaces, Unicode, literal plus signs, percent escapes, redirects,
-   missing/denied properties, conditional-write conflicts and partial failures.
+5. Check the filenames and failure cases your application needs, such as spaces,
+   Unicode, literal plus signs, percent escapes, redirects, denied properties,
+   conditional-write conflicts and partial failures.
 
-Retain operation-specific, versioned results and exact configuration without
-publishing credentials, bodies or sensitive paths. A passed GET does not imply
-LOCK, PROPPATCH, sync REPORT or every authentication scheme passed.
-Never point mutation probes at production data.
+A successful download does not establish support for locks, property updates,
+collection sync or a different authentication method. Never run write examples
+against production data.
 
-Proposed interoperability work on other branches/PRs does not automatically
-establish compatibility for a released package. Update this table only when a
-reproducible run identifies the tested package/commit, server and profile, and
-states both passing operations and limitations.
+For failed requests, see [errors and lifetimes](errors-and-lifetimes.md). When
+reporting a problem, include your package version, server product/version,
+authentication method and failing operation. Remove credentials, tokens and
+private paths from any logs you share.

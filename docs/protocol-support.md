@@ -1,9 +1,10 @@
 # Protocol and extension support
 
-**Scope:** `DavClient` in the current v3 package. "Implemented" means a public
-client operation with automated contract coverage, **not RFC certification or
-verified behavior on every server**. See [server compatibility](compatibility.md)
-for independent-server evidence. Retained `Client` differences are called out.
+These tables describe the operations and extensions available through
+`DavClient` in the v3 package. Your server must also support the features you use;
+an implemented client operation does not guarantee support on every server or
+full RFC conformance. See [server compatibility](compatibility.md) for endpoint
+and setup guidance. Differences in the legacy `Client` API are called out below.
 
 ## Core HTTP / WebDAV
 
@@ -54,11 +55,9 @@ Unknown XML and custom properties can be retained without implementing the
 extension that defines them. Parsing a name is not implementation of its
 authorization, error, continuation or mutation semantics.
 
-## How the table is grounded
+## API reference
 
 The public implementations are in [DavClient.cs](../WebDAVClient/DavClient.cs),
 [options](../WebDAVClient/DavOptions.cs), [results](../WebDAVClient/DavResults.cs),
 [protocol models](../WebDAVClient/Protocol), and
 [CollectionSync.cs](../WebDAVClient/Extensions/CollectionSync.cs).
-Contract/wire fixtures are in [WebDAVClient.UnitTests](../WebDAVClient.UnitTests).
-Update this table alongside actual shipped APIs/tests, not roadmap proposals.
