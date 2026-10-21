@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<D:multistatus xmlns:D="DAV:" xmlns:ns1="urn:webdavclient:interop:v1" xmlns:ns0="DAV:">
+<D:response>
+<D:href>/dav/synthetic-wire-19903ac39efc4b919072316ac7dada28/caf%c3%a9%20%e4%b8%ad%e6%96%87%20+%20%25%20%23.bin</D:href>
+<D:propstat>
+<D:prop>
+<ns1:marker/>
+</D:prop>
+<D:status>HTTP/1.1 200 OK</D:status>
+</D:propstat>
+</D:response>
+</D:multistatus>

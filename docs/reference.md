@@ -111,7 +111,7 @@ if (count == 0)
 `Client` and `IClient` remain available without renamed members or changed
 upload ownership. They use compatibility projections over shared XML reading.
 `DavClient` is a separate API: migration is explicit, not a constructor rename.
-The 3.2.0 assembly version is `3.2.0.0`; rebuild consumers when upgrading.
+The 3.2.1 assembly version is `3.2.1.0`; rebuild consumers when upgrading.
 
 | Concern | Existing API | Modern API |
 |---|---|---|
@@ -393,7 +393,16 @@ basic transfer smoke result.
 
 ## Release Notes
 
-+ **3.2.0** _(unreleased)_ Core validation and explicit lock lifecycle:
++ **3.2.1** _(unreleased)_ Independent-server testing integration:
+  - Added a separate nonpackable harness under `tests`, offline regressions and
+    explicitly opted-in independent-server workflows with bounded diagnostics.
+  - Retained versioned positive/negative observations and raw regression
+    fixtures with their original source revisions and provenance.
+  - Linked testing guidance from the current documentation and README; corrected
+    release status to identify 3.2.0 as published.
+  - No production API/runtime changes or new live-server certification.
+
++ **3.2.0** _(released)_ Core validation and explicit lock lifecycle:
   - Added `DavLockLease` with conservative observed expiry, explicit renewal,
     serialized lifecycle operations and at most one release attempt.
   - Validate core response hrefs/cardinalities and require confirmed acquisition

@@ -1,0 +1,72 @@
+{
+  "workflowRunId": 39612921060,
+  "workflowRunUrl": "https://github.com/saguiitay/WebDAVClient/actions/runs/39612921060",
+  "workflowRunAttempt": 1,
+  "pullRequest": 92,
+  "pullRequestHeadRevision": "17bb47f9bb85a8107c3218f158340cdcab0a3bde",
+  "baseRevision": "a5dc2431db258eaa99a156668d04f70ed9d5b9d4",
+  "checkedOutMergeRevision": "963c8dbbb08131815fd15eaa8974c819cc26535f",
+  "sourceRevisionExplanation": "GitHub checked out the pull-request merge revision, whose parents are the base and head above. Raw per-framework files preserve that execution revision; later documentation/result commits are not reruns.",
+  "operatingSystem": "Ubuntu 24.04.5 LTS",
+  "frameworks": [
+    "net8.0",
+    "net10.0"
+  ],
+  "profiles": [
+    {
+      "server": "apache",
+      "serverVersion": "2.4.65",
+      "authentication": "basic",
+      "allowPathPlusEncodingAlias": true,
+      "workflowJobConclusion": "success",
+      "passedPerFramework": 19,
+      "optionalUnavailableChecksPerFramework": 2,
+      "optionalSync": "Discovery property unavailable; REPORT returned 501. No RFC 6578 success.",
+      "resultPattern": "apache-basic-ci-39612921060-net*.raw.json"
+    },
+    {
+      "server": "sabredav",
+      "serverVersion": "4.7.0+php-8.3.25",
+      "authentication": "basic",
+      "workflowJobConclusion": "success",
+      "passedPerFramework": 20,
+      "optionalUnavailableChecksPerFramework": 1,
+      "optionalSync": "HTTP 415 with ReportNotSupported and empty report discovery; filesystem backend is not ISyncCollection. No RFC 6578 success.",
+      "resultPattern": "sabredav-basic-ci-39612921060-net*.raw.json"
+    },
+    {
+      "server": "wsgidav",
+      "serverVersion": "4.3.5+cheroot-11.1.2",
+      "authentication": "basic",
+      "workflowJobConclusion": "success",
+      "passedPerFramework": 19,
+      "optionalUnavailableChecksPerFramework": 2,
+      "optionalSync": "Discovery property unavailable; REPORT returned 405. No RFC 6578 success.",
+      "resultPattern": "wsgidav-basic-ci-39612921060-net*.raw.json"
+    },
+    {
+      "server": "nginx",
+      "serverVersion": "1.28.0",
+      "authentication": "anonymous",
+      "workflowJobConclusion": "failure",
+      "passedPerFramework": 12,
+      "unsupportedChecksPerFramework": 7,
+      "knownIncompatibility": "PUT with If-None-Match: * against an existing resource returned 204 instead of required 412 on both frameworks.",
+      "probeBoundary": "This probe does not send stale If-Match. Historical companion wording must not be treated as stale-ETag coverage. Its rejected body equals the original body; distinct rejected-body integrity is follow-up work.",
+      "resultPattern": "nginx-anonymous-ci-39612921060-net*.raw.json"
+    }
+  ],
+  "cleanup": "Every framework result confirms deletion and absence of its run-owned tree. Both bounded synthetic captures independently confirm cleanup.",
+  "startupAndImages": "Versioned <profile>-ci-39612921060-fixture-startup.raw.json and container-images.raw.json files retain raw readiness and Docker image identities. WsgiDAV uses pinned Python dependencies, not a container.",
+  "syntheticWireDirectory": "ci-39612921060-synthetic-wire",
+  "syntheticWireBoundary": "Only run-owned synthetic PROPPATCH requests/responses; no headers or locks, 65536-byte response cap, successful cleanup, raw bytes preserved.",
+  "subsequentHarnessFix": "Commit 5aaf542 preserves unset versus empty environment variables in Invoke-Compatibility; this hosted run predates that fix.",
+  "unverified": [
+    "Nextcloud",
+    "ownCloud",
+    "Windows IIS WebDAV",
+    "HTTPS and Windows authentication",
+    "Positive independent-server RFC 6578 synchronization",
+    "Full RFC 4918 conformance"
+  ]
+}

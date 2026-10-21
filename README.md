@@ -135,6 +135,7 @@ Use an app password, not a bearer token, when your server requires one.
 | Request an RFC 6578 change batch | [Collection synchronization](https://github.com/saguiitay/WebDAVClient/blob/master/docs/collection-sync.md) |
 | Diagnose failures, cancellation and resource ownership | [Errors and lifetimes](https://github.com/saguiitay/WebDAVClient/blob/master/docs/errors-and-lifetimes.md) |
 | Check Nextcloud, ownCloud, IIS, Apache and other servers | [Server compatibility](https://github.com/saguiitay/WebDAVClient/blob/master/docs/compatibility.md) |
+| Inspect version-specific server evidence or run isolated compatibility tests | [Independent-server testing](https://github.com/saguiitay/WebDAVClient/blob/master/interoperability/README.md) |
 | Check supported methods, RFCs and extensions | [Protocol support](https://github.com/saguiitay/WebDAVClient/blob/master/docs/protocol-support.md) |
 | Migrate from `Client` / `IClient` or find advanced configuration | [Detailed API and legacy reference](https://github.com/saguiitay/WebDAVClient/blob/master/docs/reference.md) |
 

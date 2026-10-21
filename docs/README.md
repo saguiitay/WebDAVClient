@@ -47,6 +47,7 @@ No examples silently retry or overwrite local downloads.
 | [Errors and lifetimes](errors-and-lifetimes.md) | Status handling, stream ownership, cancellation, retries and troubleshooting |
 | [Detailed API and legacy reference](reference.md) | Migration, legacy `Client`/`IClient`, paths, proxy/TLS, provider concurrency, limits and historical release notes |
 | [Development](development.md) | Build, tests, coverage, documentation validation and release process |
+| [Independent-server testing](../interoperability/README.md) | Opt-in mutating fixtures, historical observations and known failures |
 
 Server advertisements, client implementation and real-server verification are
 different kinds of evidence. Check both compatibility tables before depending

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "profiles": [
+    { "id": "wsgidav", "version": "4.3.5+cheroot-11.1.2", "port": 19080, "path": "/", "authentication": ["anonymous", "basic"], "fixture": "fixtures/wsgidav/serve.py", "evidence": "results/wsgidav-basic-net8.0.json" },
+    { "id": "apache", "version": "2.4.65", "port": 19081, "path": "/dav/", "authentication": ["basic"], "fixture": "fixtures/compose.yml", "evidence": null },
+    { "id": "nginx", "version": "1.28.0", "port": 19082, "path": "/", "authentication": ["anonymous"], "fixture": "fixtures/compose.yml", "evidence": null },
+    { "id": "sabredav", "version": "4.7.0+php-8.3.25", "port": 19083, "path": "/", "authentication": ["basic"], "fixture": "fixtures/compose.yml", "syncCoverage": "none-filesystem-backend-does-not-implement-ISyncCollection", "evidence": null },
+    { "id": "nextcloud", "version": "31.0.9", "port": 19084, "path": "/remote.php/dav/files/{user}/", "authentication": ["basic"], "fixture": "fixtures/compose.yml", "evidence": null },
+    { "id": "owncloud", "version": "10.15.0", "port": 19085, "path": "/remote.php/dav/files/{user}/", "authentication": ["basic"], "fixture": "fixtures/compose.yml", "evidence": null },
+    { "id": "iis", "version": "operator-required", "path": "/operator-owned-site/", "authentication": ["windows", "basic"], "fixture": "IIS.md", "evidence": null }
+  ]
+}

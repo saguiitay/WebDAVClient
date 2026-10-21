@@ -1,0 +1,83 @@
+{
+  "pullRequest": 92,
+  "sourceRevision": "5aaf5427cedc5f5fff27e76c0a28a4a7979bab1d",
+  "sourceRevisionExplanation": "Executed after the wrapper-restoration fix, before this result/documentation commit. Production C# matches origin/master at a5dc2431db258eaa99a156668d04f70ed9d5b9d4. Results are source-build observations, not certification of a downloaded NuGet package.",
+  "clientOperatingSystem": "Microsoft Windows 10.0.26300",
+  "dockerServerVersion": "29.5.3",
+  "dockerComposeVersion": "5.1.4",
+  "dockerServerOperatingSystem": "Linux, Docker Desktop",
+  "pythonVersion": "3.12.10",
+  "frameworks": [
+    "net8.0",
+    "net10.0"
+  ],
+  "profiles": [
+    {
+      "server": "wsgidav",
+      "serverVersion": "4.3.5+cheroot-11.1.2",
+      "serverEnvironment": "Native Windows Python, pinned requirements",
+      "authentication": "basic",
+      "succeeded": true,
+      "passedPerFramework": 19,
+      "optionalUnavailableChecksPerFramework": 2,
+      "resultPattern": "wsgidav-basic-local-5aaf542-net*.raw.json"
+    },
+    {
+      "server": "apache",
+      "serverVersion": "2.4.65",
+      "serverEnvironment": "Linux container",
+      "authentication": "basic",
+      "allowPathPlusEncodingAlias": true,
+      "succeeded": true,
+      "passedPerFramework": 19,
+      "optionalUnavailableChecksPerFramework": 2,
+      "resultPattern": "apache-basic-local-5aaf542-net*.raw.json"
+    },
+    {
+      "server": "sabredav",
+      "serverVersion": "4.7.0+php-8.3.25",
+      "serverEnvironment": "Linux container",
+      "authentication": "basic",
+      "succeeded": true,
+      "passedPerFramework": 20,
+      "optionalUnavailableChecksPerFramework": 1,
+      "resultPattern": "sabredav-basic-local-5aaf542-net*.raw.json"
+    },
+    {
+      "server": "nginx",
+      "serverVersion": "1.28.0",
+      "serverEnvironment": "Linux container",
+      "authentication": "anonymous",
+      "succeeded": false,
+      "passedPerFramework": 12,
+      "unsupportedChecksPerFramework": 7,
+      "knownIncompatibility": "PUT with If-None-Match: * against an existing resource returned 204 instead of required 412 on both frameworks; this remains a failed result.",
+      "resultPattern": "nginx-anonymous-local-5aaf542-net*.raw.json"
+    }
+  ],
+  "initialStartupFailures": {
+    "profiles": [
+      "apache",
+      "sabredav"
+    ],
+    "evidencePattern": "<profile>-local-5aaf542-attempt1-fixture-startup.raw.json",
+    "imageEvidencePattern": "<profile>-local-5aaf542-attempt1-container-images.raw.json",
+    "observation": "Images built, but OPTIONS readiness never obtained an HTTP status. The inspected Sabre container exited 127 with interop-start not found.",
+    "causeAndCorrection": "This reused Windows worktree retained CRLF shell entrypoints while the committed blobs used LF. Normalizing those two files to the committed LF bytes changed no script content. Both profiles then passed. This PR now versions .gitattributes LF rules and raw-evidence byte protections; no repository .gitattributes existed at execution. Initial startup/image evidence is retained separately, not relabeled as a protocol run.",
+    "normalizedEntrypointSha256": {
+      "apache/start.sh": "93cf64db2c9f88a34e94374c3c2c0d5c7c3e023449b393770abc38b1c3dfe579",
+      "sabredav/start.sh": "910c8ab8b908d534caba89555d3df429917abdbf20a61a636b6aa3260081bd00"
+    }
+  },
+  "cleanup": "Every completed framework result confirms deletion and absence of its run-owned tree. Both current synthetic captures independently confirm cleanup. Run-Fixture removes only its unique Compose projects/volumes or its empty native WsgiDAV share.",
+  "startupAndImages": "Final <profile>-local-5aaf542-fixture-startup.raw.json and container-images.raw.json retain raw readiness/image identities, separately from attempt1 startup failures.",
+  "syntheticWireDirectory": "local-5aaf542-synthetic-wire",
+  "syntheticWireBoundary": "Only the two current run-owned Apache/Sabre PROPPATCH captures are retained; no headers or locks, response cap 65536 bytes, confirmed cleanup.",
+  "remainingEvidenceLimits": [
+    "No positive independent-server RFC 6578 synchronization",
+    "No Nextcloud, ownCloud or IIS execution",
+    "No HTTPS or Windows-authentication run",
+    "No stale If-Match or full lock-conditioned mutation matrix",
+    "No full RFC conformance claim"
+  ]
+}

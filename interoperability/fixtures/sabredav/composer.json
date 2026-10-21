@@ -1,0 +1,8 @@
+{
+  "require": {
+    "sabre/dav": "4.7.0"
+  },
+  "config": {
+    "allow-plugins": false
+  }
+}

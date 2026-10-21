@@ -13,6 +13,14 @@ available on NuGet but lack that metadata; no source tags were guessed for them.
 - Push code without publishing a NuGet package. Publication and GitHub release
   creation now require a manual workflow run; pushes and PRs only validate.
 
+## [3.2.1] - Unreleased
+
+- Add a separate, nonpackable independent-server compatibility harness with
+  offline regressions and explicitly opted-in fixture workflows.
+- Link versioned positive and negative server evidence, bounded diagnostics,
+  and prioritized interoperability follow-up work.
+- No production API/runtime changes or automatic package publication.
+
 ## [3.2.0] - 2026-10-21
 
 - Manage WebDAV locks with `DavLockLease`: explicitly renew or release a lease

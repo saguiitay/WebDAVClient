@@ -33,8 +33,9 @@ using a private test-only Roslyn dependency; the library still has no NuGet depe
 Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
 Version 3.0.0 was published on October 20, 2026 and includes the v3 API.
-Current source version 3.2.0 includes the explicit lock lifecycle and core
-response validation; it is not published yet. The library is under src/WebDAVClient, tests
+Version 3.2.0 is published and includes the explicit lock lifecycle and core
+response validation. Current source version 3.2.1 integrates interoperability
+tooling and documentation; it is not published yet. The library is under src/WebDAVClient, tests
 under tests/WebDAVClient.UnitTests and both runnable projects under examples.
 The short README links to docs/README.md;
 docs/reference.md retains detailed modern/legacy contracts and release notes.
@@ -47,6 +48,9 @@ The resumable guide is docs/resumable-downloads.md with a matching CLI command.
 `DavLockLease` adds caller-driven renewal, not timers, retries or reacquisition.
 Its guide is docs/lock-lifecycle.md; docs/rfc4918-requirements.md tracks protocol
 requirements and evidence. Successful refresh requires HTTP 200 and lockdiscovery XML.
+`tests/WebDAVClient.InteropTests` is a separate nonpackable harness with offline
+tests in ordinary CI. Independent-server execution requires explicit opt-in;
+historical fixtures/results retain original revisions and are not current-package certification.
 The README is embedded in the NuGet package; correcting its published copy
 requires a new package version. Do not describe 3.0.0 as upcoming or require a
 local build to use its published APIs.

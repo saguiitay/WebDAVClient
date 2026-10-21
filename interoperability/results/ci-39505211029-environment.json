@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "workflowRun": 39505211029,
+  "repository": "saguiitay/WebDAVClient",
+  "runner": "ubuntu-24.04",
+  "frameworks": ["net8.0", "net10.0"],
+  "overallConclusion": "failure",
+  "servers": [
+    { "server": "wsgidav", "jobConclusion": "success", "passedPerFramework": 19, "unsupportedOrUnavailablePerFramework": 2, "failedPerFramework": 0 },
+    { "server": "apache", "jobConclusion": "failure", "passedPerFramework": 18, "unsupportedOrUnavailablePerFramework": 2, "failedPerFramework": 1, "blocker": "dead-property WebDAVException at outer HTTP 207; exact phase/root cause not retained by the old harness; unresolved, not unsupported" },
+    { "server": "nginx", "jobConclusion": "failure", "passedPerFramework": 12, "unsupportedOrUnavailablePerFramework": 7, "failedPerFramework": 1, "blocker": "conditional PUT returned HTTP 204 instead of required 412; server ignored If-None-Match protection; remains failed" },
+    { "server": "sabredav", "jobConclusion": "failure", "imageBuild": "succeeded", "suiteExecuted": false, "blocker": "five-minute root-GET readiness timed out; old harness did not capture HTTP status; OPTIONS readiness fix requires a new run" }
+  ],
+  "cleanup": "All completed WsgiDAV/Apache/nginx matrices confirmed run-owned tree deletion and absence; fixture teardown also completed.",
+  "limitations": [
+    "No successful Apache/nginx compatibility claim",
+    "No SabreDAV operation result exists in this run",
+    "No HTTPS, IIS/Windows-authentication, Nextcloud or ownCloud execution evidence"
+  ]
+}

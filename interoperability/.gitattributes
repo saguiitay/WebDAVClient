@@ -1,0 +1,2 @@
+fixtures/**/start.sh text eol=lf
+fixtures/**/Dockerfile text eol=lf

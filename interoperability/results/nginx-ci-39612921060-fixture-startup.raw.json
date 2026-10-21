@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "profile": "nginx",
+  "observedUtc": "2026-10-21T14:00:49.920286+00:00",
+  "readiness": {
+    "ready": true,
+    "method": "GET",
+    "status": 200,
+    "attempts": 1,
+    "failure": null
+  }
+}

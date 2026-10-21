@@ -11,6 +11,7 @@ the test project has private test/coverage/compiler dependencies.
 |---|---|
 | `src\WebDAVClient` | Packaged library and shared protocol/transfer code |
 | `tests\WebDAVClient.UnitTests` | Automated contract, loopback, example and documentation tests |
+| `tests\WebDAVClient.InteropTests` | Offline harness regressions and explicitly opted-in independent-server executable |
 | `examples\WebDAVClient.Examples` | Task-focused and vendor integration commands |
 | `examples\TestWebDAVClient` | Legacy/modern smoke-test executable |
 | `docs` | User guides, API contracts and development instructions |
@@ -58,6 +59,29 @@ compatibility from unit/loopback tests.
 The [RFC 4918 requirement ledger](rfc4918-requirements.md) maps client
 implementation and deterministic evidence separately from server obligations
 and unsupported profiles. Update it when changing protocol contracts.
+
+## Independent-server compatibility tooling
+
+Ordinary solution tests include the separate harness's offline regressions and
+do not contact a WebDAV server:
+
+```pwsh
+dotnet test tests\WebDAVClient.InteropTests\WebDAVClient.InteropTests.csproj -c Release
+.\interoperability\Test-FixtureReadiness.ps1
+.\interoperability\Test-SyntheticPropertyWire.ps1
+.\interoperability\Test-CompatibilityWrapper.ps1
+```
+
+The [interoperability guide](../interoperability/README.md) covers explicit
+mutation opt-in, disposable fixtures, bounded diagnostics and historical evidence.
+Live-server runs are not part of ordinary PR validation and do not publish
+packages. Never promote offline results or historical source runs to
+certification of a current package/server combination.
+
+The [prioritized interoperability gaps](../interoperability/GAPS.md) distinguish
+shipped fixes, server restrictions and unverified deployments. Use their
+acceptance criteria when extending the suite rather than broadening support
+claims from offline tests.
 
 ## Coverage and publishing
 

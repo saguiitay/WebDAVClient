@@ -1,0 +1,83 @@
+name: Opt-in independent WebDAV interoperability
+
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      server:
+        description: Isolated independent server fixture (unverified fixtures can fail)
+        required: true
+        default: wsgidav
+        type: choice
+        options: [wsgidav, apache, nginx, sabredav, nextcloud, owncloud]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: interoperability-${{ github.event.pull_request.number || github.ref }}-${{ inputs.server || 'core' }}
+  cancel-in-progress: false
+
+jobs:
+  compatibility:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.action == 'labeled' &&
+       github.event.label.name == 'run-interoperability')
+    strategy:
+      fail-fast: false
+      matrix:
+        server: ${{ github.event_name == 'pull_request' && fromJSON('["wsgidav","apache","nginx","sabredav"]') || fromJSON(format('["{0}"]', inputs.server)) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/setup-python@v5
+        if: ${{ matrix.server == 'wsgidav' }}
+        with:
+          python-version: '3.12'
+      - name: Provision pinned independent WsgiDAV fixture
+        if: ${{ matrix.server == 'wsgidav' }}
+        shell: pwsh
+        run: |
+          python -m venv interoperability/.venv
+          & interoperability/.venv/bin/python -m pip install -r interoperability/fixtures/wsgidav/requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Fixture dependency installation failed.' }
+      - name: Offline harness regressions
+        shell: pwsh
+        run: |
+          dotnet test tests/WebDAVClient.InteropTests -c Release --verbosity quiet
+          if ($LASTEXITCODE -ne 0) { throw 'Offline harness tests failed.' }
+          ./interoperability/Test-FixtureReadiness.ps1
+          ./interoperability/Test-SyntheticPropertyWire.ps1
+          ./interoperability/Test-CompatibilityWrapper.ps1
+      - name: Real server compatibility on both target frameworks
+        shell: pwsh
+        env:
+          INTEROP_PROFILE: ${{ matrix.server }}
+        run: ./interoperability/Run-Fixture.ps1 -Profile $env:INTEROP_PROFILE -CaptureSyntheticPropertyWire:($env:INTEROP_PROFILE -in @('apache', 'sabredav')) -ApachePathPlusAlias:($env:INTEROP_PROFILE -eq 'apache')
+      - name: Validate and summarize any completed observations
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path artifacts/interop) {
+            ./interoperability/Update-Matrix.ps1 -ResultsDirectory artifacts/interop
+          }
+      - name: Retain versioned result matrix even after failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interoperability-${{ matrix.server }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/interop/*.json
+            artifacts/interop/synthetic-wire/**
+          if-no-files-found: warn

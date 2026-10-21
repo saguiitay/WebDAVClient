@@ -1,0 +1,5 @@
+*.sh text eol=lf
+
+# Retained external evidence must not be reformatted or newline-normalized.
+*.raw.json -text -whitespace
+interoperability/results/*-synthetic-wire/** -text -whitespace

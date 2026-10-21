@@ -1,0 +1,11 @@
+bcrypt==4.3.0
+cheroot==11.1.2
+defusedxml==0.7.1
+jaraco.functools==4.6.0
+Jinja2==3.1.6
+json5==0.17.3
+MarkupSafe==3.0.4
+more-itertools==11.2.0
+passlib==1.7.4
+PyYAML==6.0.3
+WsgiDAV==4.3.5
