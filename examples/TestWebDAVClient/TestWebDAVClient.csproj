@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <Configurations>Debug;Release;Release-Unsigned</Configurations>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.0|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="WebDAVClient.UnitTests" />
+    <ProjectReference Include="..\..\src\WebDAVClient\WebDAVClient.csproj">
+      <Project>{F21EB154-C84E-4390-87CF-271E3DF4F059}</Project>
+      <Name>WebDAVClient</Name>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
