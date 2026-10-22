@@ -13,6 +13,16 @@ available on NuGet but lack that metadata; no source tags were guessed for them.
 - Push code without publishing a NuGet package. Publication and GitHub release
   creation now require a manual workflow run; pushes and PRs only validate.
 
+## [3.3.0] - Unreleased
+
+- Opt into absolute-path DAV `If` resource tags with
+  `DavIfConditions.TaggedAbsolutePaths(...)` for verified server configurations.
+  Existing `Tagged(...)` expressions retain full absolute URIs.
+- Preserve origin checks, escaped paths/queries, token/ETag conditions and
+  no-retry behavior; address WsgiDAV's ignored absolute-URI tagged MOVE
+  through an explicit standards-valid wire form, not a weaker condition.
+- Include the interoperability tooling previously prepared for 3.2.1.
+
 ## [3.2.1] - Unreleased
 
 - Add a separate, nonpackable independent-server compatibility harness with

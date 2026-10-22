@@ -203,6 +203,61 @@ namespace WebDAVClient.UnitTests
         }
 
         [TestMethod]
+        public async Task Absolute_path_conditions_preserve_escaping_queries_alternatives_and_snapshots()
+        {
+            using var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            var lists = new[]
+            {
+                new DavConditionList(DavCondition.StateToken("urn:lock:1"), DavCondition.EntityTag("\"etag\"", true)),
+                new DavConditionList(DavCondition.StateToken("urn:lock:2", true))
+            };
+            var resources = new[]
+            {
+                new DavTaggedConditions(DavPath.FromSegments("folder café + %.bin"), lists),
+                new DavTaggedConditions(DavPath.Parse("https://example.com/dav/target%2Fpart?literal=%252F&plus=%2B"), lists[1])
+            };
+            var conditions = DavIfConditions.TaggedAbsolutePaths(resources);
+            resources[0] = null;
+            lists[0] = null;
+            (await client.DeleteAsync(File, new DavRequestOptions { Conditions = conditions })).EnsureSucceeded();
+            var request = handler.Requests.Single();
+            Assert.AreEqual("</dav/folder%20caf%C3%A9%20%2B%20%25.bin> (<urn:lock:1> Not [\"etag\"]) (Not <urn:lock:2>) </dav/target%2Fpart?literal=%252F&plus=%2B> (Not <urn:lock:2>)",
+                request.Headers["If"].Single());
+            StringAssert.Contains(request.Headers["Cache-Control"].Single(), "no-cache");
+            StringAssert.Contains(request.Headers["Pragma"].Single(), "no-cache");
+        }
+
+        [DataTestMethod]
+        [DataRow("https://evil.example/dav/file")]
+        [DataRow("http://example.com/dav/file")]
+        [DataRow("https://example.com:444/dav/file")]
+        [DataRow("https://user@example.com/dav/file")]
+        [DataRow("https://example.com/dav/file#fragment")]
+        public async Task Absolute_path_conditions_validate_every_resource_before_omitting_authority(string resource)
+        {
+            using var handler = new StubHttpMessageHandler(_ => throw new AssertFailedException("Unexpected I/O"));
+            using var http = new System.Net.Http.HttpClient(handler);
+            using var client = new DavClient(Endpoint, http);
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => client.DeleteAsync(File, new DavRequestOptions
+            {
+                Conditions = DavIfConditions.TaggedAbsolutePaths(
+                    new DavTaggedConditions(File, new DavConditionList(DavCondition.StateToken("urn:valid"))),
+                    new DavTaggedConditions(DavPath.Parse(resource), new DavConditionList(DavCondition.StateToken("urn:other"))))
+            }));
+            Assert.AreEqual(0, handler.Requests.Count);
+        }
+
+        [TestMethod]
+        public void Absolute_path_conditions_reject_missing_resources()
+        {
+            Assert.ThrowsException<ArgumentNullException>(() => DavIfConditions.TaggedAbsolutePaths(null));
+            Assert.ThrowsException<ArgumentException>(() => DavIfConditions.TaggedAbsolutePaths());
+            Assert.ThrowsException<ArgumentException>(() => DavIfConditions.TaggedAbsolutePaths(new DavTaggedConditions[] { null }));
+        }
+
+        [TestMethod]
         public async Task Concurrent_requests_snapshot_mutable_headers_before_send()
         {
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

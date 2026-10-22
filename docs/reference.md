@@ -393,6 +393,15 @@ basic transfer smoke result.
 
 ## Release Notes
 
++ **3.3.0** _(unreleased)_ Explicit DAV resource-tag compatibility:
+  - Added `DavIfConditions.TaggedAbsolutePaths(...)` to select RFC 4918
+    absolute-path resource tags for a verified server configuration.
+  - Existing `Tagged(...)` expressions retain absolute URIs. All resources
+    still undergo origin validation before the authority is omitted; escaped
+    paths/queries, AND/OR lists and no-retry behavior remain unchanged.
+  - Enables an explicit WsgiDAV tagged-MOVE profile without dropping the ETag
+    or replaying a mutation. Includes previously prepared 3.2.1 tooling.
+
 + **3.2.1** _(unreleased)_ Independent-server testing integration:
   - Added a separate nonpackable harness under `tests`, offline regressions and
     explicitly opted-in independent-server workflows with bounded diagnostics.

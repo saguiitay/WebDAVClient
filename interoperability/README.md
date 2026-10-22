@@ -2,7 +2,8 @@
 
 This is an **opt-in mutating compatibility suite**, not a complete RFC 4918
 conformance certification. **WebDAVClient 3.2.0 is published on NuGet**; this
-checkout adds separate, nonpackable compatibility tooling.
+checkout prepares the 3.3.0 resource-tag API alongside separate, nonpackable
+compatibility tooling.
 [Checked-in evidence](results/compatibility-matrix.json) records
 actual observations, including missing server evidence. Unit tests and loopback
 test doubles are never counted as independent-server results.
@@ -61,6 +62,8 @@ retains evidence from other fixtures when one fails. Nextcloud and ownCloud rema
 manual-only choices.
 The Apache job explicitly selects the path-plus compatibility option below;
 this is not evidence that strict default URI target matching accepts aliases.
+The WsgiDAV job explicitly selects absolute-path resource tags as described
+below; it does not certify the default absolute-URI tagged form.
 
 The PR trigger is unprivileged `pull_request` with `types: [labeled]`, gated to
 that exact newly applied label. It uses read-only `contents` permission, no PR
@@ -75,6 +78,31 @@ explicit fixture-only diagnostic described below.
 Choosing a candidate fixture does not establish that it starts successfully:
 startup failures and missing result artifacts must not be reported as a green
 server.
+
+### Explicit absolute-path resource tags
+
+Upcoming 3.3.0 adds `DavIfConditions.TaggedAbsolutePaths(...)`. Select this
+RFC 4918 form explicitly; the library's existing `Tagged(...)` factory and the
+fixture runner's default keep absolute URIs. Compare both configurations:
+
+```powershell
+.\interoperability\Run-Fixture.ps1 -Profile wsgidav
+.\interoperability\Run-Fixture.ps1 -Profile wsgidav -AbsolutePathResourceTags
+```
+
+`Invoke-Compatibility.ps1` accepts the same switch for operator-owned servers.
+The wrapper sets `WEBDAV_INTEROP_ABSOLUTE_PATH_RESOURCE_TAGS` to `1` only when
+selected, rather than inheriting a caller's mode, and restores the caller's
+environment afterward. Direct executable runs accept only absent/`0` for the
+default or `1` for the opt-in; ambiguous values fail configuration.
+
+Opt-in result files use `<profile>-<auth>-absolute-path-<framework>.json`;
+default filenames remain `<profile>-<auth>-<framework>.json`. The OPTIONS
+observation records the selected form. Both modes use identical rejection,
+byte-integrity and ETag assertions. No mutation is retried, no condition is
+dropped, and origin validation still precedes omission of the authority.
+Keep both modes' evidence: an opt-in pass does not repair or certify the default
+form, other server versions, or different reverse-proxy configurations.
 
 ## Existing operator-owned servers
 

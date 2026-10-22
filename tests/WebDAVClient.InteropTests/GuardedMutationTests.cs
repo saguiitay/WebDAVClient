@@ -100,18 +100,21 @@ public sealed class GuardedMutationTests
         Assert.IsFalse(result.Succeeded);
     }
 
-    [TestMethod]
-    public async Task LockMutationsCheckTaggedMoveAndComposedAndReleasedConditions()
+    [DataTestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task LockMutationsCheckTaggedMoveAndComposedAndReleasedConditions(bool absolutePathTags)
     {
         using var handler = new GuardedHandler();
-        var result = await RunAsync(handler, locks: true).ConfigureAwait(false);
+        var result = await RunAsync(handler, locks: true, absolutePathTags).ConfigureAwait(false);
         Assert.AreEqual(29, result.Observations.Count);
         Assert.IsTrue(result.Observations.All(o => o.Outcome == "passed"));
         Assert.AreEqual(3, handler.Requests.Count(r => r.Method == "LOCK"));
         Assert.AreEqual(1, handler.Requests.Count(r => r.Method == "UNLOCK"));
         var moves = handler.Requests.Where(r => r.Method == "MOVE").ToArray();
         Assert.AreEqual(3, moves.Length);
-        Assert.IsTrue(moves.All(r => r.Conditions!.StartsWith("<http://localhost" + r.Path + "> ", StringComparison.Ordinal)));
+        string origin = absolutePathTags ? "" : "http://localhost";
+        Assert.IsTrue(moves.All(r => r.Conditions!.StartsWith("<" + origin + r.Path + "> ", StringComparison.Ordinal)));
         var conditionedPuts = handler.Requests.Where(r => r.Method == "PUT" && r.Conditions != null).ToArray();
         Assert.AreEqual(5, conditionedPuts.Length);
         Assert.AreEqual(2, Regex.Matches(conditionedPuts[2].Conditions!, @"\([^()]*\)").Count, "Alternative lists must be OR, conditions within a list AND.");
@@ -229,7 +232,7 @@ public sealed class GuardedMutationTests
         Assert.AreEqual("blocked", result.Observations.Single(o => o.Operation == $"lock-{operation}-valid-integrity").Outcome);
     }
 
-    private static async Task<Matrix> RunAsync(GuardedHandler handler, bool locks)
+    private static async Task<Matrix> RunAsync(GuardedHandler handler, bool locks, bool absolutePathTags = false)
     {
         var environment = new Dictionary<string, string?>
         {
@@ -238,6 +241,7 @@ public sealed class GuardedMutationTests
             ["WEBDAV_INTEROP_SERVER"] = "test",
             ["WEBDAV_INTEROP_VERSION"] = "1"
         };
+        environment["WEBDAV_INTEROP_ABSOLUTE_PATH_RESOURCE_TAGS"] = absolutePathTags ? "1" : null;
         var configuration = Configuration.Read(k => environment.GetValueOrDefault(k));
         var suite = new CompatibilitySuite(configuration);
         using var http = new System.Net.Http.HttpClient(handler);

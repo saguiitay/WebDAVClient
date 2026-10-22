@@ -131,10 +131,14 @@ namespace WebDAVClient.Protocol
 
         private readonly IReadOnlyList<DavTaggedConditions>? m_tagged;
 
-        private DavIfConditions(IReadOnlyList<DavConditionList>? untagged, IReadOnlyList<DavTaggedConditions>? tagged)
+        private readonly bool m_absolutePathTags;
+
+        private DavIfConditions(IReadOnlyList<DavConditionList>? untagged, IReadOnlyList<DavTaggedConditions>? tagged,
+            bool absolutePathTags = false)
         {
             m_untagged = untagged;
             m_tagged = tagged;
+            m_absolutePathTags = absolutePathTags;
         }
 
         /// <summary>
@@ -143,16 +147,28 @@ namespace WebDAVClient.Protocol
         public static DavIfConditions Untagged(params DavConditionList[] alternatives) => new DavIfConditions(CopyLists(alternatives), null);
 
         /// <summary>
-        /// Creates tagged alternatives for multiple resources.
+        /// Creates tagged alternatives for multiple resources using absolute resource URIs.
         /// </summary>
-        public static DavIfConditions Tagged(params DavTaggedConditions[] resources)
+        public static DavIfConditions Tagged(params DavTaggedConditions[] resources) => CreateTagged(resources, false);
+
+        /// <summary>
+        /// Creates tagged alternatives using escaped absolute paths, including any query, instead of full resource URIs.
+        /// </summary>
+        /// <remarks>
+        /// Select this RFC 4918 resource-tag form explicitly for a verified server configuration.
+        /// Every resource is still resolved and validated against the client origin before its authority is omitted.
+        /// Existing Tagged expressions keep their absolute-URI form; no request is retried or condition removed.
+        /// </remarks>
+        public static DavIfConditions TaggedAbsolutePaths(params DavTaggedConditions[] resources) => CreateTagged(resources, true);
+
+        private static DavIfConditions CreateTagged(DavTaggedConditions[] resources, bool absolutePathTags)
         {
             ArgumentNullException.ThrowIfNull(resources);
             if (resources.Length == 0 || resources.Any(r => r == null))
             {
                 throw new ArgumentException("At least one non-null resource is required.", nameof(resources));
             }
-            return new DavIfConditions(null, Array.AsReadOnly(resources.ToArray()));
+            return new DavIfConditions(null, Array.AsReadOnly(resources.ToArray()), absolutePathTags);
         }
 
         internal static IReadOnlyList<DavConditionList> CopyLists(DavConditionList[] alternatives)
@@ -167,6 +183,8 @@ namespace WebDAVClient.Protocol
 
         internal string ToHeader(Func<DavPath, Uri> resolve) => m_untagged != null
             ? string.Join(" ", m_untagged.Select(a => a.ToHeader()))
-            : string.Join(" ", m_tagged!.Select(r => "<" + resolve(r.Resource).AbsoluteUri + "> " + string.Join(" ", r.Alternatives.Select(a => a.ToHeader()))));
+            : string.Join(" ", m_tagged!.Select(r => "<" + ResourceTag(resolve(r.Resource)) + "> " + string.Join(" ", r.Alternatives.Select(a => a.ToHeader()))));
+
+        private string ResourceTag(Uri resolved) => m_absolutePathTags ? resolved.PathAndQuery : resolved.AbsoluteUri;
     }
 }

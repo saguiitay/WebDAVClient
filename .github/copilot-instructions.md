@@ -34,8 +34,11 @@ Resolve XML warnings, inherit interface contracts where appropriate, and keep
 parameter/stream-ownership/exception descriptions consistent across both surfaces.
 Version 3.0.0 was published on October 20, 2026 and includes the v3 API.
 Version 3.2.0 is published and includes the explicit lock lifecycle and core
-response validation. Current source version 3.2.1 integrates interoperability
-tooling and documentation; it is not published yet. The library is under src/WebDAVClient, tests
+response validation. Current source version 3.3.0 adds explicit
+`DavIfConditions.TaggedAbsolutePaths` and includes the previously prepared 3.2.1
+interoperability tooling; it is not published yet. Existing `Tagged` conditions
+keep absolute URIs; the opt-in still validates each origin before omitting its
+authority and never retries mutations. The library is under src/WebDAVClient, tests
 under tests/WebDAVClient.UnitTests and both runnable projects under examples.
 The short README links to docs/README.md;
 docs/reference.md retains detailed modern/legacy contracts and release notes.
