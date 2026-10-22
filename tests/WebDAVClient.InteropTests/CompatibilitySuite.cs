@@ -16,6 +16,10 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
 
     private static readonly byte[] s_content = Encoding.UTF8.GetBytes("Independent WebDAV roundtrip: café 中文 + % #\n0123456789");
 
+    private static readonly byte[] s_replacement = Encoding.UTF8.GetBytes("A different guarded replacement.");
+
+    private static readonly byte[] s_rejected = Encoding.UTF8.GetBytes("This rejected payload must never replace the stored representation.");
+
     private readonly Matrix m_matrix = new()
     {
         Server = config.Server,
@@ -102,13 +106,7 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
             }).ConfigureAwait(false);
             await CheckAsync("range-get", async () => await VerifyDownloadAsync(client, file,
                 new DownloadOptions { Range = new RangeHeaderValue(2, 7) }, s_content[2..8], ct).ConfigureAwait(false)).ConfigureAwait(false);
-            await CheckAsync("conditional-put", async () =>
-            {
-                using var input = new MemoryStream(s_content);
-                return Expected("conditional-put", await client.UploadAsync(file, input,
-                    new UploadOptions { IfNoneMatch = "*" }, ct).ConfigureAwait(false), 412);
-            }).ConfigureAwait(false);
-            await CheckAsync("conditional-integrity", async () => await VerifyDownloadAsync(client, file, null, s_content, ct).ConfigureAwait(false)).ConfigureAwait(false);
+            await CheckGuardedWritesAsync(client, ct).ConfigureAwait(false);
             await CheckAsync("propfind-statuses", async () =>
             {
                 var response = await client.PropFindAsync(file, new PropFindOptions
@@ -211,6 +209,7 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
                         (wireDeviation == null ? "" : " Wire deviation: " + wireDeviation + ".")
                 };
             }).ConfigureAwait(false);
+            await CheckLockConditionedMutationsAsync(client, ct).ConfigureAwait(false);
             var copy = DavPath.FromSegments(m_matrix.RunTree, "copy.bin");
             var moved = DavPath.FromSegments(m_matrix.RunTree, "moved.bin");
             bool copied = await CheckAsync("copy", async () =>
@@ -327,6 +326,336 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
         return m_matrix;
     }
 
+    internal async Task<Matrix> CheckGuardedWritesAsync(DavClient client, CancellationToken ct)
+    {
+        var file = DavPath.FromSegments(m_matrix.RunTree, "conditional-create.bin");
+        string? originalTag = await SeedGuardedFileAsync("conditional-create", client, file, ct).ConfigureAwait(false);
+        if (originalTag == null)
+        {
+            Block("conditional-put", "Guarded creation, bytes and strong validator were not confirmed.");
+            Block("conditional-integrity", "No confirmed guarded-write baseline.");
+        }
+        else
+        {
+            await CheckAsync("conditional-put", async () =>
+            {
+                using var input = new MemoryStream(s_rejected);
+                return Expected("conditional-put", await client.UploadAsync(file, input,
+                    new UploadOptions { IfNoneMatch = "*" }, ct).ConfigureAwait(false), 412);
+            }).ConfigureAwait(false);
+            await CheckAsync("conditional-integrity", () =>
+                VerifyStateAsync(client, file, s_content, originalTag, ct)).ConfigureAwait(false);
+        }
+
+        var etagFile = DavPath.FromSegments(m_matrix.RunTree, "conditional-etag.bin");
+        string? initialTag = await SeedGuardedFileAsync("conditional-etag-create", client, etagFile, ct).ConfigureAwait(false);
+        bool replaced = initialTag != null && await CheckAsync("conditional-if-match", async () =>
+        {
+            using var input = new MemoryStream(s_replacement);
+            return Response("conditional-if-match", await client.UploadAsync(etagFile, input,
+                new UploadOptions { IfMatch = initialTag }, ct).ConfigureAwait(false));
+        }).ConfigureAwait(false);
+        if (!replaced)
+        {
+            if (initialTag == null)
+            {
+                Block("conditional-if-match", "No confirmed strong-validator baseline.");
+            }
+            Block("conditional-if-match-integrity", "Matching-validator replacement was not confirmed.");
+            Block("conditional-stale-put", "No confirmed replacement with a new strong validator.");
+            Block("conditional-stale-integrity", "No confirmed stale-validator baseline.");
+            return m_matrix;
+        }
+
+        string? replacementTag = null;
+        bool verified = await CheckAsync("conditional-if-match-integrity", async () =>
+        {
+            var result = await VerifyDownloadAsync(client, etagFile, null, s_replacement, ct).ConfigureAwait(false);
+            if (result.Outcome == "passed")
+            {
+                replacementTag = await ReadStrongEntityTagAsync(client, etagFile, ct).ConfigureAwait(false);
+                RequireChangedEntityTag(initialTag!, replacementTag);
+            }
+            return result with { Detail = "Replacement bytes and a changed strong validator checked." };
+        }).ConfigureAwait(false);
+        if (!verified || replacementTag == null)
+        {
+            Block("conditional-stale-put", "Replacement bytes and a new strong validator were not confirmed.");
+            Block("conditional-stale-integrity", "No confirmed stale-validator baseline.");
+            return m_matrix;
+        }
+        await CheckAsync("conditional-stale-put", async () =>
+        {
+            using var input = new MemoryStream(s_rejected);
+            return Expected("conditional-stale-put", await client.UploadAsync(etagFile, input,
+                new UploadOptions { IfMatch = initialTag }, ct).ConfigureAwait(false), 412);
+        }).ConfigureAwait(false);
+        await CheckAsync("conditional-stale-integrity", () =>
+            VerifyStateAsync(client, etagFile, s_replacement, replacementTag, ct)).ConfigureAwait(false);
+        return m_matrix;
+    }
+
+    internal async Task<Matrix> CheckLockConditionedMutationsAsync(DavClient client, CancellationToken ct)
+    {
+        foreach (string operation in new[] { "put", "delete", "move" })
+        {
+            string prefix = "lock-" + operation;
+            var file = DavPath.FromSegments(m_matrix.RunTree, prefix + " café + %.bin");
+            var destination = DavPath.FromSegments(m_matrix.RunTree, prefix + "-destination café + %.bin");
+            string? tag = await SeedGuardedFileAsync(prefix + "-create", client, file, ct).ConfigureAwait(false);
+            if (tag == null)
+            {
+                Block(prefix + "-valid", "No confirmed run-owned resource/validator for lock-conditioned mutations.");
+                continue;
+            }
+            string? token = null;
+            try
+            {
+                bool acquired = await CheckAsync(prefix + "-acquire", async () =>
+                {
+                    var response = await client.AcquireLockAsync(file, cancellationToken: ct).ConfigureAwait(false);
+                    var result = Response(prefix + "-acquire", response, optional: true);
+                    if (result.Outcome == "passed")
+                    {
+                        token = response.LockToken?.Trim('<', '>');
+                        Require(!string.IsNullOrWhiteSpace(token));
+                        tag = await ReadStrongEntityTagAsync(client, file, ct).ConfigureAwait(false);
+                    }
+                    return result with { Detail = result.Outcome == "passed" ?
+                        "Validated exclusive lock acquired; token value is not recorded." :
+                        "LOCK not confirmed; dependent token-conditioned mutations were not executed." };
+                }).ConfigureAwait(false);
+                if (!acquired || token == null)
+                {
+                    return m_matrix;
+                }
+                string confirmedToken = token;
+                string baselineTag = tag;
+                var wrong = new DavConditionList(DavCondition.StateToken("urn:uuid:" + Guid.NewGuid()));
+                var wrongConditions = operation == "move"
+                    ? DavIfConditions.Tagged(new DavTaggedConditions(file, wrong))
+                    : DavIfConditions.Untagged(wrong);
+                await CheckAsync(prefix + "-wrong-token", async () =>
+                    ExpectedLockRejection(prefix + "-wrong-token", await MutateAsync(operation, client, file, destination,
+                        wrongConditions, s_rejected, ct).ConfigureAwait(false))).ConfigureAwait(false);
+                bool intact = await CheckAsync(prefix + "-wrong-token-integrity", async () =>
+                {
+                    var result = await VerifyStateAsync(client, file, s_content, baselineTag, ct).ConfigureAwait(false);
+                    if (operation == "move")
+                    {
+                        var absent = Expected(prefix, await client.HeadAsync(destination, cancellationToken: ct).ConfigureAwait(false), 404);
+                        if (absent.Outcome != "passed")
+                        {
+                            return absent with { Detail = "Rejected MOVE created a destination." };
+                        }
+                    }
+                    return result;
+                }).ConfigureAwait(false);
+                if (!intact)
+                {
+                    Block(prefix + "-valid", "Rejected mutation changed the baseline; no repair or replay attempted.");
+                    continue;
+                }
+
+                var wrongTag = new DavConditionList(DavCondition.StateToken(confirmedToken),
+                    DavCondition.EntityTag("\"webdavclient-never-issued-" + Guid.NewGuid().ToString("N") + "\""));
+                var wrongTagConditions = operation == "move"
+                    ? DavIfConditions.Tagged(new DavTaggedConditions(file, wrongTag))
+                    : DavIfConditions.Untagged(wrongTag);
+                await CheckAsync(prefix + "-wrong-etag", async () =>
+                    Expected(prefix, await MutateAsync(operation, client, file, destination,
+                        wrongTagConditions, s_rejected, ct).ConfigureAwait(false), 412)).ConfigureAwait(false);
+                bool tagIntact = await CheckAsync(prefix + "-wrong-etag-integrity", async () =>
+                {
+                    var result = await VerifyStateAsync(client, file, s_content, baselineTag, ct).ConfigureAwait(false);
+                    if (operation == "move")
+                    {
+                        var absent = Expected(prefix, await client.HeadAsync(destination, cancellationToken: ct).ConfigureAwait(false), 404);
+                        if (absent.Outcome != "passed")
+                        {
+                            return absent with { Detail = "Rejected MOVE created a destination." };
+                        }
+                    }
+                    return result;
+                }).ConfigureAwait(false);
+                if (!tagIntact)
+                {
+                    Block(prefix + "-valid", "False ETag condition changed the baseline; no repair or replay attempted.");
+                    continue;
+                }
+
+                var conjunction = new DavConditionList(DavCondition.StateToken(confirmedToken), DavCondition.EntityTag(baselineTag));
+                var conditions = operation == "put" ? DavIfConditions.Untagged(wrong, conjunction) :
+                    operation == "move" ? DavIfConditions.Tagged(new DavTaggedConditions(file, conjunction)) :
+                    DavIfConditions.Untagged(conjunction);
+                bool mutated = await CheckAsync(prefix + "-valid", async () =>
+                    Response(prefix + "-valid", await MutateAsync(operation, client, file, destination,
+                        conditions, s_replacement, ct).ConfigureAwait(false))).ConfigureAwait(false);
+                if (!mutated)
+                {
+                    Block(prefix + "-valid-integrity", "Token-conditioned mutation did not confirm success.");
+                    continue;
+                }
+                string currentTag = baselineTag;
+                bool validState = await CheckAsync(prefix + "-valid-integrity", async () =>
+                {
+                    if (operation == "delete")
+                    {
+                        var absent = Expected(prefix, await client.HeadAsync(file, cancellationToken: ct).ConfigureAwait(false), 404);
+                        if (absent.Outcome == "passed")
+                        {
+                            token = null;
+                        }
+                        return absent;
+                    }
+                    var result = await VerifyDownloadAsync(client, operation == "move" ? destination : file, null,
+                        operation == "move" ? s_content : s_replacement, ct).ConfigureAwait(false);
+                    if (result.Outcome == "passed")
+                    {
+                        if (operation == "move")
+                        {
+                            var absent = Expected(prefix, await client.HeadAsync(file, cancellationToken: ct).ConfigureAwait(false), 404);
+                            if (absent.Outcome != "passed")
+                            {
+                                return absent;
+                            }
+                            // RFC 4918 section 7.6: a successful MOVE does not move the source lock.
+                            token = null;
+                        }
+                        else
+                        {
+                            currentTag = await ReadStrongEntityTagAsync(client, file, ct).ConfigureAwait(false);
+                            RequireChangedEntityTag(baselineTag, currentTag);
+                        }
+                    }
+                    return result;
+                }).ConfigureAwait(false);
+                if (operation != "put" || !validState)
+                {
+                    continue;
+                }
+
+                var stale = DavIfConditions.Untagged(new DavConditionList(
+                    DavCondition.StateToken(confirmedToken), DavCondition.EntityTag(baselineTag)));
+                await CheckAsync(prefix + "-stale-condition", async () =>
+                    Expected(prefix, await MutateAsync("put", client, file, destination, stale, s_rejected, ct).ConfigureAwait(false), 412)).ConfigureAwait(false);
+                bool unchanged = await CheckAsync(prefix + "-stale-condition-integrity", () =>
+                    VerifyStateAsync(client, file, s_replacement, currentTag, ct)).ConfigureAwait(false);
+                if (!unchanged)
+                {
+                    Block(prefix + "-released-token", "Rejected composed condition changed the baseline; no replay attempted.");
+                    continue;
+                }
+                bool released = await CheckAsync(prefix + "-release", async () =>
+                {
+                    var result = Response(prefix, await client.UnlockAsync(file, confirmedToken, ct).ConfigureAwait(false));
+                    if (result.Outcome == "passed")
+                    {
+                        token = null;
+                        currentTag = await ReadStrongEntityTagAsync(client, file, ct).ConfigureAwait(false);
+                        Require((await VerifyDownloadAsync(client, file, null, s_replacement, ct).ConfigureAwait(false)).Outcome == "passed");
+                    }
+                    return result;
+                }).ConfigureAwait(false);
+                if (released)
+                {
+                    var releasedConditions = DavIfConditions.Untagged(new DavConditionList(DavCondition.StateToken(confirmedToken)));
+                    await CheckAsync(prefix + "-released-token", async () =>
+                        Expected(prefix, await MutateAsync("put", client, file, destination, releasedConditions, s_rejected, ct).ConfigureAwait(false), 412)).ConfigureAwait(false);
+                    await CheckAsync(prefix + "-released-token-integrity", () =>
+                        VerifyStateAsync(client, file, s_replacement, currentTag, ct)).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                if (token != null)
+                {
+                    using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                    await CheckAsync(prefix + "-cleanup-unlock", async () =>
+                        Response(prefix, await client.UnlockAsync(file, token, cleanup.Token).ConfigureAwait(false))).ConfigureAwait(false);
+                }
+            }
+        }
+        return m_matrix;
+    }
+
+    private async Task<string?> SeedGuardedFileAsync(string name, DavClient client, DavPath file, CancellationToken ct)
+    {
+        string? tag = null;
+        bool seeded = await CheckAsync(name, async () =>
+        {
+            using var input = new MemoryStream(s_content);
+            var result = Expected(name, await client.UploadAsync(file, input,
+                new UploadOptions { IfNoneMatch = "*" }, ct).ConfigureAwait(false), 201);
+            if (result.Outcome == "passed")
+            {
+                var bytes = await VerifyDownloadAsync(client, file, null, s_content, ct).ConfigureAwait(false);
+                if (bytes.Outcome != "passed")
+                {
+                    return bytes;
+                }
+                tag = await ReadStrongEntityTagAsync(client, file, ct).ConfigureAwait(false);
+            }
+            return result with { Detail = "Run-owned create-if-absent, exact bytes and a strong validator checked." };
+        }).ConfigureAwait(false);
+        return seeded ? tag : null;
+    }
+
+    private static async Task<DavResponse> MutateAsync(string operation, DavClient client, DavPath file,
+        DavPath destination, DavIfConditions conditions, byte[] content, CancellationToken ct)
+    {
+        switch (operation)
+        {
+            case "put":
+                using (var input = new MemoryStream(content))
+                {
+                    return await client.UploadAsync(file, input, new UploadOptions { Conditions = conditions }, ct).ConfigureAwait(false);
+                }
+            case "delete":
+                return await client.DeleteAsync(file, new DavRequestOptions { Conditions = conditions }, ct).ConfigureAwait(false);
+            case "move":
+                return await client.MoveAsync(file, destination, new MoveOptions { Conditions = conditions }, ct).ConfigureAwait(false);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(operation));
+        }
+    }
+
+    private static async Task<string> ReadStrongEntityTagAsync(DavClient client, DavPath file, CancellationToken ct)
+    {
+        var response = await client.HeadAsync(file, cancellationToken: ct).ConfigureAwait(false);
+        response.EnsureHttpSuccess();
+        Require(response.StatusCode == 200);
+        if (!response.Headers.TryGetValue("ETag", out var values) || values.Count != 1 ||
+            !EntityTagHeaderValue.TryParse(values[0], out var tag) || tag.Tag == "*")
+        {
+            throw new InvalidDataException("Guarded probes require one strong ETag.");
+        }
+        if (tag.IsWeak)
+        {
+            throw new InvalidDataException("Guarded probes cannot use a weak ETag.");
+        }
+        return tag.ToString();
+    }
+
+    private static void RequireChangedEntityTag(string previous, string current)
+    {
+        if (string.Equals(previous, current, StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("Changed probe bytes require a changed strong ETag.");
+        }
+    }
+
+    private static async Task<Observation> VerifyStateAsync(DavClient client, DavPath file, byte[] content, string tag, CancellationToken ct)
+    {
+        var result = await VerifyDownloadAsync(client, file, null, content, ct).ConfigureAwait(false);
+        if (result.Outcome != "passed")
+        {
+            return result;
+        }
+        bool unchanged = string.Equals(tag, await ReadStrongEntityTagAsync(client, file, ct).ConfigureAwait(false), StringComparison.Ordinal);
+        return result with { Outcome = unchanged ? "passed" : "failed", Detail = "Exact stored bytes and unchanged strong validator checked." };
+    }
+
     private async Task<bool> CheckAsync(string name, Func<Task<Observation>> action)
     {
         Observation result;
@@ -379,6 +708,9 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
             "LOCK requires a DAV:prop root." => "lock-prop-root",
             "LOCK requires DAV:lockdiscovery." => "missing-lock-discovery",
             "No active locks were reported." => "empty-lock-discovery",
+            "Guarded probes require one strong ETag." => "strong-etag-unavailable",
+            "Guarded probes cannot use a weak ETag." => "weak-etag",
+            "Changed probe bytes require a changed strong ETag." => "unchanged-strong-etag",
             _ => ex.GetType().Name
         };
         return exception.InnerException == null ? Code(exception) : Code(exception) + ":" + Code(exception.InnerException);
@@ -442,6 +774,13 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
     private static Observation Expected(string name, DavResponse response, int status) =>
         new(name, response.StatusCode == status ? "passed" : Matrix.Classify(response.StatusCode, false, false), response.StatusCode,
             Detail: "Expected HTTP " + status);
+
+    private static Observation ExpectedLockRejection(string name, DavResponse response) =>
+        response.StatusCode == 423 && response.Errors.Count(e =>
+            e.ToElement().Name == XName.Get("lock-token-submitted", "DAV:")) == 1
+            ? new Observation(name, "passed", 423,
+                Detail: "HTTP 423 with DAV:lock-token-submitted; integrity and false-ETag checks remain separate.")
+            : Expected(name, response, 412);
 
     private static async Task<Observation> VerifyDownloadAsync(DavClient client, DavPath path, DownloadOptions? options,
         byte[] expected, CancellationToken ct)

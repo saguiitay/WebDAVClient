@@ -50,6 +50,11 @@ resource conditions. Do not treat alternative lists as if every listed resource
 must be locked. A lock on one path is not permission to replace any destination.
 Use tagged source/destination conditions as your server and operation require.
 
+Typed conditions do not guarantee server enforcement. Independent tests found
+that WsgiDAV 4.3.5 accepts an absolute-URI-tagged MOVE with a valid lock token
+and a false ETag. Do not rely on that profile for the affected guarded mutation;
+see the [version-specific restriction and evidence](../interoperability/GAPS.md#p0-do-not-rely-on-ignored-tagged-move-conditions-in-wsgidav).
+
 ## Failure and cleanup
 
 412 can mean an unsatisfied validator/condition; 423 can mean a conflicting lock.

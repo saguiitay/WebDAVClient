@@ -119,8 +119,11 @@ dependencies and the production-module coverage gate are unchanged.
 * OPTIONS capabilities are recorded separately from verified operations.
 * HEAD confirms the random run-tree path is absent, then MKCOL must confirm
   ownership. No mutation targets the configured collection itself.
-* Conditional full PUT, byte-exact GET and HEAD length, inclusive byte-range GET,
-  and a second conditional PUT rejected with 412 (followed by integrity GET).
+* Conditional full PUT, byte-exact GET and HEAD length, inclusive byte-range GET.
+  Suite **1.1** adds isolated create-if-absent, matching strong `If-Match` and
+  stale-validator PUTs. Rejected uploads use distinct bytes; both stored bytes
+  and the strong ETag must remain unchanged. Successful replacement must change
+  the strong validator before it can establish a stale-validator baseline.
 * Unicode/spaces/plus/literal-percent/hash filenames are escaped once; full streamed
   PROPFIND must complete and return the child href.
 * Named PROPFIND must preserve a successful content-length beside a missing
@@ -133,6 +136,19 @@ dependencies and the production-module coverage gate are unchanged.
   exactly one discovery token records only the static wire-deviation code
   `unbracketed-lock-token-confirmed`; the token itself is never persisted. This
   observation does not relax or replace the library's lock validation.
+* Suite **1.1** also checks valid/wrong lock-token PUT, DELETE and tagged-source
+  MOVE on separate run-owned files. DAV `If` alternatives are OR; a token and
+  ETag within one list are AND. Each method must reject a valid token paired
+  with a false ETag; accepting a real token alone does not prove that the
+  condition was evaluated. Wrong-token rejection requires 412, or 423 with
+  the qualified `DAV:lock-token-submitted` condition; the actual status remains
+  recorded. Bare/unrelated 423 responses do not pass. Valid-token/false-ETag,
+  stale-ETag and released-token rejection still require 412.
+  A released token must no longer authorize PUT.
+  Every rejected mutation checks source bytes/ETag and a rejected MOVE also
+  checks destination absence. No unconditional repair/replay follows a failure.
+  Cleanup still attempts held-lock release on a separate bounded deadline.
+  Released-token evidence is not a timed-expiry or shared-lock test.
 * For configured authentication, an unauthenticated HEAD of a run-owned file must
   return 401 with the configured scheme. No bad-password/lockout probing is done.
 * RFC 6578 discovery is distinct from REPORT. An advertised REPORT method does
@@ -154,6 +170,11 @@ second layer, not a substitute for checking remote run trees.
 schema/suite versions, UTC time, client source revision, runtime/OS/architecture,
 server/configured version, authentication, transport, advertisement, exact outer
 and member/property status codes, outcomes, and confirmed cleanup.
+The schema accepts historical suite 1.0 and current suite 1.1 records. Each
+matrix run retains its own `suiteVersion`; old passing runs do not establish
+support for the new guarded-mutation probes. These probes require one strong
+ETag: absent/weak/malformed validators fail setup and block dependent writes,
+not silently become unsupported or a stale-validator pass.
 
 | Outcome | Meaning |
 | --- | --- |
@@ -263,6 +284,16 @@ run succeeds. Inspect individual run timestamps, versions and provenance rather
 than deleting negative history to make the summary green.
 
 ## Fixture status and limits
+
+The latest **suite 1.1** runs at `b3e2e5e` pass 55 checks with one evidenced
+optional sync rejection on SabreDAV, on both frameworks. Stronger conditions
+expose WsgiDAV's ignored false ETag on tagged MOVE, Apache's weak-validator
+prerequisite and nginx's actual overwrites after both false HTTP conditions.
+See the [current outcome table and priorities](GAPS.md#current-evidence) and
+[source/environment companion](results/local-b3e2e5e-environment.json).
+None of these observations changes the production library or publishes a package.
+
+### Historical suite 1.0
 
 After synchronizing PR #92 with `origin/master` at `a5dc243`, hosted run
 [39612921060](https://github.com/saguiitay/WebDAVClient/actions/runs/39612921060)

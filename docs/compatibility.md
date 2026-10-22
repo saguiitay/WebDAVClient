@@ -16,8 +16,12 @@ mutates disposable storage and requires explicit opt-in.
 
 The [prioritized gaps](../interoperability/GAPS.md) separate confirmed server
 restrictions from missing evidence. In particular, the tested nginx built-in
-DAV profile ignores `If-None-Match: *` on PUT. Do not use that configuration for
-safe conditional creation or assume a preliminary HEAD closes the write race.
+DAV profile ignores both existing-resource `If-None-Match: *` and stale
+`If-Match` on PUT, overwriting stored bytes. The WsgiDAV 4.3.5 profile also
+accepts a tagged MOVE with a valid source lock token but a false ETag.
+Do not rely on these affected conditions for concurrency control or assume
+a preliminary HEAD closes the write race. Apache's tested profile supplies
+weak HEAD validators, so its strong-validator checks remain unverified.
 
 The [protocol support table](protocol-support.md) lists the client's supported
 operations and extensions. Your server must also support the features you use.

@@ -2,11 +2,40 @@
 
 This backlog separates **confirmed defects**, **server restrictions** and
 **missing evidence**. A missing test is not proof of a missing library feature.
-PR #92 adds tooling and evidence, not new production APIs. The protocol fixes
+PR #92 added tooling and evidence, not new production APIs. The protocol fixes
 exposed by the original investigation already shipped in **3.2.0 through #90**.
 Durable collection synchronization remains separate work in **#91**.
 
 ## Current evidence
+
+Suite **1.1**, executed from `b3e2e5e80e38876767ac9e82c3a9bdca01e4e5b4`,
+adds independently checked false-ETag conditions with valid lock tokens, not
+just wrong-token rejections. The
+[new run companion](results/local-b3e2e5e-environment.json) records all three
+probe-development revisions, unchanged historical evidence and exact provenance.
+The latest results are identical on .NET 8 and .NET 10:
+
+| Profile | Passed | Optional unsupported/unavailable | Failed / blocked | Interpretation |
+| --- | --- | --- | --- | --- |
+| SabreDAV 4.7.0 / PHP 8.3.25, Basic | 55 | 1 | 0 / 0 | Strong guarded writes, token/ETag mutations and cleanup pass; no RFC 6578 claim |
+| WsgiDAV 4.3.5 / Cheroot 11.1.2, Basic | 49 | 2 | 4 / 1 | Tagged MOVE ignores a false ETag with a valid token; see P0 |
+| Apache 2.4.65, Basic, explicit path-plus alias | 17 | 2 | 5 / 9 | Weak HEAD ETags block strong-validator probes; see P1 |
+| nginx 1.28.0 built-in DAV, anonymous | 16 | 8 | 4 / 0 | Both existing-resource and stale-ETag PUT overwrite stored bytes; see P0 |
+
+All 24 new framework results confirm run-tree deletion and absence. WsgiDAV's
+unexpectedly accepted MOVE also causes its source-lock cleanup to return 404;
+that failed observation remains visible. A wrong-token MOVE returns 423 without
+the required qualified lock condition and fails this conservative profile; that
+rejection alone is **not** evidence of a data-integrity failure. In contrast,
+the valid-token/false-ETag MOVE creates a destination and is unsafe.
+
+Sabre's wrong-token 423 responses include `DAV:lock-token-submitted` and are
+accepted as lock rejections, with the actual status retained. This does not
+waive separate 412, byte/validator and destination-absence assertions for a
+valid token combined with a false ETag. Offline regressions reject bare 423,
+the wrong XML namespace and unrelated conditions.
+
+### Historical suite 1.0 evidence
 
 PR #92 was synchronized with `origin/master` at
 `a5dc2431db258eaa99a156668d04f70ed9d5b9d4`. The
@@ -49,6 +78,9 @@ scale evidence. **P3** is an optional product enhancement or separate scope.
 rejection is 412 on both frameworks. See
 [the recorded failure](results/nginx-anonymous-ci-39612921060-net8.0.raw.json).
 The failing live-workflow job is intentional evidence, not a green matrix.
+Suite 1.1 also confirms stale `If-Match` returns 204 and that both rejected
+payloads actually replace stored bytes; see the
+[stronger result](results/nginx-anonymous-local-b3e2e5e-net8.0.raw.json).
 
 **Action:** document the deployment restriction and require a server/module
 configuration that actually enforces the application's write preconditions.
@@ -60,6 +92,44 @@ the intervening write race remains.
 existing-resource `If-None-Match: *` and stale `If-Match` writes, with distinct
 rejected payloads and unchanged stored bytes/validator. Until then, do not claim
 safe conditional writes for this profile. No library workaround is established.
+
+### P0: Do not rely on ignored tagged MOVE conditions in WsgiDAV
+
+**Type:** newly reproduced server/profile restriction. WsgiDAV 4.3.5 accepts a
+valid source lock token paired with a false ETag in an absolute-URI-tagged DAV
+`If` list: MOVE returns 201 instead of 412 and creates the destination, on both
+frameworks. See the
+[independent false-condition run](results/wsgidav-basic-local-ee58c59-net8.0.raw.json).
+Rejecting a wrong token is not proof that the ETag condition is enforced.
+The absolute-URI resource-tag form is permitted by RFC 4918 sections 8.3 and
+10.4.2; no malformed client request has been established.
+
+**Action:** do not rely on this profile's tagged conditions for atomic guarded
+MOVE. Require a corrected, independently verified server/configuration before
+using the affected workflow. Do not replay a failed/ambiguous mutation with a
+different tag spelling, strip the ETag, or add HEAD-before-MOVE as a workaround.
+
+**Done when:** a separately versioned candidate rejects a valid-token/false-ETag
+tagged MOVE without changing source bytes/validator or creating its destination,
+and accepts the matching condition on both frameworks. Preserve the negative
+evidence and include the Unicode/plus/percent source path.
+
+### P1: Establish strong-validator evidence for the Apache profile
+
+**Type:** prerequisite/evidence gap, not a demonstrated client defect or a claim
+that weak ETags violate HTTP. The pinned Apache 2.4.65 fixture returns weak ETags
+on HEAD immediately after the probes create their files. Suite 1.1 records
+`weak-etag`, fails five setup observations and blocks nine dependent observations;
+it does not send a weak tag as a strong `If-Match` condition.
+
+**Action:** establish an explicitly recorded fixture/configuration that provides
+usable strong validators, then rerun matching/stale HTTP ETags and lock-conditioned
+mutations. Do not silently strip `W/`, wait/retry until the profile turns green,
+or reinterpret blocked checks as unsupported.
+
+**Done when:** both frameworks have real strong-validator baselines, correct
+positive/negative mutations, unchanged rejected-write state and confirmed cleanup.
+Historical suite 1.0 passes do not supply this evidence.
 
 ### P1: Establish positive independent-server RFC 6578 evidence
 
@@ -81,22 +151,34 @@ the durable-sync work in #91. Keep #91's implementation out of this PR.
 
 ### P1: Strengthen guarded writes and lock-conditioned mutations
 
-**Type:** coverage gap around existing APIs. The current
-[`conditional-put` probe](../tests/WebDAVClient.InteropTests/CompatibilitySuite.cs)
-sends `If-None-Match: *`, not stale `If-Match`. It then checks stored bytes, but
-the rejected upload uses the same bytes, so an ignored guard could not be
-detected from content alone. Historical summaries calling this a stale
+**Type:** coverage gap around existing APIs, addressed by the suite **1.1**
+[guarded-mutation probes](../tests/WebDAVClient.InteropTests/CompatibilitySuite.cs).
+The retained suite 1.0 baseline above only sent `If-None-Match: *` with the same
+bytes as the stored resource. Historical summaries calling that a stale
 `If-Match` test are not evidence of that test.
 
-**Action:** send a distinct rejected payload; test matching and stale strong
-ETags, create-if-absent, valid lock-token-conditioned PUT/DELETE/MOVE, wrong or
-expired tokens, and composed DAV `If` conditions. Existing LOCK evidence covers
-acquisition, conflicting DELETE=423, refresh and UNLOCK, not that full matrix.
+**Implemented:** distinct rejected payloads; create-if-absent; matching/stale
+strong ETags; valid/wrong-token PUT, DELETE and tagged MOVE; AND/OR DAV `If`
+conditions; released-token rejection; and byte/validator integrity after
+rejected writes. Valid-token/false-ETag pairs also check PUT, DELETE and tagged
+MOVE: token authorization alone must not mask an ignored condition.
+Separate run-owned files prevent an unsafe server's overwrite
+from contaminating unrelated baseline operations. Missing strong validators or
+unconfirmed state block dependent work instead of triggering a repair/replay.
 
 **Done when:** both frameworks prove correct success/rejection statuses and
 byte/validator integrity after every rejected write on supporting servers.
 Unsupported features must stay distinct from violated advertised semantics.
 Add production changes only if a concrete client defect is reproduced.
+
+**Verified boundary:** Sabre's current profile passes all 55 observed checks on
+both frameworks, with one evidenced optional sync rejection. The coverage work
+is implemented and independently exercised; the newly exposed WsgiDAV and
+Apache restrictions above are separate follow-ups, not erased failures.
+
+**Still separate:** actual timeout-expiry behavior, shared locks and multiple
+source/destination locks are not established by a released-token test. New
+live evidence must identify suite 1.1; the suite 1.0 records above are unchanged.
 
 ### P2: Verify product endpoints and authentication boundaries
 
@@ -171,7 +253,7 @@ not automatically critical omissions from this package.
 | Wrapper converts absent environment variables to empty strings | Fixed in this PR with exact unset/empty/configured restoration, including failed builds, and offline regressions in both workflows |
 | Prepared 3.2.1 missing from the new changelog | Fixed after the master merge; release-note validation passes without publishing |
 
-No additional production-code defect has been established by the synchronized
-reruns. Keep the PR draft until its maintainers review the explicit nginx
-failure and evidence limits; neither merging nor a code push publishes a
+No additional production-code defect has been established by these reruns.
+PR #92 is merged; follow-up probe changes and newly exposed server restrictions
+remain separately reviewable. Neither merging nor a code push publishes a
 package. Publication requires a separate manual workflow dispatch.

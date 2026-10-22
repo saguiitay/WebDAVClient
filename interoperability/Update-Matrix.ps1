@@ -18,6 +18,7 @@ foreach ($profile in $profiles) {
         }
         $runs += [ordered]@{
             evidence = $file.Name
+            suiteVersion = $run.suiteVersion
             startedUtc = ([DateTimeOffset]$run.startedUtc).ToUniversalTime().ToString('O')
             runtime = $run.runtime
             operatingSystem = $run.operatingSystem
@@ -43,7 +44,7 @@ foreach ($profile in $profiles) {
 }
 $matrix = [ordered]@{
     schemaVersion = 1
-    suiteVersion = '1.0'
+    suiteVersion = '1.1'
     generatedUtc = [DateTimeOffset]::UtcNow
     scope = 'Independent-server observations only; not full RFC conformance, publication, or unobserved configuration support.'
     servers = $rows

@@ -11,7 +11,7 @@ internal sealed class Matrix
 {
     public int SchemaVersion => 1;
 
-    public string SuiteVersion => "1.0";
+    public string SuiteVersion => "1.1";
 
     public DateTimeOffset StartedUtc
     {
@@ -101,7 +101,9 @@ internal sealed class Matrix
 
     internal static IEnumerable<string> RequiredOperations =>
         ["isolation-preflight", "create-tree", "unicode-put", "unicode-get", "head-metadata", "conditional-put",
-            "conditional-integrity", "copy", "copy-no-overwrite", "move", "delete-file", "cleanup-tree"];
+            "conditional-integrity", "conditional-create", "conditional-etag-create", "conditional-if-match",
+            "conditional-if-match-integrity", "conditional-stale-put", "conditional-stale-integrity",
+            "copy", "copy-no-overwrite", "move", "delete-file", "cleanup-tree"];
 
     public bool Succeeded => RequiredOperations.All(name => Observations.Any(o => o.Operation == name && o.Outcome == "passed")) &&
         Observations.All(o => o.Outcome is "passed" or "unsupported" or "unavailable-property");

@@ -1,0 +1,105 @@
+{
+  "suiteVersion": "1.1",
+  "sourceRevision": "b3e2e5e80e38876767ac9e82c3a9bdca01e4e5b4",
+  "sourceRevisionExplanation": "Executed after committing the final probe implementation and before this evidence/documentation commit. Production source is unchanged from merged master 70eca417a7029f45fbaffd3c1f53d308cf12c6bd. These are source-build observations, not certification of a downloaded NuGet package.",
+  "clientOperatingSystem": "Microsoft Windows 10.0.26300",
+  "runtimes": {
+    "net8.0": ".NET 8.0.32",
+    "net10.0": ".NET 10.0.13"
+  },
+  "dockerServerVersion": "29.5.3",
+  "dockerComposeVersion": "5.1.4",
+  "dockerServerOperatingSystem": "Linux, Docker Desktop",
+  "pythonVersion": "3.12.10",
+  "profiles": [
+    {
+      "server": "sabredav",
+      "serverVersion": "4.7.0+php-8.3.25",
+      "serverEnvironment": "Linux container, pinned image and Composer dependencies",
+      "authentication": "basic",
+      "succeeded": true,
+      "passedPerFramework": 55,
+      "optionalUnavailableChecksPerFramework": 1,
+      "failedPerFramework": 0,
+      "blockedPerFramework": 0,
+      "scope": "Matching/stale HTTP ETags, wrong/valid token PUT/DELETE/tagged MOVE, valid-token/false-ETag rejection for each method, DAV If AND/OR, released-token rejection, exact bytes/validators and cleanup. Filesystem backend still has no positive RFC 6578 evidence.",
+      "wrongTokenRejection": "HTTP 423 is retained and accepted only with one qualified DAV:lock-token-submitted marker. Separate valid-token/false-ETag cases require HTTP 412 and unchanged source/destination state.",
+      "resultPattern": "sabredav-basic-local-b3e2e5e-net*.raw.json"
+    },
+    {
+      "server": "wsgidav",
+      "serverVersion": "4.3.5+cheroot-11.1.2",
+      "serverEnvironment": "Native Windows Python, pinned requirements",
+      "authentication": "basic",
+      "succeeded": false,
+      "passedPerFramework": 49,
+      "optionalUnavailableChecksPerFramework": 2,
+      "failedPerFramework": 4,
+      "blockedPerFramework": 1,
+      "knownIncompatibility": "A valid source lock token paired with a false ETag in an absolute-URI-tagged DAV If list does not prevent MOVE: HTTP 201 and a destination are observed. The positive MOVE is blocked after corruption; there is no repair or replay. The subsequent source-lock cleanup returns 404 and remains failed.",
+      "additionalStatusLimit": "Wrong-token MOVE returns HTTP 423 without the required qualified lock condition, so the conservative profile records it as failed. That rejection alone is not evidence of a data-integrity failure.",
+      "resultPattern": "wsgidav-basic-local-b3e2e5e-net*.raw.json"
+    },
+    {
+      "server": "apache",
+      "serverVersion": "2.4.65",
+      "serverEnvironment": "Linux container, pinned httpd image",
+      "authentication": "basic",
+      "allowPathPlusEncodingAlias": true,
+      "succeeded": false,
+      "passedPerFramework": 17,
+      "optionalUnavailableChecksPerFramework": 2,
+      "failedPerFramework": 5,
+      "blockedPerFramework": 9,
+      "knownPrerequisite": "HEAD after guarded resource creation supplies weak ETags. Five setup observations record weak-etag and nine dependent observations are blocked. This is not proof that weak ETags violate HTTP or that the library cannot serialize If-Match; no weak tag is promoted to strong.",
+      "resultPattern": "apache-basic-local-b3e2e5e-net*.raw.json"
+    },
+    {
+      "server": "nginx",
+      "serverVersion": "1.28.0",
+      "serverEnvironment": "Linux container, pinned built-in DAV module",
+      "authentication": "anonymous",
+      "succeeded": false,
+      "passedPerFramework": 16,
+      "optionalUnavailableChecksPerFramework": 8,
+      "failedPerFramework": 4,
+      "blockedPerFramework": 0,
+      "knownIncompatibility": "Both existing-resource If-None-Match: * and stale If-Match PUT return 204 instead of 412. Distinct rejected payloads replace the stored bytes in both cases. No unconditional replay or workaround is used.",
+      "resultPattern": "nginx-anonymous-local-b3e2e5e-net*.raw.json"
+    }
+  ],
+  "precedingProbeRevisions": [
+    {
+      "sourceRevision": "6e1dc489c82f6f5bf96571bb65c0f9d0bd7369c3",
+      "scope": "Initial suite 1.1 implementation; wrong-token cases require 412 and do not yet independently negate the ETag for every lock-conditioned method. All four profiles are nonpassing. Do not interpret these observations as the final suite's complete condition coverage.",
+      "frameworkResultPattern": "<profile>-<authentication>-local-6e1dc48-net*.raw.json",
+      "startupAndImagePattern": "<profile>-local-6e1dc48-*.raw.json"
+    },
+    {
+      "sourceRevision": "ee58c5955e3e4525b8b639002af3c070cdb6298e",
+      "scope": "Adds valid-token/false-ETag checks for PUT, DELETE and tagged MOVE, exposing WsgiDAV's unsafe MOVE; distinguishes weak Apache ETags. Still requires 412 for all wrong-token rejections. All four profiles are nonpassing.",
+      "frameworkResultPattern": "<profile>-<authentication>-local-ee58c59-net*.raw.json",
+      "startupAndImagePattern": "<profile>-local-ee58c59-*.raw.json"
+    }
+  ],
+  "retainedEvidence": {
+    "newFrameworkResults": 24,
+    "unchangedHistoricalFrameworkResults": 60,
+    "totalFrameworkResults": 84,
+    "newRawFilesIncludingStartupAndImages": 45,
+    "finalStartupAndImagePattern": "<profile>-local-b3e2e5e-*.raw.json",
+    "rawBytePolicy": "Raw JSON is copied without reformatting under the versioned *.raw.json byte-preservation attributes. Source revisions and historical outcomes are never relabeled."
+  },
+  "environmentRecovery": "The first WsgiDAV attempt correctly detected its absent worktree-local Python environment; the pinned requirements were then installed. Docker Desktop was installed but its Linux daemon was stopped. The three container attempts produced no protocol results until Docker Desktop was started and daemon readiness confirmed. No existing server or foreign fixture was reused.",
+  "cleanup": "All 24 framework results confirm deletion and HEAD=404 of their own run tree. WsgiDAV's source-lock cleanup after the unexpected MOVE remains separately failed. Each fixture invocation stops only its own Python process or unique Compose project, with volumes removed. No interop containers/networks/volumes or listeners on ports 19080-19083 remain.",
+  "remainingEvidenceLimits": [
+    "No positive independent-server RFC 6578 synchronization",
+    "No corrected WsgiDAV tagged-MOVE configuration",
+    "No strong-validator Apache configuration established",
+    "No corrected nginx conditional-write configuration",
+    "No Nextcloud, ownCloud or IIS execution",
+    "No HTTPS or Windows-authentication run",
+    "No actual lock timeout-expiry, shared locks or multiple locked source/destination matrix",
+    "No full RFC conformance or production diagnostics claim"
+  ]
+}
