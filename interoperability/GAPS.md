@@ -32,6 +32,14 @@ both configurations, exact execution source, fixture identities and limits.
 This API is **unpublished**; these are source-build results, not a downloaded
 NuGet-package test or a blanket server guarantee.
 
+The separate [Linux opt-in run](https://github.com/saguiitay/WebDAVClient/actions/runs/39825592640)
+at `1f13c83d8fcdc795f78cb7e92533009cc52cef3d` confirms the same WsgiDAV
+54-pass/two-optional result on both frameworks, including 412 rejections,
+matching MOVE and cleanup. Its [companion](results/ci-39825592640-environment.json)
+retains exact source and artifact provenance. Ordinary
+[PR validation](https://github.com/saguiitay/WebDAVClient/actions/runs/39825593845)
+also passed; Pack, NuGet push and the release job were skipped.
+
 Apache and nginx were not rerun for this resource-tag-only correction. Their
 restrictions below remain open. No historical evidence was removed or relabeled.
 
@@ -144,7 +152,8 @@ isolates the spelling difference; it is diagnostic evidence, not a library run.
 
 **Implemented boundary:** upcoming 3.3.0 provides
 `DavIfConditions.TaggedAbsolutePaths(...)`. The new typed-client runs satisfy
-the acceptance criteria below for this explicit native Windows WsgiDAV profile.
+the acceptance criteria below for this explicit WsgiDAV profile on Windows and
+Linux.
 All resources still undergo origin validation before the authority is omitted;
 escaped paths/queries and condition lists are preserved. See the
 [usage and limits](../docs/locking.md#explicit-absolute-path-resource-tags-upcoming-330).

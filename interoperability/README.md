@@ -325,6 +325,13 @@ The previous `b3e2e5e` evidence for Apache's weak-validator prerequisite and
 nginx's actual overwrites remains unchanged; neither profile was rerun for this
 resource-tag-only change. Their gaps remain open.
 
+The [separate hosted Linux run](https://github.com/saguiitay/WebDAVClient/actions/runs/39825592640)
+at `1f13c83` confirms WsgiDAV's explicit absolute-path profile on both frameworks:
+54 passed, two optional unavailable/unsupported, no failures, and cleanup
+confirmed. Its [companion](results/ci-39825592640-environment.json) identifies
+the actual execution source and retained raw artifacts; it is not a Linux
+default-mode rerun.
+
 ### Historical suite 1.0
 
 After synchronizing PR #92 with `origin/master` at `a5dc243`, hosted run

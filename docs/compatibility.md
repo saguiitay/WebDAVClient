@@ -22,7 +22,7 @@ accepts a tagged MOVE with a valid source lock token but a false ETag.
 This WsgiDAV restriction applies to the default absolute-URI resource tags.
 Upcoming, unpublished 3.3.0 adds an
 [explicit absolute-path option](locking.md#explicit-absolute-path-resource-tags-upcoming-330):
-the pinned native Windows profile rejects the false condition and accepts the
+the pinned Windows and Linux profiles reject the false condition and accept the
 matching MOVE on both frameworks with that option. This is not automatic
 fallback or certification of other versions/proxies.
 Do not rely on the affected default conditions for concurrency control or assume

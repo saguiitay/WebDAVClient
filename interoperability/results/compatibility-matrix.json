@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "suiteVersion": "1.1",
-  "generatedUtc": "2026-10-22T17:45:20.9633616+00:00",
+  "generatedUtc": "2026-10-22T17:50:31.3832128+00:00",
   "scope": "Independent-server observations only; not full RFC conformance, publication, or unobserved configuration support.",
   "servers": [
     {
@@ -45,6 +45,52 @@
           "sourceRevision": "1c94851eeb6b0f9dd3439a7ec9aa2cb6ad9e11cd",
           "succeeded": true,
           "passed": 18,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-absolute-path-ci-39825592640-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-22T17:47:22.8943779+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "1f13c83d8fcdc795f78cb7e92533009cc52cef3d",
+          "succeeded": true,
+          "passed": 54,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-absolute-path-ci-39825592640-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-22T17:47:21.7391863+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Ubuntu 24.04.5 LTS",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "1f13c83d8fcdc795f78cb7e92533009cc52cef3d",
+          "succeeded": true,
+          "passed": 54,
           "unsupported": [
             "sync-report"
           ],
