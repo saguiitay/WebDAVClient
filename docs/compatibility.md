@@ -19,7 +19,13 @@ restrictions from missing evidence. In particular, the tested nginx built-in
 DAV profile ignores both existing-resource `If-None-Match: *` and stale
 `If-Match` on PUT, overwriting stored bytes. The WsgiDAV 4.3.5 profile also
 accepts a tagged MOVE with a valid source lock token but a false ETag.
-Do not rely on these affected conditions for concurrency control or assume
+This WsgiDAV restriction applies to the default absolute-URI resource tags.
+Upcoming, unpublished 3.3.0 adds an
+[explicit absolute-path option](locking.md#explicit-absolute-path-resource-tags-upcoming-330):
+the pinned native Windows profile rejects the false condition and accepts the
+matching MOVE on both frameworks with that option. This is not automatic
+fallback or certification of other versions/proxies.
+Do not rely on the affected default conditions for concurrency control or assume
 a preliminary HEAD closes the write race. Apache's tested profile supplies
 weak HEAD validators, so its strong-validator checks remain unverified.
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "suiteVersion": "1.1",
-  "generatedUtc": "2026-10-21T15:26:49.9092296+00:00",
+  "generatedUtc": "2026-10-22T17:45:20.9633616+00:00",
   "scope": "Independent-server observations only; not full RFC conformance, publication, or unobserved configuration support.",
   "servers": [
     {
@@ -45,6 +45,52 @@
           "sourceRevision": "1c94851eeb6b0f9dd3439a7ec9aa2cb6ad9e11cd",
           "succeeded": true,
           "passed": 18,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-absolute-path-local-4fe7029-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-22T17:41:16.9031340+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "4fe7029aeea78c26c71c43515420b28cc973bf31",
+          "succeeded": true,
+          "passed": 54,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-absolute-path-local-4fe7029-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-22T17:41:09.9510496+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "4fe7029aeea78c26c71c43515420b28cc973bf31",
+          "succeeded": true,
+          "passed": 54,
           "unsupported": [
             "sync-report"
           ],
@@ -282,6 +328,114 @@
             "sync-discovery"
           ],
           "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-default-local-4fe7029-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-22T17:40:47.2121488+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "4fe7029aeea78c26c71c43515420b28cc973bf31",
+          "succeeded": false,
+          "passed": 49,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag",
+              "outcome": "failed",
+              "httpStatus": 201,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Rejected MOVE created a destination."
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "False ETag condition changed the baseline; no repair or replay attempted."
+            },
+            {
+              "operation": "lock-move-cleanup-unlock",
+              "outcome": "failed",
+              "httpStatus": 404,
+              "memberStatuses": [],
+              "propertyStatuses": []
+            }
+          ],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "wsgidav-basic-default-local-4fe7029-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-22T17:40:39.9711079+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.3.5+cheroot-11.1.2",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "4fe7029aeea78c26c71c43515420b28cc973bf31",
+          "succeeded": false,
+          "passed": 49,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [
+            "sync-discovery"
+          ],
+          "nonpassing": [
+            {
+              "operation": "lock-move-wrong-token",
+              "outcome": "failed",
+              "httpStatus": 423,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag",
+              "outcome": "failed",
+              "httpStatus": 201,
+              "detail": "Expected HTTP 412"
+            },
+            {
+              "operation": "lock-move-wrong-etag-integrity",
+              "outcome": "failed",
+              "httpStatus": 200,
+              "detail": "Rejected MOVE created a destination."
+            },
+            {
+              "operation": "lock-move-valid",
+              "outcome": "blocked",
+              "detail": "False ETag condition changed the baseline; no repair or replay attempted."
+            },
+            {
+              "operation": "lock-move-cleanup-unlock",
+              "outcome": "failed",
+              "httpStatus": 404,
+              "memberStatuses": [],
+              "propertyStatuses": []
+            }
+          ],
           "cleanup": [
             "passed"
           ]
@@ -2453,6 +2607,48 @@
       "evidenceGap": null,
       "runs": [
         {
+          "evidence": "sabredav-basic-absolute-path-local-4fe7029-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-22T17:42:42.2042945+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "4fe7029aeea78c26c71c43515420b28cc973bf31",
+          "succeeded": true,
+          "passed": 55,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "sabredav-basic-absolute-path-local-4fe7029-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-22T17:42:39.2512845+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "4fe7029aeea78c26c71c43515420b28cc973bf31",
+          "succeeded": true,
+          "passed": 55,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
           "evidence": "sabredav-basic-ci-39509017232-net10.0.json",
           "suiteVersion": "1.0",
           "startedUtc": "2026-10-20T22:35:01.6635993+00:00",
@@ -2731,6 +2927,48 @@
           "sourceRevision": "963c8dbbb08131815fd15eaa8974c819cc26535f",
           "succeeded": true,
           "passed": 20,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "sabredav-basic-default-local-4fe7029-net10.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-22T17:41:54.9184666+00:00",
+          "runtime": ".NET 10.0.13",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "4fe7029aeea78c26c71c43515420b28cc973bf31",
+          "succeeded": true,
+          "passed": 55,
+          "unsupported": [
+            "sync-report"
+          ],
+          "unavailableProperties": [],
+          "nonpassing": [],
+          "cleanup": [
+            "passed"
+          ]
+        },
+        {
+          "evidence": "sabredav-basic-default-local-4fe7029-net8.0.raw.json",
+          "suiteVersion": "1.1",
+          "startedUtc": "2026-10-22T17:41:52.3580195+00:00",
+          "runtime": ".NET 8.0.32",
+          "operatingSystem": "Microsoft Windows 10.0.26300",
+          "serverVersion": "4.7.0+php-8.3.25",
+          "authentication": "basic",
+          "transport": "http",
+          "sourceRevision": "4fe7029aeea78c26c71c43515420b28cc973bf31",
+          "succeeded": true,
+          "passed": 55,
           "unsupported": [
             "sync-report"
           ],

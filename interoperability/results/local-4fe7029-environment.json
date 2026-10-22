@@ -1,0 +1,99 @@
+{
+  "suiteVersion": "1.1",
+  "sourceRevision": "4fe7029aeea78c26c71c43515420b28cc973bf31",
+  "sourceRevisionExplanation": "Implementation committed before all eight typed-client framework runs; this evidence/documentation commit follows execution. Source version 3.3.0 is unpublished. These are source-build observations, not certification of a downloaded NuGet package.",
+  "clientOperatingSystem": "Microsoft Windows 10.0.26300",
+  "runtimes": {
+    "net8.0": ".NET 8.0.32",
+    "net10.0": ".NET 10.0.13"
+  },
+  "dockerServerVersion": "29.5.3",
+  "dockerComposeVersion": "5.1.4",
+  "dockerServerOperatingSystem": "Linux, Docker Desktop",
+  "pythonVersion": "3.12.10",
+  "profiles": [
+    {
+      "server": "wsgidav",
+      "serverVersion": "4.3.5+cheroot-11.1.2",
+      "serverEnvironment": "Native Windows Python, pinned requirements, Basic authentication",
+      "resourceTags": "default absolute URI",
+      "succeeded": false,
+      "passedPerFramework": 49,
+      "optionalUnavailableChecksPerFramework": 2,
+      "failedPerFramework": 4,
+      "blockedPerFramework": 1,
+      "observedRestriction": "Valid-token/false-ETag tagged MOVE returns 201 and creates the destination. Matching MOVE is blocked after corruption; source-lock cleanup returns 404. Wrong-token MOVE returns unqualified 423, which does not satisfy the conservative rejection profile.",
+      "resultPattern": "wsgidav-basic-default-local-4fe7029-net*.raw.json"
+    },
+    {
+      "server": "wsgidav",
+      "serverVersion": "4.3.5+cheroot-11.1.2",
+      "serverEnvironment": "Native Windows Python, pinned requirements, Basic authentication",
+      "resourceTags": "explicit absolute path using DavIfConditions.TaggedAbsolutePaths",
+      "succeeded": true,
+      "passedPerFramework": 54,
+      "optionalUnavailableChecksPerFramework": 2,
+      "failedPerFramework": 0,
+      "blockedPerFramework": 0,
+      "verifiedBoundary": "Wrong-token and valid-token/false-ETag tagged MOVE return 412, with unchanged source bytes/strong validator and absent destination. Matching token/ETag MOVE returns 201; exact destination bytes and source disappearance are checked. Unicode, spaces, plus and percent are present in both paths. No retry, condition removal, repair or replay.",
+      "resultPattern": "wsgidav-basic-absolute-path-local-4fe7029-net*.raw.json"
+    },
+    {
+      "server": "sabredav",
+      "serverVersion": "4.7.0+php-8.3.25",
+      "serverEnvironment": "Linux container, digest-pinned PHP/Composer images, frozen dependencies, Basic authentication",
+      "resourceTags": "default absolute URI",
+      "succeeded": true,
+      "passedPerFramework": 55,
+      "optionalUnavailableChecksPerFramework": 1,
+      "failedPerFramework": 0,
+      "blockedPerFramework": 0,
+      "resultPattern": "sabredav-basic-default-local-4fe7029-net*.raw.json"
+    },
+    {
+      "server": "sabredav",
+      "serverVersion": "4.7.0+php-8.3.25",
+      "serverEnvironment": "Linux container, digest-pinned PHP/Composer images, frozen dependencies, Basic authentication",
+      "resourceTags": "explicit absolute path using DavIfConditions.TaggedAbsolutePaths",
+      "succeeded": true,
+      "passedPerFramework": 55,
+      "optionalUnavailableChecksPerFramework": 1,
+      "failedPerFramework": 0,
+      "blockedPerFramework": 0,
+      "resultPattern": "sabredav-basic-absolute-path-local-4fe7029-net*.raw.json"
+    }
+  ],
+  "rawHttpDiagnostic": {
+    "evidence": "wsgidav-tagged-wire-local-e2f21e1.raw.json",
+    "checkoutAtExecution": "e2f21e1f0e6cdc8a58909bac8084494aa1e4dbf1",
+    "scope": "Separate bounded raw HTTP comparison run before the runtime implementation. It bypasses the library and is not a typed-client compatibility result. The diagnostic script was session-owned, not committed source; the recorded revision identifies the then-current checkout only.",
+    "observedBoundary": "Absolute-URI false-ETag MOVE returns 201; absolute-path false-ETag and wrong-token MOVE return 412 without changing source bytes/validator or creating a destination; matching absolute-path MOVE returns 201.",
+    "cleanup": "Diagnostic-owned tree deletion/absence and owned process termination confirmed."
+  },
+  "retainedEvidence": {
+    "newFrameworkResults": 8,
+    "unchangedHistoricalFrameworkResults": 84,
+    "totalFrameworkResults": 92,
+    "newRawFilesIncludingStartupImagesAndDiagnostic": 15,
+    "startupAndImagePattern": "<profile>-<default|absolute-path>-local-4fe7029-<startup|images>.raw.json",
+    "rawBytePolicy": "Copied byte-for-byte under *.raw.json attributes. Historical evidence and execution revisions are never relabeled."
+  },
+  "offlineValidation": {
+    "releaseBuild": "Both frameworks; zero warnings/errors.",
+    "unitTestsPerFramework": 1164,
+    "harnessTestsPerFramework": 99,
+    "libraryCoverage": "99.29% line, 96.75% branch on each framework.",
+    "sampleCoverage": "99.03% line, 98.51% branch on each framework.",
+    "otherChecks": "IDE0011 verification, wrapper/environment/mode/filename regression, fixture readiness, bounded synthetic diagnostic regression and release-note tooling passed."
+  },
+  "cleanup": "All eight framework results confirm run-tree deletion and absence. Default WsgiDAV source-lock cleanup after unsafe MOVE remains separately failed. Fixture invocations stopped their own Python processes or unique Compose projects; no listeners on 19080/19083 or interop containers remained after execution.",
+  "remainingEvidenceLimits": [
+    "Default absolute-URI WsgiDAV tagged MOVE remains unsafe; no automatic fallback or upstream server correction.",
+    "WsgiDAV opt-in evidence here uses native Windows Python, not Linux or a reverse proxy.",
+    "Apache strong-validator and nginx conditional-write restrictions remain open; neither was rerun for this correction.",
+    "No positive independent RFC 6578 synchronization.",
+    "No Nextcloud, ownCloud, IIS, HTTPS or Windows-authentication execution.",
+    "No actual lock expiry, shared locks or multiple locked source/destination matrix.",
+    "No full RFC conformance or published-package certification."
+  ]
+}

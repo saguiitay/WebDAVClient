@@ -313,13 +313,17 @@ than deleting negative history to make the summary green.
 
 ## Fixture status and limits
 
-The latest **suite 1.1** runs at `b3e2e5e` pass 55 checks with one evidenced
-optional sync rejection on SabreDAV, on both frameworks. Stronger conditions
-expose WsgiDAV's ignored false ETag on tagged MOVE, Apache's weak-validator
-prerequisite and nginx's actual overwrites after both false HTTP conditions.
+The latest **suite 1.1** runs at `4fe7029` compare default absolute-URI tags with
+the upcoming 3.3.0 absolute-path opt-in, on both frameworks. WsgiDAV's explicit
+path profile passes 54 checks with two optional unavailable/unsupported results;
+its unchanged default still has four failures and one blocked check. SabreDAV
+passes 55 checks with one optional sync rejection in **both** modes.
 See the [current outcome table and priorities](GAPS.md#current-evidence) and
-[source/environment companion](results/local-b3e2e5e-environment.json).
-None of these observations changes the production library or publishes a package.
+[source/environment companion](results/local-4fe7029-environment.json).
+These runs exercise a real runtime API addition, but do not publish a package.
+The previous `b3e2e5e` evidence for Apache's weak-validator prerequisite and
+nginx's actual overwrites remains unchanged; neither profile was rerun for this
+resource-tag-only change. Their gaps remain open.
 
 ### Historical suite 1.0
 

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "profile": "wsgidav",
+  "observedUtc": "2026-10-22T17:40:32.175466+00:00",
+  "readiness": {
+    "ready": true,
+    "method": "OPTIONS",
+    "status": 200,
+    "attempts": 1,
+    "failure": null
+  }
+}
