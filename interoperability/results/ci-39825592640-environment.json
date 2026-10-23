@@ -1,0 +1,53 @@
+{
+  "suiteVersion": "1.1",
+  "workflowRun": "https://github.com/saguiitay/WebDAVClient/actions/runs/39825592640",
+  "workflowAttempt": 1,
+  "workflowEvent": "workflow_dispatch",
+  "workflowInput": {
+    "server": "wsgidav"
+  },
+  "artifactName": "interoperability-wsgidav-39825592640-1",
+  "sourceRevision": "1f13c83d8fcdc795f78cb7e92533009cc52cef3d",
+  "sourceRevisionExplanation": "Manual interoperability dispatch checked out this branch revision, not a pull-request merge ref. Runtime implementation is unchanged from 4fe7029aeea78c26c71c43515420b28cc973bf31. Source version 3.3.0 remains unpublished.",
+  "clientOperatingSystem": "Ubuntu 24.04.5 LTS",
+  "architecture": "X64",
+  "runtimes": {
+    "net8.0": ".NET 8.0.32",
+    "net10.0": ".NET 10.0.13"
+  },
+  "server": "wsgidav",
+  "serverVersion": "4.3.5+cheroot-11.1.2",
+  "serverEnvironment": "Independent native Linux Python fixture using pinned requirements, runner-owned storage and ephemeral Basic credentials.",
+  "resourceTags": "Explicit absolute-path mode selected in the interoperability workflow for the known WsgiDAV profile; never automatic library fallback.",
+  "succeeded": true,
+  "passedPerFramework": 54,
+  "optionalUnavailableChecksPerFramework": 2,
+  "failedPerFramework": 0,
+  "blockedPerFramework": 0,
+  "verifiedBoundary": "Wrong-token and valid-token/false-ETag tagged MOVE return 412, source bytes/strong ETag remain unchanged and destination remains absent. Matching token/ETag MOVE returns 201; exact destination bytes and source disappearance are checked. Paths include Unicode, spaces, plus and percent.",
+  "resultPattern": "wsgidav-basic-absolute-path-ci-39825592640-net*.raw.json",
+  "retainedEvidence": {
+    "newFrameworkResults": 2,
+    "unchangedEarlierFrameworkResults": 92,
+    "totalFrameworkResults": 94,
+    "startupEvidence": "wsgidav-absolute-path-ci-39825592640-startup.raw.json",
+    "rawBytePolicy": "Copied directly from the downloaded artifact without reformatting. Execution revision is preserved, not relabeled to the later evidence commit.",
+    "artifactSummary": "The downloaded artifact also contains its generated compatibility-matrix.json; that per-run summary is not substituted for the all-history repository ledger."
+  },
+  "ordinaryValidation": {
+    "workflowRun": "https://github.com/saguiitay/WebDAVClient/actions/runs/39825593845",
+    "sourceHead": "1f13c83d8fcdc795f78cb7e92533009cc52cef3d",
+    "event": "pull_request",
+    "conclusion": "success",
+    "packStep": "skipped",
+    "nugetPushStep": "skipped",
+    "releaseJob": "skipped"
+  },
+  "cleanup": "Both framework runs confirm deletion and HEAD=404 of their own run trees. The successful fixture workflow stopped only its owned Python process and removed its disposable storage.",
+  "remainingLimits": [
+    "This Linux run selected absolute-path tags only. Native Windows default-failure evidence is retained separately.",
+    "No upstream WsgiDAV correction or certification of default absolute-URI conditions.",
+    "No published-package, other server-version, reverse-proxy, HTTPS or Windows-authentication certification.",
+    "Apache strong-validator, nginx conditional-write, positive RFC 6578, lock-expiry/shared-lock and multiple locked source/destination evidence gaps remain."
+  ]
+}

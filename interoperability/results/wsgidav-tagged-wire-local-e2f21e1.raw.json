@@ -1,0 +1,42 @@
+{
+  "sourceRevision": "e2f21e1f0e6cdc8a58909bac8084494aa1e4dbf1",
+  "serverVersion": "WsgiDAV 4.3.5 / Cheroot 11.1.2",
+  "diagnostic": "Independent raw HTTP comparison; not a library compatibility result.",
+  "authentication": "basic",
+  "observations": [
+    {
+      "case": "absolute-uri-false-etag",
+      "httpStatus": 201,
+      "sourceStatus": 404,
+      "destinationStatus": 200,
+      "sourceBytesAndValidatorUnchanged": false,
+      "destinationBytesMatch": true
+    },
+    {
+      "case": "absolute-path-false-etag",
+      "httpStatus": 412,
+      "sourceStatus": 200,
+      "destinationStatus": 404,
+      "sourceBytesAndValidatorUnchanged": true,
+      "destinationBytesMatch": false
+    },
+    {
+      "case": "absolute-path-wrong-token",
+      "httpStatus": 412,
+      "sourceStatus": 200,
+      "destinationStatus": 404,
+      "sourceBytesAndValidatorUnchanged": true,
+      "destinationBytesMatch": false
+    },
+    {
+      "case": "absolute-path-matching",
+      "httpStatus": 201,
+      "sourceStatus": 404,
+      "destinationStatus": 200,
+      "sourceBytesAndValidatorUnchanged": false,
+      "destinationBytesMatch": true
+    }
+  ],
+  "treeCleanupConfirmed": true,
+  "ownedProcessStopped": true
+}

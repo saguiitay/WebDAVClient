@@ -25,7 +25,7 @@ and setup guidance. Differences in the legacy `Client` API are called out below.
 | Lock refresh / UNLOCK | Implemented | Explicit `RefreshLockAsync` / `UnlockAsync`; no background lease renewal |
 | Explicit lock lease lifecycle | Implemented (3.2+) | `DavLockLease`; observed expiry, caller-driven renewal and one release attempt; [guide](lock-lifecycle.md) |
 | HTTP ETag/date conditions | Implemented | Typed request options; no implicit lost-update strategy |
-| DAV `If` conditions | Implemented | Tagged/untagged lists, state tokens, ETags and `Not`; same-origin tagged resources |
+| DAV `If` conditions | Implemented | Tagged/untagged lists, state tokens, ETags and `Not`; same-origin tagged resources. Upcoming 3.3 adds explicit `TaggedAbsolutePaths`; existing `Tagged` defaults stay unchanged |
 | Qualified XML values and 207 outcomes | Implemented | Resource/property outcomes retained separately; bounded asynchronous parser |
 | RFC 4918 class 1/2/3 certification | Not claimed | Implementing these methods or parsing DAV tokens is not a complete conformance audit |
 

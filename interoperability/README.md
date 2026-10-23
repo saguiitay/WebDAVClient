@@ -2,7 +2,8 @@
 
 This is an **opt-in mutating compatibility suite**, not a complete RFC 4918
 conformance certification. **WebDAVClient 3.2.0 is published on NuGet**; this
-checkout adds separate, nonpackable compatibility tooling.
+checkout prepares the 3.3.0 resource-tag API alongside separate, nonpackable
+compatibility tooling.
 [Checked-in evidence](results/compatibility-matrix.json) records
 actual observations, including missing server evidence. Unit tests and loopback
 test doubles are never counted as independent-server results.
@@ -61,6 +62,8 @@ retains evidence from other fixtures when one fails. Nextcloud and ownCloud rema
 manual-only choices.
 The Apache job explicitly selects the path-plus compatibility option below;
 this is not evidence that strict default URI target matching accepts aliases.
+The WsgiDAV job explicitly selects absolute-path resource tags as described
+below; it does not certify the default absolute-URI tagged form.
 
 The PR trigger is unprivileged `pull_request` with `types: [labeled]`, gated to
 that exact newly applied label. It uses read-only `contents` permission, no PR
@@ -75,6 +78,31 @@ explicit fixture-only diagnostic described below.
 Choosing a candidate fixture does not establish that it starts successfully:
 startup failures and missing result artifacts must not be reported as a green
 server.
+
+### Explicit absolute-path resource tags
+
+Upcoming 3.3.0 adds `DavIfConditions.TaggedAbsolutePaths(...)`. Select this
+RFC 4918 form explicitly; the library's existing `Tagged(...)` factory and the
+fixture runner's default keep absolute URIs. Compare both configurations:
+
+```powershell
+.\interoperability\Run-Fixture.ps1 -Profile wsgidav
+.\interoperability\Run-Fixture.ps1 -Profile wsgidav -AbsolutePathResourceTags
+```
+
+`Invoke-Compatibility.ps1` accepts the same switch for operator-owned servers.
+The wrapper sets `WEBDAV_INTEROP_ABSOLUTE_PATH_RESOURCE_TAGS` to `1` only when
+selected, rather than inheriting a caller's mode, and restores the caller's
+environment afterward. Direct executable runs accept only absent/`0` for the
+default or `1` for the opt-in; ambiguous values fail configuration.
+
+Opt-in result files use `<profile>-<auth>-absolute-path-<framework>.json`;
+default filenames remain `<profile>-<auth>-<framework>.json`. The OPTIONS
+observation records the selected form. Both modes use identical rejection,
+byte-integrity and ETag assertions. No mutation is retried, no condition is
+dropped, and origin validation still precedes omission of the authority.
+Keep both modes' evidence: an opt-in pass does not repair or certify the default
+form, other server versions, or different reverse-proxy configurations.
 
 ## Existing operator-owned servers
 
@@ -285,13 +313,24 @@ than deleting negative history to make the summary green.
 
 ## Fixture status and limits
 
-The latest **suite 1.1** runs at `b3e2e5e` pass 55 checks with one evidenced
-optional sync rejection on SabreDAV, on both frameworks. Stronger conditions
-expose WsgiDAV's ignored false ETag on tagged MOVE, Apache's weak-validator
-prerequisite and nginx's actual overwrites after both false HTTP conditions.
+The latest **suite 1.1** runs at `4fe7029` compare default absolute-URI tags with
+the upcoming 3.3.0 absolute-path opt-in, on both frameworks. WsgiDAV's explicit
+path profile passes 54 checks with two optional unavailable/unsupported results;
+its unchanged default still has four failures and one blocked check. SabreDAV
+passes 55 checks with one optional sync rejection in **both** modes.
 See the [current outcome table and priorities](GAPS.md#current-evidence) and
-[source/environment companion](results/local-b3e2e5e-environment.json).
-None of these observations changes the production library or publishes a package.
+[source/environment companion](results/local-4fe7029-environment.json).
+These runs exercise a real runtime API addition, but do not publish a package.
+The previous `b3e2e5e` evidence for Apache's weak-validator prerequisite and
+nginx's actual overwrites remains unchanged; neither profile was rerun for this
+resource-tag-only change. Their gaps remain open.
+
+The [separate hosted Linux run](https://github.com/saguiitay/WebDAVClient/actions/runs/39825592640)
+at `1f13c83` confirms WsgiDAV's explicit absolute-path profile on both frameworks:
+54 passed, two optional unavailable/unsupported, no failures, and cleanup
+confirmed. Its [companion](results/ci-39825592640-environment.json) identifies
+the actual execution source and retained raw artifacts; it is not a Linux
+default-mode rerun.
 
 ### Historical suite 1.0
 

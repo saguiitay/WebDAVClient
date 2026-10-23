@@ -6,13 +6,14 @@ param(
     [ValidateSet('net8.0', 'net10.0')]
     [string[]] $Framework = @('net8.0', 'net10.0'),
     [string] $OutputDirectory = 'artifacts\interop',
-    [switch] $ApachePathPlusAlias
+    [switch] $ApachePathPlusAlias,
+    [switch] $AbsolutePathResourceTags
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $project = Join-Path (Join-Path $root 'tests') 'WebDAVClient.InteropTests'
 Push-Location $root
-$names = @('RUN', 'ENDPOINT', 'SERVER', 'VERSION', 'AUTH', 'REVISION', 'OUTPUT', 'APACHE_PATH_PLUS_ALIAS')
+$names = @('RUN', 'ENDPOINT', 'SERVER', 'VERSION', 'AUTH', 'REVISION', 'OUTPUT', 'APACHE_PATH_PLUS_ALIAS', 'ABSOLUTE_PATH_RESOURCE_TAGS')
 $saved = @{}
 foreach ($name in $names) {
     $saved[$name] = [Environment]::GetEnvironmentVariable("WEBDAV_INTEROP_$name")
@@ -22,6 +23,7 @@ try {
         throw 'Path-plus target aliasing is an explicit Apache-only profile assumption.'
     }
     $env:WEBDAV_INTEROP_APACHE_PATH_PLUS_ALIAS = if ($ApachePathPlusAlias) { '1' } else { $null }
+    $env:WEBDAV_INTEROP_ABSOLUTE_PATH_RESOURCE_TAGS = if ($AbsolutePathResourceTags) { '1' } else { $null }
     $profileData = (Get-Content (Join-Path $PSScriptRoot 'profiles.json') -Raw | ConvertFrom-Json).profiles |
         Where-Object id -EQ $Profile
     $env:WEBDAV_INTEROP_RUN = '1'
@@ -49,7 +51,8 @@ try {
     }
     $failed = $false
     foreach ($tfm in $Framework) {
-        $env:WEBDAV_INTEROP_OUTPUT = Join-Path $OutputDirectory "$Profile-$($env:WEBDAV_INTEROP_AUTH)-$tfm.json"
+        $variant = if ($AbsolutePathResourceTags) { '-absolute-path' } else { '' }
+        $env:WEBDAV_INTEROP_OUTPUT = Join-Path $OutputDirectory "$Profile-$($env:WEBDAV_INTEROP_AUTH)$variant-$tfm.json"
         & dotnet run --project $project -c Release -f $tfm --no-build -- --run
         $failed = $failed -or $LASTEXITCODE -ne 0
     }

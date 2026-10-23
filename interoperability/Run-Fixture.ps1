@@ -5,7 +5,8 @@ param(
     [ValidateSet('basic', 'anonymous')]
     [string] $Authentication = 'basic',
     [switch] $CaptureSyntheticPropertyWire,
-    [switch] $ApachePathPlusAlias
+    [switch] $ApachePathPlusAlias,
+    [switch] $AbsolutePathResourceTags
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -124,7 +125,7 @@ try {
         }
     }
     finally { $http.Dispose() }
-    & (Join-Path $PSScriptRoot 'Invoke-Compatibility.ps1') -Profile $Profile -ApachePathPlusAlias:$ApachePathPlusAlias
+    & (Join-Path $PSScriptRoot 'Invoke-Compatibility.ps1') -Profile $Profile -ApachePathPlusAlias:$ApachePathPlusAlias -AbsolutePathResourceTags:$AbsolutePathResourceTags
     if ($captureFailed) { throw 'Synthetic fixture capture was incomplete; compatibility results were retained separately.' }
 }
 finally {

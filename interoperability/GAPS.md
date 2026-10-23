@@ -8,12 +8,49 @@ Durable collection synchronization remains separate work in **#91**.
 
 ## Current evidence
 
+The 3.3.0 source at `4fe7029aeea78c26c71c43515420b28cc973bf31` adds
+`DavIfConditions.TaggedAbsolutePaths(...)`, an explicit RFC 4918 resource-tag
+choice, **not** a retry or relaxed condition. Existing `Tagged(...)` keeps
+absolute URIs. New suite 1.1 runs compare both forms against the same pinned
+servers, on .NET 8 and .NET 10:
+
+| Profile / resource tags | Passed | Optional unsupported/unavailable | Failed / blocked |
+| --- | --- | --- | --- |
+| WsgiDAV 4.3.5 / Cheroot 11.1.2, default absolute URI | 49 | 2 | 4 / 1 |
+| WsgiDAV 4.3.5 / Cheroot 11.1.2, explicit absolute path | 54 | 2 | 0 / 0 |
+| SabreDAV 4.7.0 / PHP 8.3.25, default absolute URI | 55 | 1 | 0 / 0 |
+| SabreDAV 4.7.0 / PHP 8.3.25, explicit absolute path | 55 | 1 | 0 / 0 |
+
+All eight framework results verify run-tree deletion and absence. With explicit
+path tags, WsgiDAV rejects wrong-token and valid-token/false-ETag MOVE with 412,
+preserves source bytes/validator and destination absence, then accepts the
+matching MOVE with 201 and exact destination bytes. The source and destination
+names include Unicode, spaces, plus and literal percent. Default WsgiDAV
+failures remain unchanged and retained. The
+[source/environment companion](results/local-4fe7029-environment.json) records
+both configurations, exact execution source, fixture identities and limits.
+This API is **unpublished**; these are source-build results, not a downloaded
+NuGet-package test or a blanket server guarantee.
+
+The separate [Linux opt-in run](https://github.com/saguiitay/WebDAVClient/actions/runs/39825592640)
+at `1f13c83d8fcdc795f78cb7e92533009cc52cef3d` confirms the same WsgiDAV
+54-pass/two-optional result on both frameworks, including 412 rejections,
+matching MOVE and cleanup. Its [companion](results/ci-39825592640-environment.json)
+retains exact source and artifact provenance. Ordinary
+[PR validation](https://github.com/saguiitay/WebDAVClient/actions/runs/39825593845)
+also passed; Pack, NuGet push and the release job were skipped.
+
+Apache and nginx were not rerun for this resource-tag-only correction. Their
+restrictions below remain open. No historical evidence was removed or relabeled.
+
+### Earlier guarded-mutation baseline
+
 Suite **1.1**, executed from `b3e2e5e80e38876767ac9e82c3a9bdca01e4e5b4`,
 adds independently checked false-ETag conditions with valid lock tokens, not
 just wrong-token rejections. The
 [new run companion](results/local-b3e2e5e-environment.json) records all three
 probe-development revisions, unchanged historical evidence and exact provenance.
-The latest results are identical on .NET 8 and .NET 10:
+Those baseline results are identical on .NET 8 and .NET 10:
 
 | Profile | Passed | Optional unsupported/unavailable | Failed / blocked | Interpretation |
 | --- | --- | --- | --- | --- |
@@ -104,10 +141,29 @@ Rejecting a wrong token is not proof that the ETag condition is enforced.
 The absolute-URI resource-tag form is permitted by RFC 4918 sections 8.3 and
 10.4.2; no malformed client request has been established.
 
-**Action:** do not rely on this profile's tagged conditions for atomic guarded
-MOVE. Require a corrected, independently verified server/configuration before
-using the affected workflow. Do not replay a failed/ambiguous mutation with a
-different tag spelling, strip the ETag, or add HEAD-before-MOVE as a workaround.
+**Root cause:** the pinned server retains resource-tag strings literally but
+looks up a quoted resource path. It does not normalize full absolute URI keys,
+so the valid token can authorize MOVE while the tagged false ETag is ignored.
+Both full URI and absolute-path resource tags are allowed by
+[RFC 4918 section 8.3](https://www.rfc-editor.org/rfc/rfc4918#section-8.3) and
+[section 10.4.2](https://www.rfc-editor.org/rfc/rfc4918#section-10.4.2).
+A separate [raw HTTP comparison](results/wsgidav-tagged-wire-local-e2f21e1.raw.json)
+isolates the spelling difference; it is diagnostic evidence, not a library run.
+
+**Implemented boundary:** upcoming 3.3.0 provides
+`DavIfConditions.TaggedAbsolutePaths(...)`. The new typed-client runs satisfy
+the acceptance criteria below for this explicit WsgiDAV profile on Windows and
+Linux.
+All resources still undergo origin validation before the authority is omitted;
+escaped paths/queries and condition lists are preserved. See the
+[usage and limits](../docs/locking.md#explicit-absolute-path-resource-tags-upcoming-330).
+
+**Remaining restriction:** default absolute-URI tags remain unsafe with the
+pinned server. Select the explicit form before sending only after verifying
+the actual deployment, or require an upstream correction. Do not replay a
+failed/ambiguous mutation with a different spelling, strip the ETag, or add
+HEAD-before-MOVE as a workaround. Untested versions and reverse proxies remain
+unverified; this does not fix nginx's ignored HTTP preconditions.
 
 **Done when:** a separately versioned candidate rejects a valid-token/false-ETag
 tagged MOVE without changing source bytes/validator or creating its destination,

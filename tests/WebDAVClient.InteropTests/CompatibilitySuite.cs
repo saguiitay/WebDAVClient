@@ -50,7 +50,12 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
                 var capabilities = await client.GetCapabilitiesAsync(DavPath.Root, cancellationToken: ct).ConfigureAwait(false);
                 m_matrix.AdvertisedDav.AddRange(capabilities.DavTokens);
                 m_matrix.AdvertisedMethods.AddRange(capabilities.AllowedMethods);
-                return Response("options", capabilities, optional: true);
+                return Response("options", capabilities, optional: true) with
+                {
+                    Detail = config.AbsolutePathResourceTags
+                        ? "Explicit absolute-path resource tags selected for tagged conditions."
+                        : "Default absolute-URI resource tags selected for tagged conditions."
+                };
             }).ConfigureAwait(false);
             bool absent = await CheckAsync("isolation-preflight", async () =>
                 Expected("isolation-preflight", await client.HeadAsync(tree, cancellationToken: ct).ConfigureAwait(false), 404)).ConfigureAwait(false);
@@ -433,7 +438,7 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
                 string baselineTag = tag;
                 var wrong = new DavConditionList(DavCondition.StateToken("urn:uuid:" + Guid.NewGuid()));
                 var wrongConditions = operation == "move"
-                    ? DavIfConditions.Tagged(new DavTaggedConditions(file, wrong))
+                    ? Tagged(file, wrong)
                     : DavIfConditions.Untagged(wrong);
                 await CheckAsync(prefix + "-wrong-token", async () =>
                     ExpectedLockRejection(prefix + "-wrong-token", await MutateAsync(operation, client, file, destination,
@@ -460,7 +465,7 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
                 var wrongTag = new DavConditionList(DavCondition.StateToken(confirmedToken),
                     DavCondition.EntityTag("\"webdavclient-never-issued-" + Guid.NewGuid().ToString("N") + "\""));
                 var wrongTagConditions = operation == "move"
-                    ? DavIfConditions.Tagged(new DavTaggedConditions(file, wrongTag))
+                    ? Tagged(file, wrongTag)
                     : DavIfConditions.Untagged(wrongTag);
                 await CheckAsync(prefix + "-wrong-etag", async () =>
                     Expected(prefix, await MutateAsync(operation, client, file, destination,
@@ -486,7 +491,7 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
 
                 var conjunction = new DavConditionList(DavCondition.StateToken(confirmedToken), DavCondition.EntityTag(baselineTag));
                 var conditions = operation == "put" ? DavIfConditions.Untagged(wrong, conjunction) :
-                    operation == "move" ? DavIfConditions.Tagged(new DavTaggedConditions(file, conjunction)) :
+                    operation == "move" ? Tagged(file, conjunction) :
                     DavIfConditions.Untagged(conjunction);
                 bool mutated = await CheckAsync(prefix + "-valid", async () =>
                     Response(prefix + "-valid", await MutateAsync(operation, client, file, destination,
@@ -578,6 +583,11 @@ internal sealed class CompatibilitySuite(Configuration config, Func<System.Net.H
         }
         return m_matrix;
     }
+
+    private DavIfConditions Tagged(DavPath resource, DavConditionList conditions) =>
+        config.AbsolutePathResourceTags
+            ? DavIfConditions.TaggedAbsolutePaths(new DavTaggedConditions(resource, conditions))
+            : DavIfConditions.Tagged(new DavTaggedConditions(resource, conditions));
 
     private async Task<string?> SeedGuardedFileAsync(string name, DavClient client, DavPath file, CancellationToken ct)
     {

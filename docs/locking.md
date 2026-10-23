@@ -55,6 +55,31 @@ that WsgiDAV 4.3.5 accepts an absolute-URI-tagged MOVE with a valid lock token
 and a false ETag. Do not rely on that profile for the affected guarded mutation;
 see the [version-specific restriction and evidence](../interoperability/GAPS.md#p0-do-not-rely-on-ignored-tagged-move-conditions-in-wsgidav).
 
+### Explicit absolute-path resource tags (upcoming 3.3.0)
+
+`DavIfConditions.TaggedAbsolutePaths(...)` selects the other RFC 4918
+resource-tag form for a verified configuration. This API is in the upcoming
+3.3.0 source, not the published 3.2.0 package. For a source file with a confirmed
+lock token and quoted strong ETag:
+
+```csharp
+var conditions = DavIfConditions.TaggedAbsolutePaths(
+    new DavTaggedConditions(source, new DavConditionList(
+        DavCondition.StateToken(lockToken),
+        DavCondition.EntityTag(strongEtag))));
+var result = await client.MoveAsync(source, destination,
+    new MoveOptions { Conditions = conditions }, cancellationToken);
+result.EnsureSucceeded();
+```
+
+Choose the form before sending the mutation. `Tagged(...)` keeps its existing
+absolute-URI behavior; there is no discovery, automatic fallback or replay.
+Both factories resolve and validate **every** resource against the configured
+scheme/host/port before rendering a header. The opt-in omits only the authority:
+resolved escaped paths, endpoint prefixes, queries and condition lists remain
+unchanged. It does not fix servers that ignore conditions in both forms or
+establish compatibility with untested reverse-proxy configurations.
+
 ## Failure and cleanup
 
 412 can mean an unsatisfied validator/condition; 423 can mean a conflicting lock.
